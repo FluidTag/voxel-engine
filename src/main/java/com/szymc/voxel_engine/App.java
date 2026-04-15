@@ -163,7 +163,7 @@ public class App {
     	World mainWorld = new World();
     	
     	Texture atlas = new Texture("src/main/resources/atlas.png");
-    	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     	
     	double lastFrameTime = 0.0;
         while (!glfwWindowShouldClose(window)) {

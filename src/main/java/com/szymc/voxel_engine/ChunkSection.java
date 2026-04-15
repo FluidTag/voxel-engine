@@ -58,15 +58,22 @@ public class ChunkSection {
 	    2, 3, 0
 	};
 		
-	private static void addFace(List<Float> finalVertices, List<Integer> finalIndexes, float[] faceVertexArray, int x, int y, int z, int tx, int ty) {
+	private static void addQuad(
+			List<Float> finalVertices,
+			List<Integer> finalIndexes,
+			float[] faceVertexArray,
+			int xMin, int xMax, int y, int zMin, int zMax, int tx, int ty) {
 		int addedVerts = finalVertices.size()/5;
 		
-		for (int i = 0; i < faceVertexArray.length; i+=5) {
-			finalVertices.add(faceVertexArray[i] + x);
-			finalVertices.add(faceVertexArray[i+1] + y);
-			finalVertices.add(faceVertexArray[i+2] + z);
-			finalVertices.add((float)(faceVertexArray[i+3] + (0.0625 * tx)));
-			finalVertices.add((float)(faceVertexArray[i+4] + (0.0625 * ty)));
+		float[][] corners = {
+				{xMin, y, zMin, tx, ty},
+				{xMin, y, zMax, tx, ty},
+				{xMax, y, zMax, tx, ty},
+				{xMax, y, zMin, tx, ty}
+		};
+		
+		for (float[] arr : corners) {
+			for (float v : arr) finalVertices.add(v);
 		}
 		
 		for (int index : CUBE_INDEXES) {
@@ -78,33 +85,60 @@ public class ChunkSection {
 		List<Float> finalVertices = new ArrayList<>();
 		List<Integer> finalIndexes = new ArrayList<>();
 		
-		for (int x = 0; x < 16; x++) {
-			for (int y = 0; y < 16; y++) {
+		byte[][][] meshed = new byte[16][16][16];
+		for (int y = 0; y < 16; y++) {
+			for (int x = 0; x < 16; x++) {
 				for (int z = 0; z < 16; z++) {
-					byte block = chunk[x][y][z];
-					if (block == Blocks.AIR) continue;
-					
-					int[] topTex = Texture.getTextureCoords(block, "TOP");
-					int[] sideTex = Texture.getTextureCoords(block, "SIDE");
+					byte currentBlock = chunk[x][y][z];
+					if (currentBlock == Blocks.AIR) continue;
+					if (meshed[x][y][z] != 0) continue;
 					
 					int absX = worldX + x;
 					int absY = worldY + y;
 					int absZ = worldZ + z;
-					boolean onVerticalBorder = absY == 0 || absY == 255;
 					
-					if (worldReference.getBlockAtWorldPos(absX+1, absY, absZ) == 0)
-						addFace(finalVertices, finalIndexes, RIGHT_VERTICES, x, y, z, sideTex[0], sideTex[1]);
-					if (worldReference.getBlockAtWorldPos(absX-1, absY, absZ) == 0)
-						addFace(finalVertices, finalIndexes, LEFT_VERTICES, x, y, z, sideTex[0], sideTex[1]);
-					if (onVerticalBorder || worldReference.getBlockAtWorldPos(absX, absY+1, absZ) == 0)
-						addFace(finalVertices, finalIndexes, TOP_VERTICES, x, y, z, topTex[0], topTex[1]);
-					if (onVerticalBorder || worldReference.getBlockAtWorldPos(absX, absY-1, absZ) == 0)
-						addFace(finalVertices, finalIndexes, BOTTOM_VERTICES, x, y, z, sideTex[0], sideTex[1]);
-					if (worldReference.getBlockAtWorldPos(absX, absY, absZ+1) == 0)
-						addFace(finalVertices, finalIndexes, FRONT_VERTICES, x, y, z, sideTex[0], sideTex[1]);
-					if (worldReference.getBlockAtWorldPos(absX, absY, absZ-1) == 0)
-						addFace(finalVertices, finalIndexes, BACK_VERTICES, x, y, z, sideTex[0], sideTex[1]);
+					if (worldReference.getBlockAtWorldPos(absX, absY+1, absZ) != Blocks.AIR) {
+						continue;
+					}
 					
+					// Expand X first
+					int xBoundMax = x;
+					while (xBoundMax < 16) {
+						if (chunk[xBoundMax][y][z] != currentBlock) break;
+						if (worldReference.getBlockAtWorldPos(worldX + xBoundMax, absY+1, absZ) != Blocks.AIR) {
+							break;
+						}
+						
+						meshed[xBoundMax][y][z] = 1;
+						xBoundMax++;
+					}
+					
+					// Now expand z from the width
+					int zBoundMax = z+1;
+					while (zBoundMax < 16) {
+						boolean rowPass = true;
+						for (int xCheck = x; xCheck < xBoundMax; xCheck++) {
+							if (meshed[xCheck][y][zBoundMax] != 0 || chunk[xCheck][y][zBoundMax] != currentBlock) {
+								rowPass = false;
+								break;
+							}
+							
+							if (worldReference.getBlockAtWorldPos(worldX + xCheck, absY+1, worldZ + zBoundMax) != Blocks.AIR) {
+								rowPass = false;
+								break;
+							}
+						}
+						
+						if (rowPass) {
+							for (int xCheck = x; xCheck < xBoundMax; xCheck++) meshed[xCheck][y][zBoundMax] = 1;
+							zBoundMax++;
+						} else break;
+					}
+					
+					int[] tex = Texture.getTextureCoords(currentBlock, "TOP");
+					addQuad(finalVertices, finalIndexes, TOP_VERTICES, x, xBoundMax, y, z, zBoundMax, tex[0], tex[1]);
+					
+					//System.out.println(x + " by " + z + " to " + xBoundMax + " by " + zBoundMax);
 				}
 			}
 		}

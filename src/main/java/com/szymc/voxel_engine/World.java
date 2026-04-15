@@ -10,7 +10,7 @@ import org.joml.SimplexNoise;
 public class World {
 	private final Map<Vector2i, ChunkColumn> renderedColumns = new HashMap<>();
 	private final Map<Vector2i, ChunkColumn> loadedColumns = new HashMap<>();
-	private final int renderDistance = 16;
+	private final int renderDistance = 5;
 	
 	private byte noiseGetBlock(int wx, int wy, int wz) {
 		float freq = 0.012f;
