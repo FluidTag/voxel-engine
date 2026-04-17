@@ -36,12 +36,12 @@ public class Mesh {
     	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer, GL_STATIC_DRAW);
 		
 		// Position
-		int stride = 5 * Float.BYTES; // 5 floats per vertex
+		int stride = 6 * Float.BYTES; // 6 floats per vertex
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
 		glEnableVertexAttribArray(0);
 		
-		// UV
-		glVertexAttribPointer(1, 2, GL_FLOAT, false, stride, 3*Float.BYTES);
+		// Texture
+		glVertexAttribPointer(1, 3, GL_FLOAT, false, stride, 3*Float.BYTES);
 		glEnableVertexAttribArray(1);
 		
 		glBindVertexArray(0);
@@ -59,3 +59,6 @@ public class Mesh {
 		glDeleteBuffers(ebo);
 	}
 }
+
+
+

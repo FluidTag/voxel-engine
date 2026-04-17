@@ -1,9 +1,11 @@
 package com.szymc.voxel_engine;
 
+
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -11,10 +13,12 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 import org.lwjgl.system.MemoryStack;
 import static org.lwjgl.system.MemoryStack.*;
 
+
 import static org.lwjgl.opengl.GL11.*; // Basic functions (Clear, etc.)
 import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
 import static org.lwjgl.opengl.GL20.*; // Shader/Attribute functions (glVertexAttribPointer)
 import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
+
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -24,8 +28,10 @@ import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+
 
 public class App {
 	private static String loadResource(String fileName) {
@@ -101,11 +107,13 @@ public class App {
         
         glfwSwapInterval(1);
 
+
         // 3. Create the window
         long window = glfwCreateWindow(800, 600, "Voxel Engine Test", NULL, NULL);
         if (window == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
+
 
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         
@@ -124,7 +132,7 @@ public class App {
         int modelLoc = glGetUniformLocation(shaderProgram, "model");
         int projLoc = glGetUniformLocation(shaderProgram, "projection");
         int viewLoc = glGetUniformLocation(shaderProgram, "view");
-        int texLoc = glGetUniformLocation(shaderProgram, "texture_diffuse");
+        int texLoc = glGetUniformLocation(shaderProgram, "textureArray");
         
         // 5. Show the window
         glfwShowWindow(window);
@@ -132,7 +140,6 @@ public class App {
         Matrix4f projection = new Matrix4f().perspective((float)Math.toRadians(45.0f), 800.0f/600.0f, 0.1f, 500.0f);
     	Matrix4f model = new Matrix4f();
  
-    	float cameraSpeed = 0.05f;
     	glfwSetCursorPosCallback(window, (windowHandle, xPos, yPos) -> {
     		if (firstMouse) {
     			lastX = (float) xPos;
@@ -162,8 +169,8 @@ public class App {
     	System.out.println(GL11.glGetString(GL11.GL_VENDOR));
     	World mainWorld = new World();
     	
-    	Texture atlas = new Texture("src/main/resources/atlas.png");
-    	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    	Texture atlas = new Texture("textures");
+    	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     	
     	double lastFrameTime = 0.0;
         while (!glfwWindowShouldClose(window)) {
@@ -172,6 +179,7 @@ public class App {
         	lastFrameTime = currentFrameTime;
         	
         	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
         	Matrix4f view = new Matrix4f().lookAt(
         			cameraPos,
@@ -225,6 +233,10 @@ public class App {
         	glfwPollEvents();
         }
 
+
         glfwTerminate();
     }
 }
+
+
+

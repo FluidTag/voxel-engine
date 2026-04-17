@@ -34,6 +34,8 @@ public class World {
 		int chunkY = wy >> 4;
 		int chunkZ = wz >> 4;
 		
+		if (wy < 0) return 1; 
+		
 		Vector2i chunkIndex = new Vector2i(chunkX, chunkZ);
 		if (!loadedColumns.containsKey(chunkIndex)) {
 			return noiseGetBlock(wx, wy, wz);
@@ -42,6 +44,9 @@ public class World {
 			int localX = wx & 15;
 			int localY = wy & 15;
 			int localZ = wz & 15;
+			
+			ChunkSection section = chunk.getSection(chunkY);
+			if (section == null) return Blocks.AIR;
 			
 			return chunk.getSection(chunkY).getLocalBlock(localX, localY, localZ);
 		}
@@ -85,7 +90,7 @@ public class World {
 		int chunkX = (int)playerPosition.x >> 4;
 		int chunkZ = (int)playerPosition.z >> 4;
 		
-		// Generate Data
+		// Generate Terrain / Data
 		for (int x = -renderDistance; x < renderDistance; x++) {
 			for (int z = -renderDistance; z < renderDistance; z++) {
 				int newX = chunkX + x;
