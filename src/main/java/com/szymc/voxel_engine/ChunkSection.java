@@ -233,6 +233,10 @@ public class ChunkSection {
 		this.mesh = generateMeshChunk();
 	}
 	
+	public byte[][][] getChunkData() {	
+		return this.chunk;
+	}
+	
 	public Mesh getMesh() {
 		return this.mesh;
 	}

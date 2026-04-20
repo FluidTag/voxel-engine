@@ -79,7 +79,7 @@ public class World {
 			sections[sec] = new ChunkSection(dat, this, cx*16, sec*16, cz*16);
 		}
 		
-		return new ChunkColumn(cx, cz, sections);
+		return new ChunkColumn(this, cx, cz, sections);
 	}
 	
 	public Map<Vector2i, ChunkColumn> getLoaded() {
@@ -100,6 +100,57 @@ public class World {
 				if (!renderedColumns.containsKey(pos)) {
 					ChunkColumn chunk = loadedColumns.getOrDefault(pos, generateChunk(newX, newZ));
 					loadedColumns.put(pos, chunk);
+				}
+			}
+		}
+		
+		for (int x = -renderDistance; x < renderDistance; x++) {
+			for (int z = -renderDistance; z < renderDistance; z++) { 
+				int newX = chunkX + x;
+				int newZ = chunkZ + z;
+				
+				Vector2i pos = new Vector2i(newX, newZ);
+				ChunkColumn chunk = loadedColumns.get(pos);
+				
+				// Only generate trees past > 64 or cs (64/16) = 4 and above
+				
+				for (int cx = 0; cx < 16; cx++) {
+					for (int cz = 0; cz < 16; cz++) {
+						int ySurface = -1;
+						for (int yCheck = 255; yCheck > 64; yCheck--) {
+							if (chunk.getBlockInChunk(cx, yCheck, cz) == Blocks.GRASS) {
+								ySurface = yCheck;
+								break;
+							}
+						}
+						
+						if (ySurface != -1 && Math.random() > 0.99) {
+							for (int h = 1; h <= 5; h++) {
+								chunk.setBlockInChunk(cx, ySurface + h, cz, Blocks.WOOD);
+							}
+							
+							for (int h = 6; h <= 8; h++) {
+								for (int tx = cx-2; tx <= cx+2; tx++) {
+									for (int tz = cz-2; tz <= cz+2; tz++) {
+										if (tx < 0 || tx > 15 || tz < 0 || tz > 15) {
+											Vector2i neighborPos = null;
+											int neighborCX = newX + (tx >> 4);
+		                                    int neighborCZ = newZ + (tz >> 4);
+											neighborPos = new Vector2i(neighborCX, neighborCZ);
+											if (!loadedColumns.containsKey(neighborPos)) {
+												loadedColumns.put(neighborPos, generateChunk(neighborPos.x, neighborPos.y));
+											}
+											
+											ChunkColumn nextNeighbor = loadedColumns.get(neighborPos);
+											nextNeighbor.setBlockInChunk(tx&15, ySurface + h, tz&15, Blocks.LEAVES);
+										} else {
+											chunk.setBlockInChunk(tx, ySurface + h, tz, Blocks.LEAVES);
+										}
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 		}
