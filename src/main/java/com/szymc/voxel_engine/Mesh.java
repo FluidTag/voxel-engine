@@ -5,11 +5,13 @@ import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
 import static org.lwjgl.opengl.GL20.*; // Shader/Attribute functions (glVertexAttribPointer)
 import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
 
+
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import org.joml.Vector3f;
+
 
 public class Mesh {
 	private int vao, vbo, ebo, indexCount;
@@ -59,6 +61,3 @@ public class Mesh {
 		glDeleteBuffers(ebo);
 	}
 }
-
-
-

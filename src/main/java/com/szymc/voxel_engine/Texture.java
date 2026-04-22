@@ -14,6 +14,7 @@ import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
 import static org.lwjgl.opengl.GL20.*; // Shader/Attribute functions (glVertexAttribPointer)
 import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
 
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,10 +31,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
+
 import static org.lwjgl.stb.STBImage.*;
+
 
 public class Texture {
 	private int id = 0;
@@ -53,6 +57,8 @@ public class Texture {
 			return 4;
 		case Blocks.LEAVES:
 			return 3;
+		case Blocks.WATER:
+			return 6;
 		default:
 			return 0;
 		}
@@ -92,6 +98,9 @@ public class Texture {
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
 	
 	private void uploadLayer(String path, int layer, int size) {
@@ -119,6 +128,8 @@ public class Texture {
 	        }
 
 
+
+
 	        // Upload to the specific layer in your GL_TEXTURE_2D_ARRAY
 	        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer, size, size, 1, GL_RGBA, GL_UNSIGNED_BYTE, image);
 	        
@@ -134,3 +145,6 @@ public class Texture {
 		glDeleteTextures(this.id);
 	}
 }
+
+
+

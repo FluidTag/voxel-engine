@@ -14,10 +14,14 @@ import org.lwjgl.system.MemoryStack;
 import static org.lwjgl.system.MemoryStack.*;
 
 
+
+
 import static org.lwjgl.opengl.GL11.*; // Basic functions (Clear, etc.)
 import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
 import static org.lwjgl.opengl.GL20.*; // Shader/Attribute functions (glVertexAttribPointer)
 import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
+
+
 
 
 import java.io.BufferedReader;
@@ -29,8 +33,12 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 
+
+
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+
+
 
 
 public class App {
@@ -108,11 +116,15 @@ public class App {
         glfwSwapInterval(1);
 
 
+
+
         // 3. Create the window
         long window = glfwCreateWindow(800, 600, "Voxel Engine Test", NULL, NULL);
         if (window == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
+
+
 
 
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -168,10 +180,11 @@ public class App {
     	System.out.println(GL11.glGetString(GL11.GL_RENDERER));
     	System.out.println(GL11.glGetString(GL11.GL_VENDOR));
     	World mainWorld = new World();
+    	mainWorld.initNoise();
     	
     	Texture atlas = new Texture("textures");
     	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    	
+    	glClearColor(0.5f, 0.6f, 0.8f, 1.0f);
     	double lastFrameTime = 0.0;
         while (!glfwWindowShouldClose(window)) {
         	double currentFrameTime = glfwGetTime();
@@ -179,6 +192,8 @@ public class App {
         	lastFrameTime = currentFrameTime;
         	
         	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
 
 
         	Matrix4f view = new Matrix4f().lookAt(
@@ -199,12 +214,14 @@ public class App {
         		glUniformMatrix4fv(projLoc, false, projection.get(matrixBuffer));
         		glUniformMatrix4fv(viewLoc, false, view.get(matrixBuffer)); 
         		
-        		for (ChunkColumn chunkMain : mainWorld.getLoaded().values()) {
+        		for (ChunkColumn chunkMain : mainWorld.getRendered().values()) {
         			if (chunkMain == null) continue;
         			
 	        		for (int s = 0; s < 16; s++) {
 	        			ChunkSection section = chunkMain.getSection(s);
+	        			
 	        			if (section == null) continue;
+	        			if (section.getMesh() == null) continue;
 	        			
 	        			float worldX = chunkMain.getWorldX() * 16;
 	        			float worldY = s * 16;
@@ -234,9 +251,15 @@ public class App {
         }
 
 
+
+
         glfwTerminate();
     }
 }
+
+
+
+
 
 
 

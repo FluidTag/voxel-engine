@@ -3,5 +3,7 @@ in vec3 TexCoord;
 out vec4 FragColor;
 uniform sampler2DArray textureArray;
 void main() {
-	FragColor = texture(textureArray, TexCoord);
+	vec4 color = texture(textureArray, TexCoord);
+	if (color.a < 0.1) discard;
+	FragColor = color;
 }

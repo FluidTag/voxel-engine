@@ -1,19 +1,10 @@
 package com.szymc.voxel_engine;
-
 public class ChunkColumn {
 	private World worldReference;
 	private ChunkSection[] sections = new ChunkSection[16];
 	private int worldX = 0;
 	private int worldZ = 0;
-	private boolean isDirty = false;
-	
-	public boolean isDirty() {
-		return this.isDirty;
-	}
-	
-	public void setDirty(boolean dirty) {
-		this.isDirty = dirty;
-	}
+	public boolean decorated = false;
 	
 	// Returns 0 if null sector
 	public byte getBlockInChunk(int cx, int cy, int cz) {
@@ -24,6 +15,7 @@ public class ChunkColumn {
 		return section.getLocalBlock(cx, cy & 15, cz);
 	}
 	
+	// Also need to set neighboring chunk segments to dirty if its on a border
 	public void setBlockInChunk(int cx, int cy, int cz, byte blockType) {
 		int sectorI = cy >> 4;
 		ChunkSection section = getSection(sectorI);
@@ -31,9 +23,51 @@ public class ChunkColumn {
 		
 		byte[][][] dat = section.getChunkData();
 		dat[cx][cy & 15][cz] = blockType;
+		
+		if (cy == 15 && sectorI < 15) {
+			getSection(sectorI + 1).setDirty(true);
+		}
+		
+		if (cy == 0 && sectorI > 0) {
+			getSection(sectorI + 1).setDirty(true);
+		}
+		
+		ChunkColumn xMinorChunk = worldReference.getLoadedChunkAtPos(worldX-1, worldZ);
+		if (cx == 0 && xMinorChunk != null) {
+			if (xMinorChunk.getSection(sectorI) == null) {
+				xMinorChunk.initializeSection(sectorI);
+			}
+			xMinorChunk.getSection(sectorI).setDirty(true);
+		}
+		
+		ChunkColumn xMajorChunk = worldReference.getLoadedChunkAtPos(worldX+1, worldZ);
+		if (cx == 15 && xMajorChunk != null) {
+			if (xMajorChunk.getSection(sectorI) == null) {
+				xMajorChunk.initializeSection(sectorI);
+			}
+			xMajorChunk.getSection(sectorI).setDirty(true);
+		}
+		
+		ChunkColumn zMinorChunk = worldReference.getLoadedChunkAtPos(worldX, worldZ-1);
+		if (cz == 0 && zMinorChunk != null) {
+			if (zMinorChunk.getSection(sectorI) == null) {
+				zMinorChunk.initializeSection(sectorI);
+			}
+			
+			zMinorChunk.getSection(sectorI).setDirty(true);
+		}
+		
+		ChunkColumn zMajorChunk = worldReference.getLoadedChunkAtPos(worldX, worldZ+1);
+		if (cz == 15 && zMajorChunk != null) {
+			if (zMajorChunk.getSection(sectorI) == null) {
+				zMajorChunk.initializeSection(sectorI);
+			}
+			
+			zMajorChunk.getSection(sectorI).setDirty(true);
+		}
 	}
 	
-	private ChunkSection initializeSection(int yIndex) {
+	public ChunkSection initializeSection(int yIndex) {
 		sections[yIndex] = new ChunkSection(new byte[16][16][16], worldReference, worldX*16, yIndex*16, worldZ*16);
 		return sections[yIndex];
 	}

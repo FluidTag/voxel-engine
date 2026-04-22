@@ -1,22 +1,46 @@
 package com.szymc.voxel_engine;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import org.joml.Vector2i;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.joml.Vector3f;
-import org.joml.SimplexNoise;
 
 public class World {
-	private final Map<Vector2i, ChunkColumn> renderedColumns = new HashMap<>();
-	private final Map<Vector2i, ChunkColumn> loadedColumns = new HashMap<>();
-	private final int renderDistance = 5;
+	private final Long2ObjectMap<ChunkColumn> renderedColumns = new Long2ObjectOpenHashMap<>();
+	private final Long2ObjectMap<ChunkColumn> loadedColumns = new Long2ObjectOpenHashMap<>();
+	private final int renderDistance = 9;
+	
+	private long packKey(int cx, int cz) {
+	    return ((long)cx & 0xFFFFFFFFL) | (((long)cz & 0xFFFFFFFFL) << 32);
+	}
+
+	private int getKeyX(long key) {
+	    return (int) key;
+	}
+
+	private int getKeyZ(long key) {
+	    return (int) (key >>> 32); // Use unsigned right shift
+	}
+	
+	private final FastNoiseLite noise = new FastNoiseLite();
+	public void initNoise() {
+		noise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+	    noise.SetFrequency(0.012f);
+
+	    noise.SetFractalType(FastNoiseLite.FractalType.FBm); 
+	    noise.SetFractalOctaves(4);
+	}
+	
+	private int getNoiseHeight(int wx, int wy, int wz) {
+		float finalNoise = (noise.GetNoise(wx, wz) + 1.0f) / 2.0f;
+		finalNoise = (float)(Math.pow(finalNoise, 2.2));
+		int height = (int)(64 + (finalNoise * 40));
+		
+		return height;
+	}
 	
 	private byte noiseGetBlock(int wx, int wy, int wz) {
-		float freq = 0.012f;
+		int height = getNoiseHeight(wx, wy, wz);
 		
-		float noise = org.joml.SimplexNoise.noise(wx*freq, wz*freq);
-		int height = (int)(64 + (((noise+1.0f) / 2) * 15));
+		if (wy < 69) return Blocks.WATER;
 		
 		if (wy == height) {
 			return Blocks.GRASS;
@@ -34,13 +58,13 @@ public class World {
 		int chunkY = wy >> 4;
 		int chunkZ = wz >> 4;
 		
-		if (wy < 0) return 1; 
+		if (wy < 0) return 1;
+		long key = packKey(chunkX, chunkZ);
 		
-		Vector2i chunkIndex = new Vector2i(chunkX, chunkZ);
-		if (!loadedColumns.containsKey(chunkIndex)) {
+		if (!loadedColumns.containsKey(key)) {
 			return noiseGetBlock(wx, wy, wz);
 		} else {
-			ChunkColumn chunk = loadedColumns.get(chunkIndex);
+			ChunkColumn chunk = loadedColumns.get(key);
 			int localX = wx & 15;
 			int localY = wy & 15;
 			int localZ = wz & 15;
@@ -48,7 +72,10 @@ public class World {
 			ChunkSection section = chunk.getSection(chunkY);
 			if (section == null) return Blocks.AIR;
 			
-			return chunk.getSection(chunkY).getLocalBlock(localX, localY, localZ);
+			byte block = chunk.getSection(chunkY).getLocalBlock(localX, localY, localZ);
+			if (block == Blocks.LEAVES) block = Blocks.AIR;
+			
+			return block;
 		}
 	}
 	
@@ -82,69 +109,94 @@ public class World {
 		return new ChunkColumn(this, cx, cz, sections);
 	}
 	
-	public Map<Vector2i, ChunkColumn> getLoaded() {
+	public Long2ObjectMap<ChunkColumn> getRendered() {
 		return this.renderedColumns;
 	}
 	
+	public ChunkColumn getLoadedChunkAtPos(int cx, int cz) {
+		long index = packKey(cx, cz);
+		
+		return this.loadedColumns.get(index);
+	}
+	
+	int lastChunkX = 0;
+	int lastChunkZ = 0;
 	public void update(Vector3f playerPosition) {
 		int chunkX = (int)playerPosition.x >> 4;
 		int chunkZ = (int)playerPosition.z >> 4;
 		
+		if (chunkX == lastChunkX && chunkZ == lastChunkZ) {
+			return;
+		}
+		
+		lastChunkX = chunkX;
+		lastChunkZ = chunkZ;
+		
 		// Generate Terrain / Data
+		for (int x = -renderDistance - 1; x < renderDistance + 1; x++) {
+			for (int z = -renderDistance - 1; z < renderDistance + 1; z++) {
+				int newX = chunkX + x;
+				int newZ = chunkZ + z;
+				
+				long key = packKey(newX, newZ);
+				if (!loadedColumns.containsKey(key)) {
+					ChunkColumn chunk = loadedColumns.get(key);
+					if (chunk == null) {
+						chunk = generateChunk(newX, newZ);
+					}
+					
+					loadedColumns.put(key, chunk);
+				}
+			}
+		}
+		
+		// Decorations
 		for (int x = -renderDistance; x < renderDistance; x++) {
 			for (int z = -renderDistance; z < renderDistance; z++) {
 				int newX = chunkX + x;
 				int newZ = chunkZ + z;
 				
-				Vector2i pos = new Vector2i(newX, newZ);
-				if (!renderedColumns.containsKey(pos)) {
-					ChunkColumn chunk = loadedColumns.getOrDefault(pos, generateChunk(newX, newZ));
-					loadedColumns.put(pos, chunk);
-				}
-			}
-		}
-		
-		for (int x = -renderDistance; x < renderDistance; x++) {
-			for (int z = -renderDistance; z < renderDistance; z++) { 
-				int newX = chunkX + x;
-				int newZ = chunkZ + z;
+				long key = packKey(newX, newZ);
+				ChunkColumn chunk = loadedColumns.get(key);
+				if (chunk.decorated == true) continue;
+				chunk.decorated = true;
 				
-				Vector2i pos = new Vector2i(newX, newZ);
-				ChunkColumn chunk = loadedColumns.get(pos);
-				
-				// Only generate trees past > 64 or cs (64/16) = 4 and above
-				
-				for (int cx = 0; cx < 16; cx++) {
-					for (int cz = 0; cz < 16; cz++) {
-						int ySurface = -1;
-						for (int yCheck = 255; yCheck > 64; yCheck--) {
-							if (chunk.getBlockInChunk(cx, yCheck, cz) == Blocks.GRASS) {
-								ySurface = yCheck;
-								break;
-							}
-						}
-						
-						if (ySurface != -1 && Math.random() > 0.99) {
-							for (int h = 1; h <= 5; h++) {
-								chunk.setBlockInChunk(cx, ySurface + h, cz, Blocks.WOOD);
+				if (x != -renderDistance-1 && x != renderDistance+1 && z != -renderDistance-1 && z != renderDistance+1) {
+					for (int cx = 0; cx < 16; cx++) {
+						for (int cz = 0; cz < 16; cz++) {
+							int ySurface = -1;
+							for (int yCheck = 255; yCheck > 64; yCheck--) {
+								byte blockAt = chunk.getBlockInChunk(cx, yCheck, cz);
+								if (blockAt == Blocks.GRASS) {
+									ySurface = yCheck;
+									break;
+								}
 							}
 							
-							for (int h = 6; h <= 8; h++) {
-								for (int tx = cx-2; tx <= cx+2; tx++) {
-									for (int tz = cz-2; tz <= cz+2; tz++) {
-										if (tx < 0 || tx > 15 || tz < 0 || tz > 15) {
-											Vector2i neighborPos = null;
-											int neighborCX = newX + (tx >> 4);
-		                                    int neighborCZ = newZ + (tz >> 4);
-											neighborPos = new Vector2i(neighborCX, neighborCZ);
-											if (!loadedColumns.containsKey(neighborPos)) {
-												loadedColumns.put(neighborPos, generateChunk(neighborPos.x, neighborPos.y));
+							if (ySurface != -1 && Math.random() > 0.999) {
+								for (int j = 1; j <= 6; j++) {
+									chunk.setBlockInChunk(cx, ySurface+j, cz, Blocks.WOOD);
+								}
+								
+								for (int j = 7; j <= 12; j++) {
+									int taper = j <= 9 ? 5/2 : 3/2;
+									if (j == 12) taper = 0;
+									for (int sx = cx - taper; sx <= cx+taper; sx++) {
+										for (int sz = cz - taper; sz <= cz+taper; sz++) {
+											int leafWorldX = newX * 16 + sx;
+											int leafWorldZ = newZ * 16 + sz;
+											long targetPos = packKey(leafWorldX >> 4, leafWorldZ >> 4);
+											
+											ChunkColumn target = loadedColumns.get(targetPos);
+											if (target != chunk) {
+												if (target.getSection((ySurface+j)>>4) == null) {
+													target.initializeSection((ySurface+j)>>4);
+												}
+												
+												target.getSection((ySurface+j)>>4).setDirty(true);
 											}
 											
-											ChunkColumn nextNeighbor = loadedColumns.get(neighborPos);
-											nextNeighbor.setBlockInChunk(tx&15, ySurface + h, tz&15, Blocks.LEAVES);
-										} else {
-											chunk.setBlockInChunk(tx, ySurface + h, tz, Blocks.LEAVES);
+											target.setBlockInChunk(sx&15, ySurface+j, sz&15, Blocks.LEAVES);
 										}
 									}
 								}
@@ -161,25 +213,32 @@ public class World {
 				int newX = chunkX + x;
 				int newZ = chunkZ + z;
 				
-				Vector2i pos = new Vector2i(newX, newZ);
-				ChunkColumn chunk = loadedColumns.get(pos);
+				long key = packKey(newX, newZ);
+				ChunkColumn chunk = loadedColumns.get(key);
 				
 				for (int sec = 0; sec < 16; sec++) {
 					ChunkSection sectionObject = chunk.getSection(sec);
 					if (sectionObject == null) continue;
 					
-					if (sectionObject.getMesh() == null) {
+					if (sectionObject.getMesh() == null || sectionObject.isDirty()) {
 						sectionObject.initializeMesh();
+						
+						if (sectionObject.isDirty()) sectionObject.setDirty(false);
 					}
 					
-					renderedColumns.put(pos, chunk);
+					renderedColumns.put(key, chunk);
 				}
 			}
 		}
 		
-		renderedColumns.entrySet().removeIf(entry -> {
-			Vector2i p = entry.getKey();
-			return (Math.abs(p.x - chunkX) > renderDistance + 2) || (Math.abs(p.y - chunkZ) > renderDistance + 2);
+		((Long2ObjectMap.FastEntrySet<ChunkColumn>) renderedColumns.long2ObjectEntrySet()).fastForEach(entry -> {
+			long key = entry.getLongKey();
+			int cx = getKeyX(key);
+			int cz = getKeyZ(key);
+			
+			if (Math.abs(cx - chunkX) > renderDistance || Math.abs(cz - chunkZ) > renderDistance) {
+				renderedColumns.remove(key);
+			}
 		});
 	}
 }
