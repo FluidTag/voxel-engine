@@ -1,10 +1,56 @@
 package com.szymc.voxel_engine;
+
+
+import java.util.concurrent.atomic.AtomicBoolean;
+
+
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
+
 public class ChunkColumn {
 	private World worldReference;
 	private ChunkSection[] sections = new ChunkSection[16];
+	
 	private int worldX = 0;
 	private int worldZ = 0;
-	public boolean decorated = false;
+	public ChunkState state = ChunkState.EMPTY;
+	public int dirtyCount = 0;
+	
+	public String toString() {
+		return "Chunk (" + worldX + ", " + worldZ + ")\n" + state + "\n" +
+					"Terrain Queued: " + terrainQueued.get() + "\n" +
+					"Decoration Queued: " + decorationQueued.get() + "\n" +
+					"Mesh Queued " + meshQueued.get() + "\n";
+	}
+	
+	public static enum ChunkState {
+		EMPTY,
+		TERRAIN,
+		DECORATED,
+		MESHED;
+		
+		public ChunkState next() {
+			ChunkState[] values = values();
+			int nextOrdinal = this.ordinal()+1;
+			if (nextOrdinal < values.length) {
+				return values[nextOrdinal];
+			}
+			
+			return this;
+		}
+		
+		public boolean isAtleast(ChunkState other) {
+			return this.ordinal() >= other.ordinal();
+		}
+	}
+	
+	AtomicBoolean terrainQueued = new AtomicBoolean();
+	AtomicBoolean decorationQueued = new AtomicBoolean();
+	AtomicBoolean meshQueued = new AtomicBoolean();
+	
+	public void applyTerrain(ChunkSection[] sections) {
+		this.sections = sections;
+	}
 	
 	// Returns 0 if null sector
 	public byte getBlockInChunk(int cx, int cy, int cz) {
@@ -21,60 +67,101 @@ public class ChunkColumn {
 		ChunkSection section = getSection(sectorI);
 		if (section == null) section = initializeSection(sectorI);
 		
-		byte[][][] dat = section.getChunkData();
-		dat[cx][cy & 15][cz] = blockType;
+		section.setBlock(cx, (cy & 15), cz, blockType);
 		
 		if (cy == 15 && sectorI < 15) {
-			getSection(sectorI + 1).setDirty(true);
+			ChunkSection target = getSection(sectorI+1);
+			
+			if (target != null) {
+				if (!target.isDirty()) this.dirtyCount++;
+				target.setDirty(true);
+			}
 		}
 		
 		if (cy == 0 && sectorI > 0) {
-			getSection(sectorI + 1).setDirty(true);
+			ChunkSection target = getSection(sectorI-1);
+			if (target != null) {
+				if (!target.isDirty()) this.dirtyCount++;
+				target.setDirty(true);
+			}
 		}
 		
 		ChunkColumn xMinorChunk = worldReference.getLoadedChunkAtPos(worldX-1, worldZ);
 		if (cx == 0 && xMinorChunk != null) {
-			if (xMinorChunk.getSection(sectorI) == null) {
-				xMinorChunk.initializeSection(sectorI);
+			ChunkSection target = xMinorChunk.getSection(sectorI);
+			
+			if (target != null) {
+				if (!target.isDirty()) xMinorChunk.dirtyCount++;
+				target.setDirty(true);
 			}
-			xMinorChunk.getSection(sectorI).setDirty(true);
 		}
 		
 		ChunkColumn xMajorChunk = worldReference.getLoadedChunkAtPos(worldX+1, worldZ);
-		if (cx == 15 && xMajorChunk != null) {
-			if (xMajorChunk.getSection(sectorI) == null) {
-				xMajorChunk.initializeSection(sectorI);
+		if (cx == 31 && xMajorChunk != null) {
+			ChunkSection target = xMajorChunk.getSection(sectorI);
+			
+			if (target != null) {
+				if (!target.isDirty()) xMajorChunk.dirtyCount++;
+				target.setDirty(true);	
 			}
-			xMajorChunk.getSection(sectorI).setDirty(true);
 		}
 		
 		ChunkColumn zMinorChunk = worldReference.getLoadedChunkAtPos(worldX, worldZ-1);
 		if (cz == 0 && zMinorChunk != null) {
-			if (zMinorChunk.getSection(sectorI) == null) {
-				zMinorChunk.initializeSection(sectorI);
-			}
+			ChunkSection target = zMinorChunk.getSection(sectorI);
 			
-			zMinorChunk.getSection(sectorI).setDirty(true);
+			if (target != null) {
+				if (!target.isDirty()) zMinorChunk.dirtyCount++;
+				target.setDirty(true);
+			}
 		}
 		
 		ChunkColumn zMajorChunk = worldReference.getLoadedChunkAtPos(worldX, worldZ+1);
-		if (cz == 15 && zMajorChunk != null) {
-			if (zMajorChunk.getSection(sectorI) == null) {
-				zMajorChunk.initializeSection(sectorI);
+		if (cz == 31 && zMajorChunk != null) {
+			ChunkSection target = zMajorChunk.getSection(sectorI);
+
+
+			if (target != null) {
+				if (!target.isDirty()) zMajorChunk.dirtyCount++;
+				target.setDirty(true);
 			}
-			
-			zMajorChunk.getSection(sectorI).setDirty(true);
 		}
 	}
 	
 	public ChunkSection initializeSection(int yIndex) {
-		sections[yIndex] = new ChunkSection(new byte[16][16][16], worldReference, worldX*16, yIndex*16, worldZ*16);
+		sections[yIndex] = new ChunkSection(new byte[32*16*32], worldReference, worldX*32, yIndex*16, worldZ*32);
 		return sections[yIndex];
 	}
 	
 	public ChunkSection getSection(int yIndex) {
 		if (yIndex > (sections.length-1)) return null;
 		return sections[yIndex];
+	}
+	
+	public void cleanupMeshes() {
+		for (int i = 0; i < 16; i++) {
+			ChunkSection sec = sections[i];
+			if (sec == null) continue;
+			
+			Mesh mainMesh = sec.getMesh();
+			Mesh waterMesh = sec.getWaterMesh();
+			
+			if (mainMesh != null) {
+				mainMesh.cleanup();
+				sec.setMesh(null);
+			}
+			
+			if (waterMesh != null) {
+				waterMesh.cleanup();
+				sec.setWaterMesh(null);
+			}
+ 		}
+	}
+	
+	public ChunkColumn(World worldReference, int worldX, int worldZ) {
+		this.worldReference = worldReference;
+		this.worldX = worldX;
+		this.worldZ = worldZ;
 	}
 	
 	public ChunkColumn(World worldReference, int worldX, int worldZ, ChunkSection[] inSections) {

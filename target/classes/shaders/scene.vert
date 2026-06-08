@@ -1,14 +1,23 @@
 #version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aTexCoord;
-
+layout (location = 0) in ivec2 packedData;
 out vec3 TexCoord;
-
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-
 void main() {
-	gl_Position = projection * view * model * vec4(aPos, 1.0);
-	TexCoord = aTexCoord;
+	int dat1 = packedData.x;
+	int dat2 = packedData.y;
+	
+	int x = (dat1 & 0x3F);
+	int y = ((dat1 >> 6) & 0x3F);
+	int z = ((dat1 >> 12) & 0x3F);
+	
+	int u = ((dat2 >> 8) & 0x3F);
+	int v = ((dat2 >> 14) & 0x3F);
+	int TexId = (dat2 & 0xFF);
+	
+	vec3 pos = vec3(float(x), float(y), float(z));
+	
+	gl_Position = projection * view * model * vec4(pos, 1.0);
+	TexCoord = vec3(float(u), float(v), float(TexId));
 }

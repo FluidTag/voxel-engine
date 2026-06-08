@@ -8,11 +8,15 @@ import org.lwjgl.system.MemoryStack;
 import static org.lwjgl.system.MemoryStack.*;
 
 
+
+
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
 import static org.lwjgl.opengl.GL20.*; // Shader/Attribute functions (glVertexAttribPointer)
 import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
+
+
 
 
 import java.io.BufferedReader;
@@ -31,13 +35,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
-
 import static org.lwjgl.stb.STBImage.*;
-
 
 public class Texture {
 	private int id = 0;
@@ -46,19 +47,43 @@ public class Texture {
 		switch (blockType) {
 		
 		case Blocks.GRASS:
-			if (face.equals("TOP")) return 2;
-			if (face.equals("SIDE")) return 1;
-			return 0;
-		case Blocks.DIRT:
-			return 0;
-		case Blocks.STONE:
-			return 5;
-		case Blocks.WOOD:
-			return 4;
-		case Blocks.LEAVES:
+			if (face.equals("TOP")) return 5;
+			if (face.equals("SIDE")) return 4;
 			return 3;
+		case Blocks.DIRT:
+			return 3;
+		case Blocks.STONE:
+			return 14;
+		case Blocks.OAK_WOOD:
+			return 11;
+		case Blocks.OAK_LEAVES:
+			return 9;
 		case Blocks.WATER:
+			return 16;
+		case Blocks.SAND:
+			return 11;
+		case Blocks.GRAVEL:
 			return 6;
+		case Blocks.BEDROCK:
+			return 0;
+		case Blocks.LAVA:	
+			return 8;
+		case Blocks.BIRCH_LEAVES:
+			return 1;
+		case Blocks.BIRCH_WOOD:
+			return 2;
+		case Blocks.SNOW:
+			return 13;
+		case Blocks.SAVANNA_GRASS:
+			if (face.equals("TOP")) return 12;
+			if (face.equals("SIDE")) return 4;
+			
+			return 3;
+		case Blocks.JUNGLE_GRASS:
+			if (face.equals("TOP")) return 7;
+			if (face.equals("SIDE")) return 4;
+			
+			return 3;
 		default:
 			return 0;
 		}
@@ -130,6 +155,10 @@ public class Texture {
 
 
 
+
+
+
+
 	        // Upload to the specific layer in your GL_TEXTURE_2D_ARRAY
 	        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer, size, size, 1, GL_RGBA, GL_UNSIGNED_BYTE, image);
 	        
@@ -137,7 +166,8 @@ public class Texture {
 		}
 	}
 	
-	public void bind() {
+	public void bind(int slot) {
+		glActiveTexture(GL_TEXTURE0 + slot);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, this.id);
 	}
 	

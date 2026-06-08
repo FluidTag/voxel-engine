@@ -1,10 +1,19 @@
 package com.szymc.voxel_engine;
 public class Blocks {
 	public static final byte AIR = 0;
-   public static final byte GRASS = 1;
-   public static final byte DIRT = 2;
-   public static final byte WOOD = 3;
-   public static final byte LEAVES = 4;
-   public static final byte STONE = 5;
-   public static final byte WATER = 6;
+	public static final byte GRASS = 1;
+	public static final byte DIRT = 2;
+	public static final byte OAK_WOOD = 3;
+	public static final byte OAK_LEAVES = 4;
+	public static final byte STONE = 5;
+	public static final byte WATER = 6;
+	public static final byte SAND = 7;
+	public static final byte GRAVEL = 8;
+	public static final byte BEDROCK = 9;
+	public static final byte LAVA = 10;
+	public static final byte BIRCH_WOOD = 11;
+	public static final byte BIRCH_LEAVES = 12;
+	public static final byte SNOW = 13;
+	public static final byte SAVANNA_GRASS = 14;
+	public static final byte JUNGLE_GRASS = 15;
 }

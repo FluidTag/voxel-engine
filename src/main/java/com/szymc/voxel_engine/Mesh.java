@@ -1,11 +1,15 @@
 package com.szymc.voxel_engine;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.system.MemoryUtil;
+
+
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
 import static org.lwjgl.opengl.GL20.*; // Shader/Attribute functions (glVertexAttribPointer)
 import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
 
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -15,36 +19,53 @@ import org.joml.Vector3f;
 
 public class Mesh {
 	private int vao, vbo, ebo, indexCount;
+	private static IntBuffer vertBuf = MemoryUtil.memAllocInt(1024*1024);
+	private static IntBuffer intBuf = MemoryUtil.memAllocInt(1024*1024);
 	
-	public Mesh(float[] verticies, int[] indicies) {
-		this.indexCount = indicies.length;
+	public Mesh(int[] verticies, int[] indicies, int numVerts, int numIndicies) {
+		this.indexCount = numIndicies;
+		
+		if (numVerts > vertBuf.capacity()) {
+			MemoryUtil.memFree(vertBuf);
+			vertBuf = MemoryUtil.memAllocInt(numVerts * 2);
+		}
+		
+		if (numIndicies > intBuf.capacity()) {
+			MemoryUtil.memFree(intBuf);
+			intBuf = MemoryUtil.memAllocInt(numIndicies * 2);
+		}
+		
+		vertBuf.clear();
+		vertBuf.put(verticies, 0, numVerts);
+		vertBuf.flip();
+		
+		intBuf.clear();
+		intBuf.put(indicies, 0, numIndicies);
+		intBuf.flip();
 		
 		vao = glGenVertexArrays();
 		glBindVertexArray(vao);
 		
 		vbo = glGenBuffers();
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, vertBuf, GL_STATIC_DRAW);
+		
 		ebo = glGenBuffers();
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, intBuf, GL_STATIC_DRAW);
 		
-    	FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(verticies.length);
-    	vertexBuffer.put(verticies).flip();
-    	
-    	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    	glBufferData(GL_ARRAY_BUFFER, vertexBuffer, GL_STATIC_DRAW);
-    	
-    	IntBuffer indexBuffer = BufferUtils.createIntBuffer(indicies.length);
-    	indexBuffer.put(indicies).flip();
-    	
-    	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer, GL_STATIC_DRAW);
+		// 18 for position
+		// 6 bits posX
+		// 6 bits posY
+		// 6 bits posZ
 		
-		// Position
-		int stride = 6 * Float.BYTES; // 6 floats per vertex
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
+		// int 2:
+		// 8 bits for block type
+		// 6 bits for uv width
+		// 6 bits for uv height
+		
+		glVertexAttribIPointer(0, 2, GL_INT, 2*Integer.BYTES, 0);
 		glEnableVertexAttribArray(0);
-		
-		// Texture
-		glVertexAttribPointer(1, 3, GL_FLOAT, false, stride, 3*Float.BYTES);
-		glEnableVertexAttribArray(1);
 		
 		glBindVertexArray(0);
 	}
