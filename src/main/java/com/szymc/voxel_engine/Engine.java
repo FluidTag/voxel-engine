@@ -80,6 +80,10 @@ public class Engine {
 			for (ChunkColumn chunk : worldScene.getRendered().values()) {
 				if (chunk == null) continue;
 				
+				if (!camera.frustumInt.testAab(chunk.getWorldX()*32, 0, chunk.getWorldZ()*32, chunk.getWorldX()*32+32, 256, chunk.getWorldZ()*32+32)) {
+					continue;
+				}
+				
 				for (int s = 0; s < 16; s++) {
 					ChunkSection section = chunk.getSection(s);
 					if (section == null) continue;
@@ -113,6 +117,10 @@ public class Engine {
 			glDepthMask(false);
 			for (ChunkColumn chunk : worldScene.getRendered().values()) {
 				if (chunk == null) continue;
+				
+				if (!camera.frustumInt.testAab(chunk.getWorldX()*32, 0, chunk.getWorldZ()*32, chunk.getWorldX()*32+32, 256, chunk.getWorldZ()*32+32)) {
+					continue;
+				}
 				
 				for (int s = 0; s < 16; s++) {
 					ChunkSection section = chunk.getSection(s);

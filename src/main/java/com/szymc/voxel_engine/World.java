@@ -34,8 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class World {
 	private final Long2ObjectMap<ChunkColumn> renderedColumns = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectMap<ChunkColumn> loadedColumns = new Long2ObjectOpenHashMap<>();
-	public final Long2ObjectMap<IntArrayList> pendingSpillover = new Long2ObjectOpenHashMap<>();
-	
+
 	private final int renderDistance = 14;
 	private final long winId;
 	
@@ -169,18 +168,6 @@ public class World {
 			chunk.applyTerrain(task.terrainGenerated);
 			chunk.state = chunk.state.next();
 			
-			IntArrayList spillOver = pendingSpillover.remove(packKey(task.cx, task.cz));
-			if (spillOver != null) {
-				for (int change : spillOver) {
-					int x = (change << 25) >> 25;
-					int y = (change >>> 7) & 0xFF;
-					int z = (change << 10) >> 25;
-					byte block = (byte)((change >>> 22) & 0xFF);
-					
-					chunk.setBlockInChunk(x&31, y, z&31, block);
-				}
-			}
-			
 			checkStateAdvances(task.cx, task.cz);
 		}
 		
@@ -202,22 +189,6 @@ public class World {
 					task.chunk.setBlockInChunk(x, y, z, block);
 					continue;
 				}
-				
-				long targetKey = packKey(((task.cx*32)+x)>>5, ((task.cz*32)+z) >> 5);
-				ChunkColumn targetChunk = loadedColumns.get(targetKey);
-				if (targetChunk != null) {
-					ChunkSection segment = targetChunk.getSection(y>>4);
-					targetChunk.setBlockInChunk(x&31, y, z&31, block);
-					
-					if (segment != null && !segment.isDirty()) {
-						targetChunk.getSection(y>>4).setDirty(true);
-						targetChunk.dirtyCount++;
-					}
-					
-					continue;
-				}
-				
-				pendingSpillover.computeIfAbsent(targetKey, k -> new IntArrayList(16)).add(change);
 			}
 			
 			chunk.state = chunk.state.next();

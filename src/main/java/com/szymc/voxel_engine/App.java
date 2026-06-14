@@ -3,7 +3,7 @@ import static org.lwjgl.glfw.GLFW.*;
 public class App {
    public static void main(String[] args) {
    	Camera camera = new Camera();
-   	Window window = new Window(1500, 900, "Voxel-Engine");
+   	Window window = new Window(1600, 900, "Voxel-Engine");
    	
    	World mainWorld = new World(window.getWindowId());
    	TerrainTask.initNoise(); 	

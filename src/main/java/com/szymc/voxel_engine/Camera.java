@@ -21,7 +21,7 @@ public class Camera {
 	private Vector3f cameraFront = new Vector3f(0.0f, 0.0f, -1.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private float sensitivity = 0.1f;
-	private Matrix4f projection = new Matrix4f().perspective((float)Math.toRadians(70.0f), 800.0f/600.0f, 0.1f, 1200.0f);
+	private Matrix4f projection = new Matrix4f().perspective((float)Math.toRadians(74.0f), 1600.0f/900.0f, 0.1f, 1500.0f);
 	public final FrustumIntersection frustumInt = new FrustumIntersection();
 	
 	public int getWorldX() {

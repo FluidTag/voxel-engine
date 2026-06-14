@@ -49,6 +49,15 @@ public class Window {
             throw new RuntimeException("Failed to create the GLFW window");
         }
         
+        long monitor = glfwGetPrimaryMonitor();
+        org.lwjgl.glfw.GLFWVidMode vidmode = glfwGetVideoMode(monitor);
+        if (vidmode != null) {
+        	int xPos = (vidmode.width() - width) / 2;
+        	int yPos = (vidmode.height() - height) / 2;
+        	
+        	glfwSetWindowPos(window, xPos, yPos);
+        }
+        
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         
         // 4. Make the OpenGL context current

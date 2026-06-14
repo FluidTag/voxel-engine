@@ -1,31 +1,13 @@
 package com.szymc.voxel_engine;
-import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL;
-import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.system.MemoryUtil.NULL;
 import org.lwjgl.system.MemoryStack;
-import static org.lwjgl.system.MemoryStack.*;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL30.*;
 
-
-
-
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL30.glGenerateMipmap;
-import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
-import static org.lwjgl.opengl.GL20.*; // Shader/Attribute functions (glVertexAttribPointer)
-import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
-
-
-
-
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,10 +17,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.joml.Matrix4f;
-import org.joml.Vector3f;
-
 import static org.lwjgl.stb.STBImage.*;
+
 
 public class Texture {
 	private int id = 0;
@@ -53,37 +33,49 @@ public class Texture {
 		case Blocks.DIRT:
 			return 3;
 		case Blocks.STONE:
-			return 14;
+			return 15;
 		case Blocks.OAK_WOOD:
 			return 11;
 		case Blocks.OAK_LEAVES:
-			return 9;
+			return 10;
 		case Blocks.WATER:
-			return 16;
+			return 18;
 		case Blocks.SAND:
-			return 11;
+			return 12;
 		case Blocks.GRAVEL:
 			return 6;
 		case Blocks.BEDROCK:
 			return 0;
 		case Blocks.LAVA:	
-			return 8;
+			return 9;
 		case Blocks.BIRCH_LEAVES:
 			return 1;
 		case Blocks.BIRCH_WOOD:
 			return 2;
 		case Blocks.SNOW:
-			return 13;
+			return 14;
 		case Blocks.SAVANNA_GRASS:
-			if (face.equals("TOP")) return 12;
+			if (face.equals("TOP")) return 13;
 			if (face.equals("SIDE")) return 4;
 			
 			return 3;
 		case Blocks.JUNGLE_GRASS:
-			if (face.equals("TOP")) return 7;
+			if (face.equals("TOP")) return 8;
 			if (face.equals("SIDE")) return 4;
 			
 			return 3;
+		case Blocks.TAIGA_GRASS:
+			if (face.equals("TOP")) return 17;
+			if (face.equals("SIDE")) return 4;
+			
+			return 3;
+		case Blocks.TUNDRA_GRASS:
+			if (face.equals("TOP")) return 16;
+			if (face.equals("SIDE")) return 4;
+			
+			return 3;
+		case Blocks.ICE:
+			return 7;
 		default:
 			return 0;
 		}
@@ -159,6 +151,14 @@ public class Texture {
 
 
 
+
+
+
+
+
+
+
+
 	        // Upload to the specific layer in your GL_TEXTURE_2D_ARRAY
 	        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer, size, size, 1, GL_RGBA, GL_UNSIGNED_BYTE, image);
 	        
@@ -175,6 +175,10 @@ public class Texture {
 		glDeleteTextures(this.id);
 	}
 }
+
+
+
+
 
 
 
