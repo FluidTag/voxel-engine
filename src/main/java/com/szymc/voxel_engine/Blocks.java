@@ -19,4 +19,5 @@ public class Blocks {
 	public static final byte TAIGA_GRASS = 16;
 	public static final byte TUNDRA_GRASS = 17;
 	public static final byte ICE = 18;
+	public static final byte GRASS_DECORATION = 19;
 }

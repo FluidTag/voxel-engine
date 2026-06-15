@@ -80,7 +80,6 @@ public class DecorationTask {
 	public IntArrayList decorate() {
 		IntArrayList editRequests = new IntArrayList();
 
-
 		addTrees(0, 0, editRequests);
 		addTrees(1, 0, editRequests);
 		addTrees(-1, 0, editRequests);
@@ -90,6 +89,18 @@ public class DecorationTask {
 		addTrees(-1, 1, editRequests);
 		addTrees(0, 1, editRequests);
 		addTrees(0, -1, editRequests);
+		
+		SplittableRandom rng = new SplittableRandom((long)(cx)*341873128712L ^ (long)(cz) * 132897987541L);
+		for (int i = 0; i < 15; i++) {
+			int x = rng.nextInt(32);
+			int z = rng.nextInt(32);
+			int surface = findSurface(x, z);
+			if (surface == -1) continue;
+			byte block = chunk.getBlockInChunk(x, surface, z);
+			
+			if (block != Blocks.GRASS && block != Blocks.JUNGLE_GRASS && block != Blocks.SAVANNA_GRASS && block != Blocks.TAIGA_GRASS) continue;
+			chunk.setBlockInChunk(x, surface+1, z, Blocks.GRASS_DECORATION);
+		}
 		
 		return editRequests;
 	}

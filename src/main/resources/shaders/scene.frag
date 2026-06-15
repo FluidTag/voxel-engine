@@ -7,13 +7,7 @@ uniform sampler2DArray textureArray;
 
 void main() {
 	int textureLayer = int(round(TexCoord.z));
-    
-    vec4 color;
-    if (textureLayer == 11) {
-        color = textureLod(textureArray, TexCoord, -1.0);
-    } else {
-        color = texture(textureArray, TexCoord);
-    }
+    vec4 color = texture(textureArray, TexCoord);
 	
 	if (color.a < 0.1) discard;
 	

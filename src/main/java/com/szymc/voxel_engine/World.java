@@ -35,7 +35,7 @@ public class World {
 	private final Long2ObjectMap<ChunkColumn> renderedColumns = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectMap<ChunkColumn> loadedColumns = new Long2ObjectOpenHashMap<>();
 
-	private final int renderDistance = 14;
+	private final int renderDistance = 15;
 	private final long winId;
 	
 	public World(long winId) {
@@ -150,9 +150,9 @@ public class World {
 			//System.out.println(cur);
 			//System.out.println("In rendered columns?: " + renderedColumns.containsKey(packKey(lastX, lastZ)));
 			
-//			Runtime rt = Runtime.getRuntime();
-//			long usedMB = (rt.totalMemory() - rt.freeMemory()) / 1024 / 1024;
-//			System.out.println("Used Memory: " + usedMB + " MB");
+			Runtime rt = Runtime.getRuntime();
+			long usedMB = (rt.totalMemory() - rt.freeMemory()) / 1024 / 1024;
+			System.out.println("Used Memory: " + usedMB + " MB");
 			
 			
 		}

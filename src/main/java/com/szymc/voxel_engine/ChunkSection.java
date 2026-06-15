@@ -24,6 +24,53 @@ public class ChunkSection {
 	public void setDirty(boolean status) {
 		this.dirtyMesh = status;
 	}
+	
+	public static void addGrassShrub(IntArrayList vBuffer, IntArrayList iBuffer, int x, int y, int z, byte blockType) {
+	    int bx = x * 10;
+	    int by = y * 10;
+	    int bz = z * 10;
+
+	    int uWidth = 1;
+	    int vHeight = 1;
+	    byte noAO = (byte) (3 | (3 << 2) | (3 << 4) | (3 << 6)); 
+	    boolean flipQuad = false;
+	    int topY = by + 10;
+
+	    // --- DIAGONAL 1 ---
+	    // Front Face (axis set to 3)
+	    addQuad(vBuffer, iBuffer,
+	            bx + 1, by, bz + 1,
+	            bx + 1, topY, bz + 1,
+	            bx + 9, by, bz + 9,
+	            bx + 9, topY, bz + 9,
+	            uWidth, vHeight, blockType, false, 1, noAO, flipQuad, true);
+
+	    // Back Face (axis set to 3)
+	    addQuad(vBuffer, iBuffer,
+	            bx + 1, by, bz + 1, 
+	            bx + 1, topY, bz + 1, 
+	            bx + 9, by, bz + 9, 
+	            bx + 9, topY, bz + 9, 
+	            uWidth, vHeight, blockType, true, 1, noAO, flipQuad, true);
+
+
+	    // --- DIAGONAL 2 ---
+	    // Front Face (axis set to 3)
+	    addQuad(vBuffer, iBuffer,
+	            bx + 9, by, bz + 1,
+	            bx + 9, topY, bz + 1,
+	            bx + 1, by, bz + 9,
+	            bx + 1, topY, bz + 9,
+	            uWidth, vHeight, blockType, false, 1, noAO, flipQuad, true);
+
+	    // Back Face (axis set to 3)
+	    addQuad(vBuffer, iBuffer,
+	            bx + 9, by, bz + 1, 
+	            bx + 9, topY, bz + 1, 
+	            bx + 1, by, bz + 9, 
+	            bx + 1, topY, bz + 9, 
+	            uWidth, vHeight, blockType, true, 1, noAO, flipQuad, true);
+	}
 		
 	private static void addQuad(
 			IntArrayList vBuffer,
@@ -33,7 +80,7 @@ public class ChunkSection {
 			int x3, int y3, int z3,
 			int x4, int y4, int z4,
 			int width, int height, byte blockType, // U width, V height
-			boolean backFace, int axis, byte packedAO, boolean flipQuad
+			boolean backFace, int axis, byte packedAO, boolean flipQuad, boolean downscale
 			) {	
 		
 		int addedVerts = vBuffer.size()/2;
@@ -45,19 +92,20 @@ public class ChunkSection {
 	    int ao2 = (packedAO >> 2) & 0x3;
 	    int ao3 = (packedAO >> 4) & 0x3;
 	    int ao4 = (packedAO >> 6) & 0x3;
+	    byte scaleFlag = (byte) (downscale ? 1 : 0);
 
 		if (axis == 0) {
-			int vert1a = (x1 & 0x3F) | ((y1 & 0x3F) << 6) | ((z1 & 0x3F) << 12);
-			int vert1b = (texId & 0xFF) | ((height & 0x3F) << 8) | ((width & 0x3F) << 14) | ((ao1 & 0x3)) << 20;
+			int vert1a = (x1 & 0x1FF) | ((y1 & 0x1FF) << 9) | ((z1 & 0x1FF) << 18);
+			int vert1b = (texId & 0xFF) | ((height & 0x3F) << 8) | ((width & 0x3F) << 14) | ((ao1 & 0x3)) << 20 | (scaleFlag << 22);
 			
-			int vert2a = (x2 & 0x3F) | ((y2 & 0x3F) << 6) | ((z2 & 0x3F) << 12); // Position
-			int vert2b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((width & 0x3F) << 14) | ((ao2 & 0x3) << 20);
+			int vert2a = (x2 & 0x1FF) | ((y2 & 0x1FF) << 9) | ((z2 & 0x1FF) << 18); // Position
+			int vert2b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((width & 0x3F) << 14) | ((ao2 & 0x3) << 20) | (scaleFlag << 22);
 			
-			int vert3a = (x3 & 0x3F) | ((y3 & 0x3F) << 6) | ((z3 & 0x3F) << 12); // Position
-			int vert3b = (texId & 0xFF) | ((height & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao3 & 0x3) << 20);
+			int vert3a = (x3 & 0x1FF) | ((y3 & 0x1FF) << 9) | ((z3 & 0x1FF) << 18); // Position
+			int vert3b = (texId & 0xFF) | ((height & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao3 & 0x3) << 20) | (scaleFlag << 22);
 			
-			int vert4a = (x4 & 0x3F) | ((y4 & 0x3F) << 6) | ((z4 & 0x3F) << 12); // Position
-			int vert4b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao4 & 0x3) << 20);
+			int vert4a = (x4 & 0x1FF) | ((y4 & 0x1FF) << 9) | ((z4 & 0x1FF) << 18); // Position
+			int vert4b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao4 & 0x3) << 20) | (scaleFlag << 22);
 			
 			vBuffer.add(vert1a);
 			vBuffer.add(vert1b);
@@ -68,17 +116,17 @@ public class ChunkSection {
 			vBuffer.add(vert4a);
 			vBuffer.add(vert4b);
 		} else {
-			int vert1a = (x1 & 0x3F) | ((y1 & 0x3F) << 6) | ((z1 & 0x3F) << 12);
-			int vert1b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((height & 0x3F) << 14) | ((ao1 & 0x3) << 20);
+			int vert1a = (x1 & 0x1FF) | ((y1 & 0x1FF) << 9) | ((z1 & 0x1FF) << 18);
+			int vert1b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((height & 0x3F) << 14) | ((ao1 & 0x3) << 20) | (scaleFlag << 22);
 			
-			int vert2a = (x2 & 0x3F) | ((y2 & 0x3F) << 6) | ((z2 & 0x3F) << 12); // Position
-			int vert2b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao2 & 0x3) << 20);
+			int vert2a = (x2 & 0x1FF) | ((y2 & 0x1FF) << 9) | ((z2 & 0x1FF) << 18); // Position
+			int vert2b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao2 & 0x3) << 20) | (scaleFlag << 22);
 			
-			int vert3a = (x3 & 0x3F) | ((y3 & 0x3F) << 6) | ((z3 & 0x3F) << 12); // Position
-			int vert3b = (texId & 0xFF) | ((width & 0x3F) << 8) | ((height & 0x3F) << 14) | ((ao3 & 0x3) << 20);
+			int vert3a = (x3 & 0x1FF) | ((y3 & 0x1FF) << 9) | ((z3 & 0x1FF) << 18); // Position
+			int vert3b = (texId & 0xFF) | ((width & 0x3F) << 8) | ((height & 0x3F) << 14) | ((ao3 & 0x3) << 20) | (scaleFlag << 22);
 			
-			int vert4a = (x4 & 0x3F) | ((y4 & 0x3F) << 6) | ((z4 & 0x3F) << 12); // Position
-			int vert4b = (texId & 0xFF) | ((width & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao4 & 0x3) << 20);
+			int vert4a = (x4 & 0x1FF) | ((y4 & 0x1FF) << 9) | ((z4 & 0x1FF) << 18); // Position
+			int vert4b = (texId & 0xFF) | ((width & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao4 & 0x3) << 20) | (scaleFlag << 22);
 			
 			vBuffer.add(vert1a);
 			vBuffer.add(vert1b);
@@ -239,55 +287,51 @@ public class ChunkSection {
 		return arr;
 	}
 	
+	// Used for AO calculations
+	private static boolean isOpqaue(byte block) {
+		return block != 0 && block != Blocks.WATER && block != Blocks.GRASS_DECORATION;
+	}
+	
+	private static byte calculateCornerAO(byte side1, byte side2, byte corner) {
+		byte AO = 3;
+		boolean side1Opaque = isOpqaue(side1);
+		boolean side2Opqaue = isOpqaue(side2);
+		
+		if (side1Opaque && side2Opqaue) {
+			AO = 0;
+		} else {
+			if (side1Opaque) AO--;
+			if (side2Opqaue) AO--;
+			if (isOpqaue(corner)) AO--;
+		}
+		
+		return AO;
+	}
+	
 	private static byte calculateBlockAO(byte[] padded, int u, int axis, int v, int methodAxis, boolean backFace, int uStride, int vStride, int nStride) {
 		byte corner1AO = 3, corner2AO = 3, corner3AO = 3, corner4AO = 3;
 		int normal = (axis+1) + (backFace ? -1 : 1);
 		
 		int normalIdx = nStride * normal;
-		int c1s1 = padded[(u+1-1)*uStride + (v+1)*vStride + normalIdx];
-		int c1s2 = padded[(u+1)*uStride + (v+1+1)*vStride + normalIdx];
-		int c1c = padded[(u+1-1)*uStride + (v+1+1)*vStride + normalIdx];
+		byte c1s1 = padded[(u+1-1)*uStride + (v+1)*vStride + normalIdx];
+		byte c1s2 = padded[(u+1)*uStride + (v+1+1)*vStride + normalIdx];
+		byte c1c = padded[(u+1-1)*uStride + (v+1+1)*vStride + normalIdx];
+		corner1AO = calculateCornerAO(c1s1, c1s2, c1c);
 		
-		if (c1s1 != 0 && c1s1 != Blocks.WATER && c1s2 != 0 && c1s2 != Blocks.WATER) {
-			corner1AO = 0;
-		} else {
-			if (c1s1 != 0 && c1s1 != Blocks.WATER) corner1AO--;
-			if (c1s2 != 0 && c1s2 != Blocks.WATER) corner1AO--;
-			if (c1c != 0 && c1c != Blocks.WATER) corner1AO--;
-		}
+		byte c2s1 = padded[(u+1+1)*uStride + (v+1)*vStride + normalIdx];
+		byte c2s2 = padded[(u+1)*uStride + (v+1+1)*vStride + normalIdx];
+		byte c2c = padded[(u+1+1)*uStride + (v+1+1)*vStride + normalIdx];
+		corner2AO = calculateCornerAO(c2s1, c2s2, c2c);
 		
-		int c2s1 = padded[(u+1+1)*uStride + (v+1)*vStride + normalIdx];
-		int c2s2 = padded[(u+1)*uStride + (v+1+1)*vStride + normalIdx];
-		int c2c = padded[(u+1+1)*uStride + (v+1+1)*vStride + normalIdx];
-		if (c2s1 != 0 && c2s1 != Blocks.WATER && c2s2 != 0 && c2s2 != Blocks.WATER) {
-			corner2AO = 0;
-		} else {
-			if (c2s1 != 0 && c2s1 != Blocks.WATER) corner2AO--;
-			if (c2s2 != 0 && c2s2 != Blocks.WATER) corner2AO--;
-			if (c2c != 0 && c2c != Blocks.WATER) corner2AO--;
-		}
+		byte c3s1 = padded[(u+1-1)*uStride + (v+1)*vStride + normalIdx];
+		byte c3s2 = padded[(u+1)*uStride + (v+1-1)*vStride + normalIdx];
+		byte c3c = padded[(u+1-1)*uStride + (v+1-1)*vStride + normalIdx];
+		corner3AO = calculateCornerAO(c3s1, c3s2, c3c);
 		
-		int c3s1 = padded[(u+1-1)*uStride + (v+1)*vStride + normalIdx];
-		int c3s2 = padded[(u+1)*uStride + (v+1-1)*vStride + normalIdx];
-		int c3c = padded[(u+1-1)*uStride + (v+1-1)*vStride + normalIdx];
-		if (c3s1 != 0 && c3s1 != Blocks.WATER && c3s2 != 0 && c3s2 != Blocks.WATER) {
-			corner3AO = 0;
-		} else {
-			if (c3s1 != 0 && c3s1 != Blocks.WATER) corner3AO--;
-			if (c3s2 != 0 && c3s2 != Blocks.WATER) corner3AO--;
-			if (c3c != 0 && c3c != Blocks.WATER) corner3AO--;
-		}
-		
-		int c4s1 = padded[(u+1+1)*uStride + (v+1)*vStride + normalIdx];
-		int c4s2 = padded[(u+1)*uStride + (v+1-1)*vStride + normalIdx];
-		int c4c = padded[(u+1+1)*uStride + (v+1-1)*vStride + normalIdx];
-		if (c4s1 != 0 && c4s1 != Blocks.WATER && c4s2 != 0 && c4s2 != Blocks.WATER) {
-			corner4AO = 0;
-		} else {
-			if (c4s1 != 0 && c4s1 != Blocks.WATER) corner4AO--;
-			if (c4s2 != 0 && c4s2 != Blocks.WATER) corner4AO--;
-			if (c4c != 0 && c4c != Blocks.WATER) corner4AO--;
-		}
+		byte c4s1 = padded[(u+1+1)*uStride + (v+1)*vStride + normalIdx];
+		byte c4s2 = padded[(u+1)*uStride + (v+1-1)*vStride + normalIdx];
+		byte c4c = padded[(u+1+1)*uStride + (v+1-1)*vStride + normalIdx];
+		corner4AO = calculateCornerAO(c4s1, c4s2, c4c);
 		
 		return (byte) ((corner1AO & 0x3) | ((corner2AO & 0x3) << 2) | ((corner3AO & 0x3) << 4) | ((corner4AO & 0x3) << 6));
 	}
@@ -443,7 +487,7 @@ public class ChunkSection {
 							u, vEnd, axis,
 							
 							quadWidth, quadHeight,
-							startBlock, false, 0, quadAo, flipQuad
+							startBlock, false, 0, quadAo, flipQuad, false
 							);
 					} else if (methodAxis == 1) {
 					addQuad(targetVBuffer, targetIBuffer,
@@ -453,7 +497,7 @@ public class ChunkSection {
 							uEnd, axis, vStart,
 							
 							quadHeight, quadWidth, 
-							startBlock, false, 1, quadAo, flipQuad
+							startBlock, false, 1, quadAo, flipQuad, false
 							);
 					} else if (methodAxis == 0) {
 					addQuad(targetVBuffer, targetIBuffer,
@@ -463,7 +507,7 @@ public class ChunkSection {
 							axis, uEnd, vStart,
 							
 							quadHeight, quadWidth, 
-							startBlock, true, 0, quadAo, flipQuad
+							startBlock, true, 0, quadAo, flipQuad, false
 							);	
 					}
 				}
@@ -551,7 +595,7 @@ public class ChunkSection {
 							u, vEnd, axis+1,
 							
 							quadWidth, quadHeight,
-							startBlock, true, 0, quadAo, flipQuad
+							startBlock, true, 0, quadAo, flipQuad, false
 							);
 					} else if (methodAxis == 1) {
 					addQuad(targetVBuffer, targetIBuffer,
@@ -561,7 +605,7 @@ public class ChunkSection {
 							uEnd, axis+1, vStart,
 							
 							quadHeight, quadWidth, 
-							startBlock, true, 1, quadAo, flipQuad
+							startBlock, true, 1, quadAo, flipQuad, false
 							);
 					} else if (methodAxis == 0) {
 					addQuad(targetVBuffer, targetIBuffer,
@@ -571,7 +615,7 @@ public class ChunkSection {
 							axis+1, uEnd, vStart,
 							
 							quadHeight, quadWidth, 
-							startBlock, false, 0, quadAo, flipQuad
+							startBlock, false, 0, quadAo, flipQuad, false
 							);	
 					}
 				}
@@ -643,12 +687,25 @@ public class ChunkSection {
 		Arrays.fill(watX, 0L);
 		long[] leaX = tLeaX.get();
 		Arrays.fill(leaX, 0L);
+	
+		for (int x = 0; x < 32; x++) {
+			for (int y = 0; y < 16; y++) {
+				for (int z = 0; z < 32; z++) {
+					byte block = chunk[x*16*32 + y*32 + z];
+					if (block == Blocks.GRASS_DECORATION) {
+						padded[(x+1)*18*34 + (y+1)*34 + (z+1)] = Blocks.AIR; // = 0
+						addGrassShrub(vertexBuffer, indexBuffer, x,y,z, block);
+					}
+				}
+			}
+		}
 		
 		// Build the masks
 		for (int x = 0; x < 34; x++) {
 			for (int y = 0; y < 18; y++) {
 				for (int z = 0; z < 34; z++) {
 					byte block = padded[x*(18*34) + y*34 + z];
+					
 					if (block == Blocks.WATER) {
 						watZ[z*34+x] |= (1L << y);
 						watY[y*34+x] |= (1L << z);
@@ -657,7 +714,7 @@ public class ChunkSection {
 						leaZ[z*34+x] |= (1L << y);
 						leaY[y*34+x] |= (1L << z);
 						leaX[x*18+y] |= (1L << z);
-					} else if (block != 0) {
+					} else if (block != 0 && block != Blocks.GRASS_DECORATION) {
 						occZ[z*34+x] |= (1L << y);
 						occY[y*34+x] |= (1L << z);
 						occX[x*18+y] |= (1L << z);

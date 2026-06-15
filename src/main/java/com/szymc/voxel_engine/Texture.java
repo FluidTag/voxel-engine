@@ -78,6 +78,8 @@ public class Texture {
 			return 3;
 		case Blocks.ICE:
 			return 7;
+		case Blocks.GRASS_DECORATION:
+			return 23;
 		default:
 			return 0;
 		}
@@ -131,7 +133,7 @@ public class Texture {
 		
 		glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
 
-		glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_LOD_BIAS, 1f);
+		//glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_LOD_BIAS, 1f);
 		glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 		
 		glEnable(GL_BLEND);
