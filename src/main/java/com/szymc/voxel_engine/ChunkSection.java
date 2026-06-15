@@ -248,45 +248,45 @@ public class ChunkSection {
 		int c1s2 = padded[(u+1)*uStride + (v+1+1)*vStride + normalIdx];
 		int c1c = padded[(u+1-1)*uStride + (v+1+1)*vStride + normalIdx];
 		
-		if (c1s1 != 0 && c1s2 != 0) {
+		if (c1s1 != 0 && c1s1 != Blocks.WATER && c1s2 != 0 && c1s2 != Blocks.WATER) {
 			corner1AO = 0;
 		} else {
-			if (c1s1 != 0) corner1AO--;
-			if (c1s2 != 0) corner1AO--;
-			if (c1c != 0) corner1AO--;
+			if (c1s1 != 0 && c1s1 != Blocks.WATER) corner1AO--;
+			if (c1s2 != 0 && c1s2 != Blocks.WATER) corner1AO--;
+			if (c1c != 0 && c1c != Blocks.WATER) corner1AO--;
 		}
 		
 		int c2s1 = padded[(u+1+1)*uStride + (v+1)*vStride + normalIdx];
 		int c2s2 = padded[(u+1)*uStride + (v+1+1)*vStride + normalIdx];
 		int c2c = padded[(u+1+1)*uStride + (v+1+1)*vStride + normalIdx];
-		if (c2s1 != 0 && c2s2 != 0) {
+		if (c2s1 != 0 && c2s1 != Blocks.WATER && c2s2 != 0 && c2s2 != Blocks.WATER) {
 			corner2AO = 0;
 		} else {
-			if (c2s1 != 0) corner2AO--;
-			if (c2s2 != 0) corner2AO--;
-			if (c2c != 0) corner2AO--;
+			if (c2s1 != 0 && c2s1 != Blocks.WATER) corner2AO--;
+			if (c2s2 != 0 && c2s2 != Blocks.WATER) corner2AO--;
+			if (c2c != 0 && c2c != Blocks.WATER) corner2AO--;
 		}
 		
 		int c3s1 = padded[(u+1-1)*uStride + (v+1)*vStride + normalIdx];
 		int c3s2 = padded[(u+1)*uStride + (v+1-1)*vStride + normalIdx];
 		int c3c = padded[(u+1-1)*uStride + (v+1-1)*vStride + normalIdx];
-		if (c3s1 != 0 && c3s2 != 0) {
+		if (c3s1 != 0 && c3s1 != Blocks.WATER && c3s2 != 0 && c3s2 != Blocks.WATER) {
 			corner3AO = 0;
 		} else {
-			if (c3s1 != 0) corner3AO--;
-			if (c3s2 != 0) corner3AO--;
-			if (c3c != 0) corner3AO--;
+			if (c3s1 != 0 && c3s1 != Blocks.WATER) corner3AO--;
+			if (c3s2 != 0 && c3s2 != Blocks.WATER) corner3AO--;
+			if (c3c != 0 && c3c != Blocks.WATER) corner3AO--;
 		}
 		
 		int c4s1 = padded[(u+1+1)*uStride + (v+1)*vStride + normalIdx];
 		int c4s2 = padded[(u+1)*uStride + (v+1-1)*vStride + normalIdx];
 		int c4c = padded[(u+1+1)*uStride + (v+1-1)*vStride + normalIdx];
-		if (c4s1 != 0 && c4s2 != 0) {
+		if (c4s1 != 0 && c4s1 != Blocks.WATER && c4s2 != 0 && c4s2 != Blocks.WATER) {
 			corner4AO = 0;
 		} else {
-			if (c4s1 != 0) corner4AO--;
-			if (c4s2 != 0) corner4AO--;
-			if (c4c != 0) corner4AO--;
+			if (c4s1 != 0 && c4s1 != Blocks.WATER) corner4AO--;
+			if (c4s2 != 0 && c4s2 != Blocks.WATER) corner4AO--;
+			if (c4c != 0 && c4c != Blocks.WATER) corner4AO--;
 		}
 		
 		return (byte) ((corner1AO & 0x3) | ((corner2AO & 0x3) << 2) | ((corner3AO & 0x3) << 4) | ((corner4AO & 0x3) << 6));

@@ -43,7 +43,8 @@ public class WorldShader extends Shader {
 	
 		// Temporarily start to set texture uniform (constant)
 		this.start();
-		Texture tex = new Texture("textures");
+		Texture tex = new Texture("textures", 5);
+		
 		glUniform1i(local_textureArray, 0);
 		tex.bind(0);
 		this.stop();

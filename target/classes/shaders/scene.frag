@@ -6,8 +6,18 @@ out vec4 FragColor;
 uniform sampler2DArray textureArray;
 
 void main() {
-	vec4 color = texture(textureArray, TexCoord);
+	int textureLayer = int(round(TexCoord.z));
+    
+    vec4 color;
+    if (textureLayer == 11) {
+        color = textureLod(textureArray, TexCoord, -1.0);
+    } else {
+        color = texture(textureArray, TexCoord);
+    }
+	
 	if (color.a < 0.1) discard;
 	
-	FragColor = vec4(color.rgb * vAoFactor, color.a);
+	vec3 litColor = color.rgb * vAoFactor;
+	
+	FragColor = vec4(litColor, color.a);
 }

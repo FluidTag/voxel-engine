@@ -8,7 +8,7 @@ import org.lwjgl.opengl.GL11;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
-
+import static org.lwjgl.opengl.GL13.*;
 
 import org.joml.Vector3f;
 
@@ -40,7 +40,7 @@ public class Window {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        
+        glfwWindowHint(GLFW_SAMPLES, 4); // Request 4x MSAA
         glfwSwapInterval(1);
         
         // 3. Create the window
@@ -69,6 +69,7 @@ public class Window {
         glCullFace(GL_BACK); // Don't draw the backs of triangles
         glFrontFace(GL_CCW); // Triangles are "front" if points are Counter-Clockwise
         glEnable(GL_CULL_FACE);
+        glEnable(GL_MULTISAMPLE); // Tell OpenGL to use it
         
         System.out.println(GL11.glGetString(GL11.GL_RENDERER));
     	System.out.println(GL11.glGetString(GL11.GL_VENDOR));

@@ -27,5 +27,5 @@ void main() {
 	vec3 pos = vec3(float(x), float(y), float(z));
 	
 	gl_Position = projection * view * model * vec4(pos, 1.0);
-	TexCoord = vec3(float(u), float(v), float(TexId));
+	TexCoord = vec3(float(u), float(v), int(TexId));
 }
