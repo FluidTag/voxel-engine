@@ -22,7 +22,7 @@ public class App {
        	mainWorld.update(camera.cameraPos);
        	engine.render();
        	
-       	float newCamSpeed = 25*deltaTime;
+       	float newCamSpeed = 100*deltaTime;
        	camera.pollCameraMovements(window.getWindowId(), newCamSpeed);
        	
        	if (glfwGetKey(window.getWindowId(), GLFW_KEY_T) == GLFW_PRESS) {

@@ -710,7 +710,10 @@ public class ChunkSection {
 						watZ[z*34+x] |= (1L << y);
 						watY[y*34+x] |= (1L << z);
 						watX[x*18+y] |= (1L << z);
-					} else if (block == Blocks.OAK_LEAVES) {
+					} else if (block == Blocks.OAK_LEAVES 
+							|| block == Blocks.BIRCH_LEAVES
+							|| block == Blocks.SPRUCE_LEAVES
+							|| block == Blocks.ACACIA_LEAVES) {
 						leaZ[z*34+x] |= (1L << y);
 						leaY[y*34+x] |= (1L << z);
 						leaX[x*18+y] |= (1L << z);

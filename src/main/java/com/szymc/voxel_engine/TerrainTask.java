@@ -20,13 +20,13 @@ public class TerrainTask {
 		continentalNoise.SetFractalOctaves(3);
 		
 		temperatureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-		temperatureNoise.SetFrequency(0.0001f);
+		temperatureNoise.SetFrequency(0.0004f);
 		temperatureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		temperatureNoise.SetFractalOctaves(5);
 		temperatureNoise.SetSeed(33);
 		
 		moistureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-		moistureNoise.SetFrequency(0.0001f);
+		moistureNoise.SetFrequency(0.0004f);
 		moistureNoise.SetSeed(49);
 		moistureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		moistureNoise.SetFractalOctaves(4);
@@ -117,15 +117,17 @@ public class TerrainTask {
 	}
 	
 	private static final float[][] dataPoints = {
-		    // Temp, Moist, Block
-		    {0.1f,  0.2f,  Blocks.SNOW},          // Cold & Dry (Arctic)
-		    {0.25f, 0.35f, Blocks.TAIGA_GRASS},   // Cold & Semi-Dry
-		    {0.45f, 0.2f,  Blocks.TUNDRA_GRASS},  // Intermediate Cool/Dry Buffer
-		    {0.5f,  0.5f,  Blocks.GRASS},         // Temperate & Medium Moist
-		    {0.7f,  0.2f,  Blocks.SAND},          // Hot & Arid (Desert)
-		    {0.75f, 0.4f,  Blocks.SAVANNA_GRASS}, // Hot & Semi-Arid
-		    {0.85f, 0.8f,  Blocks.JUNGLE_GRASS}   // Hot & Extremely Wet
-		};
+	    // Temp, Moist, Block
+	    {0.1f,  0.1f,  Blocks.SNOW},          // Cold & Dry (Arctic)
+	    {0.25f, 0.3f, Blocks.TUNDRA_GRASS},   // Cold & Semi-Dry
+	    {0.35f, 0.35f,  Blocks.TAIGA_GRASS},  // Intermediate Cool/Dry Buffer
+	    {0.45f, 0.55f, Blocks.BIRCH_GRASS},
+	    {0.5f,  0.5f,  Blocks.GRASS},         // Temperate & Medium Moist
+	    {0.55f, 0.6f, Blocks.FOREST_GRASS},
+	    {0.75f,  0.2f,  Blocks.SAND},          // Hot & Arid (Desert)
+	    {0.75f, 0.4f,  Blocks.SAVANNA_GRASS}, // Hot & Semi-Arid
+	    {0.85f, 0.8f,  Blocks.JUNGLE_GRASS}   // Hot & Extremely Wet
+	};
 	
 	public static byte getBiomeBlock(int wx, int wz) {
 		float temp = (temperatureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;

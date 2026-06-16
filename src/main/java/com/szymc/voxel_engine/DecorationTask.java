@@ -41,6 +41,7 @@ public class DecorationTask {
 				int relZ = (czOffset*32)+z;
 				int surfaceHeight = -1;
 				byte surfaceBlock = -1;
+				byte biomeBlock = TerrainTask.getBiomeBlock(wx+relX, wz+relZ);
 				
 				if (cxOffset == 0 && czOffset == 0) {
 					surfaceHeight = findSurface(x, z);
@@ -48,30 +49,66 @@ public class DecorationTask {
 					surfaceBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
 				} else {
 					surfaceHeight = TerrainTask.getNoiseHeight(wx+relX, wz+relZ);
-					surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, wx+relX, surfaceHeight, wx+relZ, TerrainTask.getBiomeBlock(wx+relX, wz+relZ), 0, 0); // Grass topblock/Default biome
+					surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, wx+relX, surfaceHeight, wx+relZ, biomeBlock, 0, 0); // Grass topblock/Default biome
 				}
 				
 				//System.out.println(surfaceBlock);
-				if (surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.JUNGLE_GRASS && surfaceBlock != Blocks.TAIGA_GRASS && surfaceBlock != Blocks.SAVANNA_GRASS && surfaceBlock != Blocks.TUNDRA_GRASS) continue;
+				if (surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS && 
+						surfaceBlock != Blocks.FOREST_GRASS && surfaceBlock != Blocks.JUNGLE_GRASS &&
+						surfaceBlock != Blocks.TAIGA_GRASS 
+						&& surfaceBlock != Blocks.SAVANNA_GRASS
+						) continue;
+				
+				byte woodType = Blocks.OAK_WOOD;
+				byte leaveType = Blocks.OAK_LEAVES;
+				
+				if (biomeBlock == Blocks.BIRCH_GRASS) {
+					woodType = Blocks.BIRCH_WOOD;
+					leaveType = Blocks.BIRCH_LEAVES;
+				} else if (biomeBlock == Blocks.TAIGA_GRASS) {
+					woodType = Blocks.SPRUCE_LOG;
+					leaveType = Blocks.SPRUCE_LEAVES;
+				} else if (biomeBlock == Blocks.SAVANNA_GRASS) {
+					woodType = Blocks.ACACIA_LOG;
+					leaveType = Blocks.ACACIA_LEAVES;
+				}
 				
 				if (relX >= 0 && relX <= 31 && relZ >= 0 && relZ <= 31) {
 					for (int j = 1; j<=5; j++) {
-						edits.add(packLocal(relX, surfaceHeight+j, relZ, Blocks.OAK_WOOD));
+						edits.add(packLocal(relX, surfaceHeight+j, relZ, woodType));
 					}
 				}
 				
 				for (int jx = -2; jx <= 2; jx++) {
-					for (int jy = surfaceHeight+5; jy<=surfaceHeight+8; jy++) {
+					for (int jy = surfaceHeight+5; jy<=surfaceHeight+6; jy++) {
 						for (int jz = -2; jz <= 2; jz++) {
 							int compX = relX+jx;
 							int compZ = relZ+jz;
 							
 							if (compX >= 0 && compX <= 31 && compZ >= 0 && compZ <= 31) {
-								edits.add(packLocal(compX, jy, compZ, Blocks.OAK_LEAVES));
+								edits.add(packLocal(compX, jy, compZ, leaveType));
 							}
 						}
 					}
 				}
+				
+				for (int jx = -1; jx <= 1; jx++) {
+					for (int jy = surfaceHeight+7; jy <= surfaceHeight+8; jy++) {
+						for (int jz = -1; jz <= 1; jz++) {
+							int compX = relX+jx;
+							int compZ = relZ+jz;
+							
+							if (compX >= 0 && compX <= 31 && compZ >= 0 && compZ <= 31) {
+								edits.add(packLocal(compX, jy, compZ, leaveType));
+							}
+						}
+					}
+				}
+				
+				if (cxOffset == 0 && czOffset == 0) {
+					edits.add(packLocal(x, surfaceHeight+9, z, leaveType));
+				}
+				
 			}
 		}
 	}
@@ -91,14 +128,16 @@ public class DecorationTask {
 		addTrees(0, -1, editRequests);
 		
 		SplittableRandom rng = new SplittableRandom((long)(cx)*341873128712L ^ (long)(cz) * 132897987541L);
-		for (int i = 0; i < 15; i++) {
+		for (int i = 0; i < 28; i++) {
 			int x = rng.nextInt(32);
 			int z = rng.nextInt(32);
 			int surface = findSurface(x, z);
 			if (surface == -1) continue;
 			byte block = chunk.getBlockInChunk(x, surface, z);
 			
-			if (block != Blocks.GRASS && block != Blocks.JUNGLE_GRASS && block != Blocks.SAVANNA_GRASS && block != Blocks.TAIGA_GRASS) continue;
+			if (block != Blocks.GRASS && block != Blocks.JUNGLE_GRASS 
+					&& block != Blocks.SAVANNA_GRASS && block != Blocks.FOREST_GRASS
+					&& block != Blocks.TAIGA_GRASS && block != Blocks.BIRCH_GRASS) continue;
 			chunk.setBlockInChunk(x, surface+1, z, Blocks.GRASS_DECORATION);
 		}
 		

@@ -20,4 +20,11 @@ public class Blocks {
 	public static final byte TUNDRA_GRASS = 17;
 	public static final byte ICE = 18;
 	public static final byte GRASS_DECORATION = 19;
+	public static final byte FOREST_GRASS = 20;
+	public static final byte BIRCH_GRASS = 21;
+	public static final byte SPRUCE_LOG = 22;
+	public static final byte SPRUCE_LEAVES = 23;
+	public static final byte ACACIA_LOG = 24;
+	public static final byte ACACIA_LEAVES = 25;
+	public static final byte SNOWY_SPRUCE_LEAVES = 26;
 }
