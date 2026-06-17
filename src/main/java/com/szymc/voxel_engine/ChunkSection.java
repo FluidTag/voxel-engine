@@ -289,7 +289,8 @@ public class ChunkSection {
 	
 	// Used for AO calculations
 	private static boolean isOpqaue(byte block) {
-		return block != 0 && block != Blocks.WATER && block != Blocks.GRASS_DECORATION;
+		return block != 0 && block != Blocks.WATER && block != Blocks.GRASS_DECORATION 
+				&& block != Blocks.RED_MUSHROOM_SMALL && block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER;
 	}
 	
 	private static byte calculateCornerAO(byte side1, byte side2, byte corner) {
@@ -692,7 +693,8 @@ public class ChunkSection {
 			for (int y = 0; y < 16; y++) {
 				for (int z = 0; z < 32; z++) {
 					byte block = chunk[x*16*32 + y*32 + z];
-					if (block == Blocks.GRASS_DECORATION) {
+					if (block == Blocks.GRASS_DECORATION || block == Blocks.RED_MUSHROOM_SMALL
+							|| block == Blocks.BROWN_MUSHROOM_SMALL || block == Blocks.RED_FLOWER) {
 						padded[(x+1)*18*34 + (y+1)*34 + (z+1)] = Blocks.AIR; // = 0
 						addGrassShrub(vertexBuffer, indexBuffer, x,y,z, block);
 					}
@@ -717,7 +719,9 @@ public class ChunkSection {
 						leaZ[z*34+x] |= (1L << y);
 						leaY[y*34+x] |= (1L << z);
 						leaX[x*18+y] |= (1L << z);
-					} else if (block != 0 && block != Blocks.GRASS_DECORATION) {
+					} else if (block != 0 && block != Blocks.GRASS_DECORATION 
+							&& block != Blocks.RED_MUSHROOM_SMALL &&
+							block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER) {
 						occZ[z*34+x] |= (1L << y);
 						occY[y*34+x] |= (1L << z);
 						occX[x*18+y] |= (1L << z);

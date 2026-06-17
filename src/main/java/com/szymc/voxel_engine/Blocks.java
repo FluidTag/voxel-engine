@@ -27,4 +27,7 @@ public class Blocks {
 	public static final byte ACACIA_LOG = 24;
 	public static final byte ACACIA_LEAVES = 25;
 	public static final byte SNOWY_SPRUCE_LEAVES = 26;
+	public static final byte RED_MUSHROOM_SMALL = 27;
+	public static final byte BROWN_MUSHROOM_SMALL = 28;
+	public static final byte RED_FLOWER = 29;
 }

@@ -29,77 +29,83 @@ public class Texture {
 		switch (blockType) {
 		
 		case Blocks.GRASS:
-			if (face.equals("TOP")) return 11;
-			if (face.equals("SIDE")) return 10;
+			if (face.equals("TOP")) return 12;
+			if (face.equals("SIDE")) return 11;
 			return 7;
 		case Blocks.DIRT:
-			return 7;
+			return 8;
 		case Blocks.STONE:
-			return 26;
+			return 29;
 		case Blocks.OAK_WOOD:
-			return 18;
-		case Blocks.OAK_LEAVES:
-			return 17;
-		case Blocks.WATER:
-			return 31;
-		case Blocks.SAND:
 			return 19;
+		case Blocks.OAK_LEAVES:
+			return 18;
+		case Blocks.WATER:
+			return 34;
+		case Blocks.SAND:
+			return 22;
 		case Blocks.GRAVEL:
-			return 12;
+			return 13;
 		case Blocks.BEDROCK:
 			return 2;
 		case Blocks.LAVA:	
-			return 16;
+			return 17;
 		case Blocks.BIRCH_LEAVES:
 			return 5;
 		case Blocks.BIRCH_WOOD:
 			return 6;
 		case Blocks.SNOW:
-			return 22;
+			return 25;
 		case Blocks.SAVANNA_GRASS:
-			if (face.equals("TOP")) return 21;
-			if (face.equals("SIDE")) return 20;
+			if (face.equals("TOP")) return 24;
+			if (face.equals("SIDE")) return 23;
 			
-			return 7;
+			return 8;
 		case Blocks.JUNGLE_GRASS:
-			if (face.equals("TOP")) return 15;
-			if (face.equals("SIDE")) return 14;
+			if (face.equals("TOP")) return 16;
+			if (face.equals("SIDE")) return 15;
 			
-			return 7;
+			return 8;
 		case Blocks.TAIGA_GRASS:
-			if (face.equals("TOP")) return 28;
-			if (face.equals("SIDE")) return 27;
+			if (face.equals("TOP")) return 31;
+			if (face.equals("SIDE")) return 30;
 			
-			return 7;
+			return 8;
 		case Blocks.TUNDRA_GRASS:
-			if (face.equals("TOP")) return 30;
-			if (face.equals("SIDE")) return 29;
+			if (face.equals("TOP")) return 33;
+			if (face.equals("SIDE")) return 32;
 			
-			return 7;
+			return 8;
 		case Blocks.BIRCH_GRASS:
 			if (face.equals("TOP")) return 4;
 			if (face.equals("SIDE")) return 3;
 			
-			return 7;
+			return 8;
 		case Blocks.FOREST_GRASS:
-			if (face.equals("TOP")) return 9;
-			if (face.equals("SIDE")) return 8;
+			if (face.equals("TOP")) return 10;
+			if (face.equals("SIDE")) return 9;
 			
-			return 7;
+			return 8;
 		case Blocks.ICE:
-			return 13;
+			return 14;
 		case Blocks.GRASS_DECORATION:
-			return 32;
+			return 35;
 		case Blocks.SPRUCE_LEAVES:
-			return 24;
+			return 27;
 		case Blocks.SPRUCE_LOG:
-			return 25;
+			return 28;
 		case Blocks.ACACIA_LOG:
 			return 1;
 		case Blocks.ACACIA_LEAVES:
 			return 0;
 		case Blocks.SNOWY_SPRUCE_LEAVES:
-			return 23;
+			return 26;
+		case Blocks.RED_MUSHROOM_SMALL:
+			return 21;
+		case Blocks.RED_FLOWER:
+			return 20;
+		case Blocks.BROWN_MUSHROOM_SMALL:
+			return 7;
 		default:
 			return 0;
 		}

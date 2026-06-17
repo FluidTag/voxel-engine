@@ -29,17 +29,10 @@ public class App {
        	
        	if (glfwGetKey(window.getWindowId(), GLFW_KEY_T) == GLFW_PRESS) {
        		int wx = camera.getWorldX();
+       		int wy = camera.getWorldY();
        		int wz = camera.getWorldZ();
        		
-       		float contVal = (TerrainTask.continentalNoise.GetNoise(wx, wz)+1.0f)/2.0f;
-       		float regionVal = (TerrainTask.regionalNoise.GetNoise(wx, wz)+1.0f)/2.0f;
-       		float erosionVal = (TerrainTask.erosionNoise.GetNoise(wx, wz)+1.0f)/2.0f;
-       		
-       		System.out.println(wx + ", " + wz + "\n_________");
-       		System.out.println("Continentalness: " + contVal);
-       		System.out.println("Regional: " + regionVal);
-       		System.out.println("Erosion: " + erosionVal);
-       		System.out.println("___________________");
+       		System.out.println(wx + ", " + wy + ", " + wz);
    		}
        	
        	window.swapBuffers();

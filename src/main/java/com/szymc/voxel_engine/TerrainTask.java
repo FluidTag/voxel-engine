@@ -155,27 +155,20 @@ public class TerrainTask {
 		return resultType;
 	}
 	
-	public static byte noiseGetBlock(int height, int wx, int wy, int wz, byte topBlock, float temp, float moist) {
+	public static byte noiseGetBlock(int height, int wx, int wy, int wz, Biome biome, float temp, float moist) {
 		//if (wy < 69) return Blocks.WATER;
 		if (wy == 0) return Blocks.BEDROCK;
 		if (wy > height && wy == 64 && temp < 0.2f && ((iceOceanNoise.GetNoise(wx, wz) > 0.3f) || subIceOceanNoise.GetNoise(wx, wz) > 0.3f)) return Blocks.ICE;
 		if (wy > height && wy <= 64) return Blocks.WATER;
 		
 		if (wy == height) {
-			//if (wy > 90) return Blocks.STONE;
 			if (wy < 59) return Blocks.GRAVEL;
 			if (wy < 66) return Blocks.SAND;
-			return topBlock;		
-		} else if (wy < height && wy >= height-3) {
-			//if (wy > 90) return Blocks.STONE;
-			return Blocks.DIRT;
-		} else if (wy < height-3) {
-//			float caveResult = caveNoise.GetNoise(wx, wy, wz);
-//			if (caveResult > 0.76) {
-//				if (wy < 2) return Blocks.LAVA;
-//				return Blocks.AIR;
-//			}
 			
+			return biome.topBlock;		
+		} else if (wy < height && wy >= height-3) {
+			return biome.fillerBlock;
+		} else if (wy < height-3) {
 			return Blocks.STONE;
 		}
 		
@@ -201,7 +194,7 @@ public class TerrainTask {
 					for (int y = 0; y < 16; y++) {
 						int worldY = sec*16 +y;
 						
-						byte block = noiseGetBlock(noiseHeight, worldX, worldY, worldZ, biome.topBlock, temp, moist);
+						byte block = noiseGetBlock(noiseHeight, worldX, worldY, worldZ, biome, temp, moist);
 						if (block != Blocks.AIR) {
 							if (chunkData == null) chunkData = new byte[32*16*32];
 							chunkData[x*(16*32) + y*32 + z] = block;

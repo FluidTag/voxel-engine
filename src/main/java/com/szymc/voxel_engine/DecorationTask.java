@@ -1,7 +1,6 @@
 package com.szymc.voxel_engine;
 
 
-import java.util.Random;
 import java.util.SplittableRandom;
 
 
@@ -32,16 +31,17 @@ public class DecorationTask {
 		
 		for (int gx = 0; gx < 32; gx+=cellSize) {
 			for (int gz = 0; gz < 32; gz+=cellSize) {
-				if (rng.nextFloat() < 0.6f) continue;
-				
 				int x = gx + rng.nextInt(cellSize);
 				int z = gz + rng.nextInt(cellSize);
 				if (x < 0 || x > 31 || z < 0 || z > 31) continue;
+				
 				int relX = (cxOffset*32)+x;
 				int relZ = (czOffset*32)+z;
+				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+relX, wz+relZ, TerrainTask.getTemp(wx+relX, wz+relZ), TerrainTask.getMoist(wx+relX, wz+relZ)));
+				
+				if (rng.nextFloat() > currentBiome.treeDensity) continue;
 				int surfaceHeight = -1;
 				byte surfaceBlock = -1;
-				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+relX, wz+relZ, TerrainTask.getTemp(wx+relX, wz+relZ), TerrainTask.getMoist(wx+relX, wz+relZ)));
 				
 				if (cxOffset == 0 && czOffset == 0) {
 					surfaceHeight = findSurface(x, z);
@@ -49,7 +49,7 @@ public class DecorationTask {
 					surfaceBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
 				} else {
 					surfaceHeight = TerrainTask.getNoiseHeight(wx+relX, wz+relZ);
-					surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, wx+relX, surfaceHeight, wx+relZ, currentBiome.topBlock, 0, 0); // Grass topblock/Default biome
+					surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, wx+relX, surfaceHeight, wx+relZ, currentBiome, 0, 0); // Grass topblock/Default biome
 				}
 				
 				//System.out.println(surfaceBlock);
@@ -121,13 +121,17 @@ public class DecorationTask {
 			for (int z = 0; z < 32; z++) {
 				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+x, wz+z, TerrainTask.getTemp(wx+x, wz+z), TerrainTask.getMoist(wx+x, wz+z)));
 				if (rng.nextFloat() > currentBiome.decorationChance) continue;
+				if (currentBiome.possibleDecorations == null) continue;
 				
 				int surfaceHeight = findSurface(x, z);
 				if (surfaceHeight == -1) continue;
 				byte topBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
 				
 				if (topBlock != currentBiome.topBlock) continue;
-				editRequests.add(packLocal(x, surfaceHeight+1, z, Blocks.GRASS_DECORATION));
+				if (chunk.getBlockInChunk(x, surfaceHeight+1, z) != Blocks.AIR) continue;
+				
+				byte decoration = currentBiome.possibleDecorations[rng.nextInt(currentBiome.possibleDecorations.length)];
+				editRequests.add(packLocal(x, surfaceHeight+1, z, decoration));
 			}
 		}
 		

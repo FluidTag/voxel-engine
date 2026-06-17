@@ -11,9 +11,10 @@ public class Biome {
     public final byte leafBlock;
     public final float treeDensity;
     public final float decorationChance;
+    public final byte[] possibleDecorations;
     
     public Biome(BiomeType type, String name, byte topBlock, byte fillerBlock,
-    		byte woodBlock, byte leafBlock, float treeDensity, float decorationChance) {
+    		byte woodBlock, byte leafBlock, float treeDensity, float decorationChance, byte[] possibleDecorations) {
     	this.type = type;
     	this.name = name;
     	this.topBlock = topBlock;
@@ -22,5 +23,6 @@ public class Biome {
     	this.leafBlock = leafBlock;
     	this.treeDensity = treeDensity;
     	this.decorationChance = decorationChance;
+    	this.possibleDecorations = possibleDecorations;
     }
 }
