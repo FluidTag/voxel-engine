@@ -129,10 +129,15 @@ public class TerrainTask {
 	    {0.85f, 0.8f,  BiomeType.JUNGLE}   // Hot & Extremely Wet
 	};
 	
-	public static BiomeType getBiomeType(int wx, int wz) {
-		float temp = (temperatureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;
-		float moist = (moistureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;
-		
+	public static float getTemp(int wx, int wz) {
+		return (temperatureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;
+	}
+	
+	public static float getMoist(int wx, int wz) {
+		return (moistureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;
+	}
+	
+	public static BiomeType getBiomeType(int wx, int wz, float temp, float moist) {
 		float lowestDist = 999;
 		BiomeType resultType = null;
 		for (Object[] point : dataPoints) {
@@ -188,10 +193,10 @@ public class TerrainTask {
 					int worldZ = (cz*32)+z;
 					
 					int noiseHeight = getNoiseHeight(worldX, worldZ);
-					Biome biome = BiomeRegistry.get(getBiomeType(worldX, worldZ));
 					
-					float temp = (temperatureNoise.GetNoise(worldX+noise.GetNoise(worldX, worldZ)*100, worldZ+noise.GetNoise(worldX, worldZ)*100) + 1.0f) / 2.0f;
-					float moist = (moistureNoise.GetNoise(worldX+noise.GetNoise(worldX, worldZ)*100, worldZ+noise.GetNoise(worldX, worldZ)*100) + 1.0f) / 2.0f;
+					float temp = getTemp(worldX, worldZ);
+					float moist = getMoist(worldX, worldZ);
+					Biome biome = BiomeRegistry.get(getBiomeType(worldX, worldZ, temp, moist));
 					
 					for (int y = 0; y < 16; y++) {
 						int worldY = sec*16 +y;

@@ -41,7 +41,7 @@ public class DecorationTask {
 				int relZ = (czOffset*32)+z;
 				int surfaceHeight = -1;
 				byte surfaceBlock = -1;
-				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+relX, wz+relZ));
+				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+relX, wz+relZ, TerrainTask.getTemp(wx+relX, wz+relZ), TerrainTask.getMoist(wx+relX, wz+relZ)));
 				
 				if (cxOffset == 0 && czOffset == 0) {
 					surfaceHeight = findSurface(x, z);
@@ -119,7 +119,7 @@ public class DecorationTask {
 		SplittableRandom rng = new SplittableRandom((long)(cx)*341873128712L ^ (long)(cz) * 132897987541L);
 		for (int x = 0; x < 32; x++) {
 			for (int z = 0; z < 32; z++) {
-				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+x, wz+z));
+				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+x, wz+z, TerrainTask.getTemp(wx+x, wz+z), TerrainTask.getMoist(wx+x, wz+z)));
 				if (rng.nextFloat() > currentBiome.decorationChance) continue;
 				
 				int surfaceHeight = findSurface(x, z);

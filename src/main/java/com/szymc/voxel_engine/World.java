@@ -43,7 +43,7 @@ public class World {
 	}
 	
 	private final int threads = Runtime.getRuntime().availableProcessors()-1;
-	private final int terrainThreadCount = 2;
+	private final int terrainThreadCount = 3;
 	private final int meshThreadCount = Math.max(1, threads-3);
 	private final ExecutorService terrainPool = new ThreadPoolExecutor(
 			terrainThreadCount,
@@ -72,9 +72,8 @@ public class World {
 	    return (int) (key & 0xFFFFFFFFL);
 	}
 
-
 	private int getKeyZ(long key) {
-	    return (int) (key >> 32); // Use unsigned right shift
+	    return (int) (key >>> 32);
 	}
 	
 	public Long2ObjectMap<ChunkColumn> getRendered() {
