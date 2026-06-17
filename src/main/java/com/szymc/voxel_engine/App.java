@@ -11,6 +11,8 @@ public class App {
    	window.attachCamera(camera);
    	Engine engine = new Engine(mainWorld, camera);
    	
+   	BiomeRegistry.init();
+   	
    	double lastFrameTime = 0.0;
    	
        while (!window.shouldClose()) {

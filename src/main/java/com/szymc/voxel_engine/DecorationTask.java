@@ -41,7 +41,7 @@ public class DecorationTask {
 				int relZ = (czOffset*32)+z;
 				int surfaceHeight = -1;
 				byte surfaceBlock = -1;
-				byte biomeBlock = TerrainTask.getBiomeBlock(wx+relX, wz+relZ);
+				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+relX, wz+relZ));
 				
 				if (cxOffset == 0 && czOffset == 0) {
 					surfaceHeight = findSurface(x, z);
@@ -49,7 +49,7 @@ public class DecorationTask {
 					surfaceBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
 				} else {
 					surfaceHeight = TerrainTask.getNoiseHeight(wx+relX, wz+relZ);
-					surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, wx+relX, surfaceHeight, wx+relZ, biomeBlock, 0, 0); // Grass topblock/Default biome
+					surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, wx+relX, surfaceHeight, wx+relZ, currentBiome.topBlock, 0, 0); // Grass topblock/Default biome
 				}
 				
 				//System.out.println(surfaceBlock);
@@ -59,20 +59,9 @@ public class DecorationTask {
 						&& surfaceBlock != Blocks.SAVANNA_GRASS
 						) continue;
 				
-				byte woodType = Blocks.OAK_WOOD;
-				byte leaveType = Blocks.OAK_LEAVES;
-				
-				if (biomeBlock == Blocks.BIRCH_GRASS) {
-					woodType = Blocks.BIRCH_WOOD;
-					leaveType = Blocks.BIRCH_LEAVES;
-				} else if (biomeBlock == Blocks.TAIGA_GRASS) {
-					woodType = Blocks.SPRUCE_LOG;
-					leaveType = Blocks.SPRUCE_LEAVES;
-				} else if (biomeBlock == Blocks.SAVANNA_GRASS) {
-					woodType = Blocks.ACACIA_LOG;
-					leaveType = Blocks.ACACIA_LEAVES;
-				}
-				
+				byte woodType = currentBiome.woodBlock;
+				byte leaveType = currentBiome.leafBlock;
+								
 				if (relX >= 0 && relX <= 31 && relZ >= 0 && relZ <= 31) {
 					for (int j = 1; j<=5; j++) {
 						edits.add(packLocal(relX, surfaceHeight+j, relZ, woodType));
@@ -128,17 +117,18 @@ public class DecorationTask {
 		addTrees(0, -1, editRequests);
 		
 		SplittableRandom rng = new SplittableRandom((long)(cx)*341873128712L ^ (long)(cz) * 132897987541L);
-		for (int i = 0; i < 28; i++) {
-			int x = rng.nextInt(32);
-			int z = rng.nextInt(32);
-			int surface = findSurface(x, z);
-			if (surface == -1) continue;
-			byte block = chunk.getBlockInChunk(x, surface, z);
-			
-			if (block != Blocks.GRASS && block != Blocks.JUNGLE_GRASS 
-					&& block != Blocks.SAVANNA_GRASS && block != Blocks.FOREST_GRASS
-					&& block != Blocks.TAIGA_GRASS && block != Blocks.BIRCH_GRASS) continue;
-			chunk.setBlockInChunk(x, surface+1, z, Blocks.GRASS_DECORATION);
+		for (int x = 0; x < 32; x++) {
+			for (int z = 0; z < 32; z++) {
+				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+x, wz+z));
+				if (rng.nextFloat() > currentBiome.decorationChance) continue;
+				
+				int surfaceHeight = findSurface(x, z);
+				if (surfaceHeight == -1) continue;
+				byte topBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
+				
+				if (topBlock != currentBiome.topBlock) continue;
+				editRequests.add(packLocal(x, surfaceHeight+1, z, Blocks.GRASS_DECORATION));
+			}
 		}
 		
 		return editRequests;

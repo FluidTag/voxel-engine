@@ -116,34 +116,38 @@ public class TerrainTask {
 		}
 	}
 	
-	private static final float[][] dataPoints = {
+	private static final Object[][] dataPoints = {
 	    // Temp, Moist, Block
-	    {0.1f,  0.1f,  Blocks.SNOW},          // Cold & Dry (Arctic)
-	    {0.25f, 0.3f, Blocks.TUNDRA_GRASS},   // Cold & Semi-Dry
-	    {0.35f, 0.35f,  Blocks.TAIGA_GRASS},  // Intermediate Cool/Dry Buffer
-	    {0.45f, 0.55f, Blocks.BIRCH_GRASS},
-	    {0.5f,  0.5f,  Blocks.GRASS},         // Temperate & Medium Moist
-	    {0.55f, 0.6f, Blocks.FOREST_GRASS},
-	    {0.75f,  0.2f,  Blocks.SAND},          // Hot & Arid (Desert)
-	    {0.75f, 0.4f,  Blocks.SAVANNA_GRASS}, // Hot & Semi-Arid
-	    {0.85f, 0.8f,  Blocks.JUNGLE_GRASS}   // Hot & Extremely Wet
+	    {0.1f,  0.1f,  BiomeType.ARTIC},          // Cold & Dry (Arctic)
+	    {0.25f, 0.3f, BiomeType.TUNDRA},   // Cold & Semi-Dry
+	    {0.35f, 0.35f,  BiomeType.TAIGA},  // Intermediate Cool/Dry Buffer
+	    {0.45f, 0.55f, BiomeType.BIRCH_FOREST},
+	    {0.5f,  0.5f,  BiomeType.PLAINS},         // Temperate & Medium Moist
+	    {0.55f, 0.6f, BiomeType.FOREST},
+	    {0.75f,  0.2f,  BiomeType.DESERT},          // Hot & Arid (Desert)
+	    {0.79f, 0.4f,  BiomeType.SAVANNA}, // Hot & Semi-Arid
+	    {0.85f, 0.8f,  BiomeType.JUNGLE}   // Hot & Extremely Wet
 	};
 	
-	public static byte getBiomeBlock(int wx, int wz) {
+	public static BiomeType getBiomeType(int wx, int wz) {
 		float temp = (temperatureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;
 		float moist = (moistureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;
 		
 		float lowestDist = 999;
-		byte resultBlock = Blocks.GRASS;
-		for (float[] point : dataPoints) {
-			float dist = (point[0]-temp)*(point[0]-temp) + (point[1]-moist)*(point[1]-moist);
+		BiomeType resultType = null;
+		for (Object[] point : dataPoints) {
+			float reqTemp = (float)point[0];
+			float reqMoist = (float)point[1];
+			BiomeType pointType = (BiomeType)point[2];
+			
+			float dist = (reqTemp-temp)*(reqTemp-temp) + (reqMoist-moist)*(reqMoist-moist);
 			if (dist < lowestDist) {
 				lowestDist = dist;
-				resultBlock = (byte)point[2];
+				resultType = pointType;
 			}
 		}
 		
-		return resultBlock;
+		return resultType;
 	}
 	
 	public static byte noiseGetBlock(int height, int wx, int wy, int wz, byte topBlock, float temp, float moist) {
@@ -184,14 +188,15 @@ public class TerrainTask {
 					int worldZ = (cz*32)+z;
 					
 					int noiseHeight = getNoiseHeight(worldX, worldZ);
-					byte topBlock = getBiomeBlock(worldX, worldZ);
+					Biome biome = BiomeRegistry.get(getBiomeType(worldX, worldZ));
+					
 					float temp = (temperatureNoise.GetNoise(worldX+noise.GetNoise(worldX, worldZ)*100, worldZ+noise.GetNoise(worldX, worldZ)*100) + 1.0f) / 2.0f;
 					float moist = (moistureNoise.GetNoise(worldX+noise.GetNoise(worldX, worldZ)*100, worldZ+noise.GetNoise(worldX, worldZ)*100) + 1.0f) / 2.0f;
 					
 					for (int y = 0; y < 16; y++) {
 						int worldY = sec*16 +y;
 						
-						byte block = noiseGetBlock(noiseHeight, worldX, worldY, worldZ, topBlock, temp, moist);
+						byte block = noiseGetBlock(noiseHeight, worldX, worldY, worldZ, biome.topBlock, temp, moist);
 						if (block != Blocks.AIR) {
 							if (chunkData == null) chunkData = new byte[32*16*32];
 							chunkData[x*(16*32) + y*32 + z] = block;
