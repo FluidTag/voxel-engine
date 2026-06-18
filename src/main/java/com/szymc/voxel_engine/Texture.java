@@ -198,6 +198,10 @@ public class Texture {
 		}
 	}
 	
+	public int getId() {
+		return this.id;
+	}
+	
 	public void bind(int slot) {
 		glActiveTexture(GL_TEXTURE0 + slot);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, this.id);

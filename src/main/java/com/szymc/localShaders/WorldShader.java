@@ -32,7 +32,7 @@ import org.joml.Matrix4f;
 
 public class WorldShader extends Shader {
 	private int local_projection, local_view, local_model, local_textureArray;
-	
+	private Texture tex;
 	public WorldShader() {
 		super("/shaders/scene.vert", "/shaders/scene.frag");
 		
@@ -43,11 +43,15 @@ public class WorldShader extends Shader {
 	
 		// Temporarily start to set texture uniform (constant)
 		this.start();
-		Texture tex = new Texture("textures", 5);
+		tex = new Texture("textures", 5);
 		
 		glUniform1i(local_textureArray, 0);
 		tex.bind(0);
 		this.stop();
+	}
+	
+	public Texture getTexture() {
+		return tex;
 	}
 	
 	public void setCamera(Matrix4f proj, Matrix4f view, FloatBuffer buffer) {

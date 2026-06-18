@@ -70,6 +70,10 @@ public abstract class Shader {
     	this.programId = program;
 	}
 	
+	public int getProgramID() {
+		return this.programId;
+	}
+	
 	public void start() {
 		glUseProgram(programId);
 	}
