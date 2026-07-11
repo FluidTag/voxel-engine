@@ -17,7 +17,7 @@ import org.joml.Vector3f;
 public class Camera {
 	private float yaw = -90.0f;
 	private float pitch = 0.0f;
-	public Vector3f cameraPos = new Vector3f(0.0f, 70.0f, 3.0f);
+	public Vector3f cameraPos = new Vector3f(0.0f, 220.0f, 3.0f);
 	private Vector3f cameraFront = new Vector3f(0.0f, 0.0f, -1.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private float sensitivity = 0.1f;
@@ -82,14 +82,20 @@ public class Camera {
 	}
 
 	private Vector3f temp = new Vector3f();
-	public void pollCameraMovements(long window, float newCamSpeed) {
+	public Vector3f pollCameraMovements(long window, float newCamSpeed) {
+		Vector3f lookVector = new Vector3f(cameraFront.x, 0, cameraFront.z);
+		if (lookVector.lengthSquared() > 0) lookVector.normalize();
+		Vector3f result = new Vector3f();
+
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			cameraPos.add(cameraFront.mul(newCamSpeed, temp));
+			result.add(lookVector.mul(newCamSpeed, temp));
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			cameraPos.sub(cameraFront.mul(newCamSpeed, temp));
+			result.sub(lookVector.mul(newCamSpeed, temp));
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			cameraPos.sub(cameraFront.cross(cameraUp, temp).normalize().mul(newCamSpeed));
+			result.sub(lookVector.cross(cameraUp, temp).normalize().mul(newCamSpeed));
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			cameraPos.add(cameraFront.cross(cameraUp, temp).normalize().mul(newCamSpeed));
+			result.add(lookVector.cross(cameraUp, temp).normalize().mul(newCamSpeed));
+
+		return result;
 	}
 }

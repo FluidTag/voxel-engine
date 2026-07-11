@@ -232,8 +232,8 @@ public class World {
 		}
 	}
 	
-	int lastX = 0;
-	int lastZ = 0;
+	int lastX = 99999999;
+	int lastZ = 99999999;
 	
 	public void update(Vector3f playerPosition) {
 		int chunkX = (int)playerPosition.x >> 5;
