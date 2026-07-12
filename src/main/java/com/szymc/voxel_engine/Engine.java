@@ -42,6 +42,8 @@ public class Engine {
 	private World worldScene;
 	private WorldShader mainShader;
 	private DebugManager debugger;
+	private UIRenderer uiRenderer;
+	private int crosshairTexture;
 
 	public Engine(World world, Camera camera) {
 		this.worldScene = world;
@@ -49,6 +51,9 @@ public class Engine {
 
 		this.debugger = new DebugManager(world, camera);
 		this.mainShader = new WorldShader();
+
+		this.uiRenderer = new UIRenderer();
+		this.crosshairTexture = Texture.loadTexturePath("src/main/resources/ui/crosshair.png");
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		//glLineWidth(2);
@@ -150,6 +155,15 @@ public class Engine {
 					section.getWaterMesh().render();
 				}
 			}
+
+			mainShader.stop();
+
+			uiRenderer.begin(1600, 900);
+			float crossX = (1600/2.0f) - 8.0f;
+			float crossY = (900/2.0f) - 8.0f;
+
+			uiRenderer.drawTexture(crosshairTexture, crossX, crossY, 16, 16);
+			uiRenderer.end();
 
 			glDepthMask(true);
 		}

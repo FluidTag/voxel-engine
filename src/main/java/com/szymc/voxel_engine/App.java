@@ -61,7 +61,7 @@ public class App {
 			}
 			keysPressed[GLFW_KEY_LEFT_CONTROL] = glfwGetKey(window.getWindowId(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
 
-			float newCamSpeed = (isSprinting ? 7 : 4)*deltaTime;
+			float newCamSpeed = (isSprinting ? 6 : 4) * deltaTime;
 			Vector3f playerMoveIntent = camera.pollCameraMovements(window.getWindowId(), newCamSpeed);
 			boolean jumpPressed = glfwGetKey(window.getWindowId(), GLFW_KEY_SPACE) == GLFW_PRESS;
 

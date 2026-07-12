@@ -1,5 +1,8 @@
 package com.szymc.voxel_engine;
 import static org.lwjgl.opengl.GL11.*;
+
+import org.lwjgl.BufferUtils;
+import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -110,7 +113,40 @@ public class Texture {
 			return 0;
 		}
 	}
-	
+
+	public static int loadTexturePath(String path) {
+		IntBuffer width = BufferUtils.createIntBuffer(1);
+		IntBuffer height = BufferUtils.createIntBuffer(1);
+		IntBuffer channels = BufferUtils.createIntBuffer(1);
+
+		STBImage.stbi_set_flip_vertically_on_load(true);
+		ByteBuffer image = STBImage.stbi_load(path, width, height, channels, 4);
+		STBImage.stbi_set_flip_vertically_on_load(false);
+
+		if (image == null) throw new RuntimeException("Failed to load texture: " + STBImage.stbi_failure_reason());
+		glActiveTexture(GL_TEXTURE3);
+		int texture = glGenTextures();
+
+		glBindTexture(GL_TEXTURE_2D, texture);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width.get(0), height.get(0), 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glTexParameteri(GL_TEXTURE_2D,
+				GL_TEXTURE_MIN_FILTER,
+				GL_LINEAR_MIPMAP_LINEAR);
+
+		glTexParameteri(GL_TEXTURE_2D,
+				GL_TEXTURE_MAG_FILTER,
+				GL_LINEAR);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glActiveTexture(GL_TEXTURE0);
+
+		STBImage.stbi_image_free(image);
+
+		return texture;
+	}
+
 	public Texture(String resourcePath, int mipLevels) {
 		List<String> textureFiles = new ArrayList<>();
 		try {
