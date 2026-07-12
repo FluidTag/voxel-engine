@@ -50,8 +50,91 @@ public class App {
 
 		BiomeRegistry.init();
 
-		double lastFrameTime = 0.0;
+		glfwSetMouseButtonCallback(window.getWindowId(), (windowHandle, button, action, mods) -> {
+			if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
+				Vector3f rayOrigin = new Vector3f(camera.cameraPos);
+				Vector3f rayDir = camera.getLookUnitNormal();
+				float maxDistance = 4.5f;
 
+				int x = (int)Math.floor(rayOrigin.x);
+				int y = (int)Math.floor(rayOrigin.y);
+				int z = (int)Math.floor(rayOrigin.z);
+
+				int stepX = rayDir.x > 0 ? 1 : -1;
+				int stepY = rayDir.y > 0 ? 1 : -1;
+				int stepZ = rayDir.z > 0 ? 1 : -1;
+
+				float tDeltaX = (rayDir.x != 0) ? Math.abs(1.0f/rayDir.x) : Float.MAX_VALUE;
+				float tDeltaY = (rayDir.y != 0) ? Math.abs(1.0f/rayDir.y) : Float.MAX_VALUE;
+				float tDeltaZ = (rayDir.z != 0) ? Math.abs(1.0f/rayDir.z) : Float.MAX_VALUE;
+
+				float tMaxX = (rayDir.x > 0) ? (float)(Math.floor(rayOrigin.x) + 1.0f - rayOrigin.x) * tDeltaX : (float)(rayOrigin.x - Math.floor(rayOrigin.x)) * tDeltaX;
+				float tMaxY = (rayDir.y > 0) ? (float)(Math.floor(rayOrigin.y) + 1.0f - rayOrigin.y) * tDeltaY : (float)(rayOrigin.y - Math.floor(rayOrigin.y)) * tDeltaY;
+				float tMaxZ = (rayDir.z > 0) ? (float)(Math.floor(rayOrigin.z) + 1.0f - rayOrigin.z) * tDeltaZ : (float)(rayOrigin.z - Math.floor(rayOrigin.z)) * tDeltaZ;
+
+				String hitFace = "NONE";
+				boolean hit = false;
+				float t = 0;
+
+				while (t <= maxDistance) {
+					if (blockAt(mainWorld, x, y, z)) {
+						hit = true;
+						break;
+					}
+
+					if (tMaxX < tMaxY) {
+						if (tMaxX < tMaxZ) {
+							t = tMaxX;
+							tMaxX += tDeltaX;
+							x += stepX;
+							hitFace = (stepX > 0) ? "WEST" : "EAST";
+						} else {
+							t = tMaxZ;
+							tMaxZ += tDeltaZ;
+							z += stepZ;
+							hitFace = (stepZ > 0) ? "NORTH" : "SOUTH";
+						}
+					} else {
+						if (tMaxY < tMaxZ) {
+							t = tMaxY;
+							tMaxY += tDeltaY;
+							y += stepY;
+							hitFace = (stepY > 0) ? "DOWN" : "UP";
+						} else {
+							t = tMaxZ;
+							tMaxZ += tDeltaZ;
+							z += stepZ;
+							hitFace = (stepZ > 0) ? "NORTH" : "SOUTH";
+						}
+					}
+				}
+
+				if (hit) {
+					System.out.println("Perfectly hit the " + hitFace + " face!");
+
+					if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+						switch (hitFace) {
+							case "WEST":  x -= 1; break;
+							case "EAST":  x += 1; break;
+							case "DOWN":  y -= 1; break;
+							case "UP":    y += 1; break;
+							case "NORTH": z -= 1; break;
+							case "SOUTH": z += 1; break;
+						}
+					}
+
+					int cx = x >> 5;
+					int cz = z >> 5;
+					ChunkColumn chunk = mainWorld.getLoadedChunkAtPos(cx, cz);
+					chunk.setBlockInChunk(x & 31, y, z & 31, button == GLFW_MOUSE_BUTTON_RIGHT ? Blocks.DIRT : Blocks.AIR);
+					chunk.dirtyCount++;
+					chunk.setSectionDirty(y >> 4);
+					mainWorld.updateChunk(cx, cz);
+				}
+			}
+		});
+
+		double lastFrameTime = 0.0;
 		while (!window.shouldClose()) {
 			double currentFrameTime = window.getFrameTime();
 			float deltaTime = (float)(currentFrameTime - lastFrameTime);

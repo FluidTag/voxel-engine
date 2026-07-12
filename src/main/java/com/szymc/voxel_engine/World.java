@@ -234,7 +234,11 @@ public class World {
 	
 	int lastX = 99999999;
 	int lastZ = 99999999;
-	
+
+	public void updateChunk(int cx, int cz) {
+		checkStateAdvances(cx,cz);
+	}
+
 	public void update(Vector3f playerPosition) {
 		int chunkX = (int)playerPosition.x >> 5;
 		int chunkZ = (int)playerPosition.z >> 5;

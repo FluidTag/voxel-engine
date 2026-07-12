@@ -60,7 +60,11 @@ public class ChunkColumn {
 		
 		return section.getLocalBlock(cx, cy & 15, cz);
 	}
-	
+
+	public void setSectionDirty(int section) {
+		sections[section].setDirty(true);
+	}
+
 	// Also need to set neighboring chunk segments to dirty if its on a border
 	public void setBlockInChunk(int cx, int cy, int cz, byte blockType) {
 		int sectorI = cy >> 4;
@@ -69,17 +73,18 @@ public class ChunkColumn {
 		
 		section.setBlock(cx, (cy & 15), cz, blockType);
 		
-		if (cy == 15 && sectorI < 15) {
-			ChunkSection target = getSection(sectorI+1);
-			
+		if (sectorI > 0 && (cy&15) == 0) {
+			ChunkSection target = this.getSection(sectorI-1);
+
 			if (target != null) {
 				if (!target.isDirty()) this.dirtyCount++;
 				target.setDirty(true);
 			}
 		}
-		
-		if (cy == 0 && sectorI > 0) {
-			ChunkSection target = getSection(sectorI-1);
+
+		if (sectorI < 15 && (cy&15) == 15) {
+			ChunkSection target = this.getSection(sectorI+1);
+
 			if (target != null) {
 				if (!target.isDirty()) this.dirtyCount++;
 				target.setDirty(true);
