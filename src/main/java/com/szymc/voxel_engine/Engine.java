@@ -1,4 +1,5 @@
 package com.szymc.voxel_engine;
+import com.szymc.localShaders.OutlineShader;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -42,8 +43,19 @@ public class Engine {
 	private World worldScene;
 	private WorldShader mainShader;
 	private DebugManager debugger;
+	private OutlineShader outlineShader;
+	private Matrix4f outlineLoc;
+	private BlockOutline outline;
 	private UIRenderer uiRenderer;
 	private int crosshairTexture;
+
+	public void removeOutlineLoc() {
+		this.outlineLoc = null;
+	}
+
+	public void setOutlineLoc(int x, int y, int z) {
+		this.outlineLoc = new Matrix4f().translation(x, y, z);
+	}
 
 	public Engine(World world, Camera camera) {
 		this.worldScene = world;
@@ -54,6 +66,12 @@ public class Engine {
 
 		this.uiRenderer = new UIRenderer();
 		this.crosshairTexture = Texture.loadTexturePath("src/main/resources/ui/crosshair.png");
+
+		this.outlineShader = new OutlineShader();
+		outlineShader.start();
+		outlineShader.setColor(0.5f, 1.0f, 0.5f);
+		outlineShader.stop();
+		this.outline = new BlockOutline();
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		//glLineWidth(2);
@@ -79,7 +97,7 @@ public class Engine {
 			glDisable(GL_BLEND);
 			glDepthMask(true);
 
-			debugger.renderDebug(matrixBuffer);
+			//debugger.renderDebug(matrixBuffer);
 			mainShader.start();
 
 			for (ChunkColumn chunk : worldScene.getRendered().values()) {
@@ -116,6 +134,29 @@ public class Engine {
 
 					section.getMesh().render();
 				}
+			}
+
+			if (outlineLoc != null) {
+				outlineShader.start();
+				outlineShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
+				outlineShader.setModel(this.outlineLoc, matrixBuffer);
+
+				glBindVertexArray(outline.getVao());
+				glDepthFunc(GL_LEQUAL);
+
+				glLineWidth(4f);
+				glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0L);
+
+				// Clean up states
+				glDepthFunc(GL_LESS);
+				// ------------------------------
+
+				outlineShader.stop();
+				glBindVertexArray(0);
+
+				// Reactivate main shader for the upcoming water rendering loop
+				mainShader.start();
+				mainShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
 			}
 
 			glEnable(GL_BLEND);
