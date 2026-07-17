@@ -10,7 +10,7 @@ public class TerrainTask {
 	private static final FastNoiseLite mountainNoise = new FastNoiseLite();
 	private static final FastNoiseLite iceOceanNoise = new FastNoiseLite();
 	private static final FastNoiseLite subIceOceanNoise = new FastNoiseLite();
-	
+
 	private static final FastNoiseLite temperatureNoise = new FastNoiseLite();
 	private static final FastNoiseLite moistureNoise = new FastNoiseLite();
 	public static void initNoise() {
@@ -18,73 +18,73 @@ public class TerrainTask {
 		continentalNoise.SetFrequency(0.0005f);
 		continentalNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		continentalNoise.SetFractalOctaves(3);
-		
+
 		temperatureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 		temperatureNoise.SetFrequency(0.0004f);
 		temperatureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		temperatureNoise.SetFractalOctaves(5);
 		temperatureNoise.SetSeed(33);
-		
+
 		moistureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 		moistureNoise.SetFrequency(0.0004f);
 		moistureNoise.SetSeed(49);
 		moistureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		moistureNoise.SetFractalOctaves(4);
-		
+
 		regionalNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 		regionalNoise.SetFrequency(0.002f);
 		regionalNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		regionalNoise.SetFractalOctaves(4);
 		regionalNoise.SetSeed(2);
-		
+
 		iceOceanNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 		iceOceanNoise.SetFrequency(0.01f);
 		iceOceanNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		iceOceanNoise.SetFractalOctaves(4);
 		iceOceanNoise.SetSeed(67);
-		
+
 		subIceOceanNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 		subIceOceanNoise.SetFrequency(0.06f);
 		subIceOceanNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		subIceOceanNoise.SetFractalOctaves(4);
 		subIceOceanNoise.SetSeed(67);
-		
+
 		erosionNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 		erosionNoise.SetFrequency(0.0015f);
 		erosionNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		erosionNoise.SetFractalOctaves(2);
-		
+
 		treeNoise.SetFrequency(0.005f);
 		treeNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 		treeNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		treeNoise.SetFractalOctaves(4);
-		
+
 		caveNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 		caveNoise.SetFrequency(0.004f);
 		caveNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		caveNoise.SetFractalOctaves(5);
-		
+
 		mountainNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 		mountainNoise.SetFrequency(0.0004f);
 		mountainNoise.SetFractalType(FastNoiseLite.FractalType.Ridged);
 		mountainNoise.SetFractalOctaves(4);
-		
+
 		noise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 	    noise.SetFrequency(0.013f);
 	    noise.SetFractalType(FastNoiseLite.FractalType.FBm);
 	    noise.SetFractalOctaves(4);
 	}
-	
+
 	public static int getNoiseHeight(int wx, int wz) {
 		float contVal = (continentalNoise.GetNoise(wx, wz) + 1.0f) / 2.0f;
 		float noiseVal = (noise.GetNoise(wx, wz)+1.0f)/2.0f;
 		float erosionVal = (erosionNoise.GetNoise(wx, wz)+1.0f)/2.0f;
 		float regionalVal = (regionalNoise.GetNoise(wx, wz)+1.0f)/2.0f;
-		
+
 		float coastalOcean = (56+noiseVal*7);
 		float shallowOcean = (35+noiseVal*5);
 		float deepOcean = (2+noiseVal*12);
-		
+
 		if (contVal < 0.08f) {
 			return (int)deepOcean;
 		} else if (contVal < 0.1f) {
@@ -98,16 +98,16 @@ public class TerrainTask {
 		} else if (contVal < 0.25f) {
 			return (int)coastalOcean;
 		}
-		
+
 		float baseHeight = 70 + noiseVal*15;
 		float n = mountainNoise.GetNoise(wx+regionalVal*100f, wz-regionalVal*100f);
 		n = 1-Math.abs(n);
 		n = n*n*2f;
-		
+
 		float steepness = 1f-erosionVal;
 		float mountainHeight = (n-0.5f)*steepness*(steepness+0.2f)*(contVal-0.1f)*180;
 		float height = baseHeight + (regionalVal-0.7f)*55 + mountainHeight;
-		
+
 		if (contVal < 0.32f) {
 			float t = (contVal-0.25f)/(0.32f-0.25f);
 			return (int)(coastalOcean + t*t*(3-2*t)*(height-coastalOcean));
@@ -115,7 +115,7 @@ public class TerrainTask {
 			return (int)height;
 		}
 	}
-	
+
 	private static final Object[][] dataPoints = {
 	    // Temp, Moist, Block
 	    {0.1f,  0.1f,  BiomeType.ARTIC},          // Cold & Dry (Arctic)
@@ -128,15 +128,15 @@ public class TerrainTask {
 	    {0.79f, 0.4f,  BiomeType.SAVANNA}, // Hot & Semi-Arid
 	    {0.85f, 0.8f,  BiomeType.JUNGLE}   // Hot & Extremely Wet
 	};
-	
+
 	public static float getTemp(int wx, int wz) {
 		return (temperatureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;
 	}
-	
+
 	public static float getMoist(int wx, int wz) {
 		return (moistureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;
 	}
-	
+
 	public static BiomeType getBiomeType(int wx, int wz, float temp, float moist) {
 		float lowestDist = 999;
 		BiomeType resultType = null;
@@ -144,80 +144,80 @@ public class TerrainTask {
 			float reqTemp = (float)point[0];
 			float reqMoist = (float)point[1];
 			BiomeType pointType = (BiomeType)point[2];
-			
+
 			float dist = (reqTemp-temp)*(reqTemp-temp) + (reqMoist-moist)*(reqMoist-moist);
 			if (dist < lowestDist) {
 				lowestDist = dist;
 				resultType = pointType;
 			}
 		}
-		
+
 		return resultType;
 	}
-	
+
 	public static byte noiseGetBlock(int height, int wx, int wy, int wz, Biome biome, float temp, float moist) {
 		//if (wy < 69) return Blocks.WATER;
 		if (wy == 0) return Blocks.BEDROCK;
 		if (wy > height && wy == 64 && temp < 0.2f && ((iceOceanNoise.GetNoise(wx, wz) > 0.3f) || subIceOceanNoise.GetNoise(wx, wz) > 0.3f)) return Blocks.ICE;
 		if (wy > height && wy <= 64) return Blocks.WATER;
-		
+
 		if (wy == height) {
 			if (wy < 59) return Blocks.GRAVEL;
 			if (wy < 66) return Blocks.SAND;
-			
-			return biome.topBlock;		
+
+			return biome.topBlock;
 		} else if (wy < height && wy >= height-3) {
 			return biome.fillerBlock;
 		} else if (wy < height-3) {
 			return Blocks.STONE;
 		}
-		
+
 		return Blocks.AIR;
 	}
-	
+
 	private ChunkSection[] generateChunk() {
 		ChunkSection[] sections = new ChunkSection[16];
 		for (int sec = 0; sec < 16; sec++) {
 			byte[] chunkData = null;
 			boolean changed = false;
-			for (int x = 0; x < 32; x++) {
-				for (int z = 0; z < 32; z++) {
+			for (int z = 0; z < 32; z++) {
+				for (int x = 0; x < 32; x++) {
 					int worldX = (cx*32)+x;
 					int worldZ = (cz*32)+z;
-					
+
 					int noiseHeight = getNoiseHeight(worldX, worldZ);
-					
+
 					float temp = getTemp(worldX, worldZ);
 					float moist = getMoist(worldX, worldZ);
 					Biome biome = BiomeRegistry.get(getBiomeType(worldX, worldZ, temp, moist));
-					
+
 					for (int y = 0; y < 16; y++) {
 						int worldY = sec*16 +y;
-						
+
 						byte block = noiseGetBlock(noiseHeight, worldX, worldY, worldZ, biome, temp, moist);
 						if (block != Blocks.AIR) {
 							if (chunkData == null) chunkData = new byte[32*16*32];
-							chunkData[x*(16*32) + y*32 + z] = block;
+							chunkData[y*(32*32) + z*32 + x] = block;
 							changed = true;
 						}
 					}
 				}
 			}
-			
-			if (changed == false) continue;
+
+			if (!changed) continue;
 			sections[sec] = new ChunkSection(chunkData, worldReference, cx*32, sec*16, cz*32);
 		}
-		
+
 		return sections;
 	}
-	
+
 	public ChunkSection[] terrainGenerated;
 	public final int cx, cz;
-	
+
 	public void runTask() {
 		this.terrainGenerated = generateChunk();
 	}
-	
+
 	public ChunkColumn chunkReference;
 	public TerrainTask(ChunkColumn chunkReference, int cx, int cz, World worldReference) {
 		this.cx = cx;

@@ -1,30 +1,189 @@
 package com.szymc.voxel_engine;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.Arrays;
-import java.util.BitSet;
-import it.unimi.dsi.fastutil.floats.FloatArrayList;
+
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 
 public class ChunkSection {
-	private byte[] chunk = new byte[32*16*32]; // 16,384
+	private byte[] palette = new byte[0];
+	private long[] blockData = new long[256];
+
 	private final int worldX, worldY, worldZ;
 	private World worldReference;
 	private Mesh mesh = null;
 	private Mesh waterMesh = null;
 	private boolean dirtyMesh = false;
-	
+
+	public ChunkSection(byte[] data, World worldReference, int wx, int wy, int wz) {
+		for (int y = 0; y < 16; y++) {
+			for (int z = 0; z < 32; z++) {
+				for (int x = 0; x < 32; x++) {
+					setBlock(x, y, z, data[y*32*32 + z*32 + x]);
+				}
+			}
+		}
+
+		this.worldReference = worldReference;
+
+		this.worldX = wx;
+		this.worldY = wy;
+		this.worldZ = wz;
+	}
+
+	private int calculateBitCount(int uniqueValues) {
+		if (uniqueValues <= 1) return 1;
+		int bits = 0;
+		int capacity = 1;
+		while (capacity < uniqueValues) {
+			bits++;
+			capacity <<= 1;
+		}
+
+		return bits;
+	}
+
+	public void setBlock(int x, int y, int z, byte block) {
+		if (x < 0 || x > 31) throw new IndexOutOfBoundsException();
+		if (y < 0 || y > 15) throw new IndexOutOfBoundsException();
+		if (z < 0 || z > 31) throw new IndexOutOfBoundsException();
+
+		int currentPalettePos = -1;
+		for (int i = 0; i < palette.length; i++) {
+			if (palette[i] == block) {
+				currentPalettePos = i;
+				break;
+			}
+		}
+
+		if (currentPalettePos == -1) {
+			byte[] newPalette = new byte[palette.length+1];
+			newPalette[palette.length] = block;
+			currentPalettePos = palette.length;
+			System.arraycopy(palette, 0, newPalette, 0, palette.length);
+			palette = newPalette;
+
+			int newBitWidth = calculateBitCount(newPalette.length);
+			int datLength = ((32*16*32)*newBitWidth) / 64;
+			if (datLength != blockData.length) {
+				long[] oldBlockData = blockData;
+				blockData = new long[datLength];
+
+				for (int i = 0; i < 32 * 16 * 32; i++) {
+					long val = readRawIndex(oldBlockData, newBitWidth-1, i);
+					writeRawIndex(blockData, newBitWidth, i, val);
+				}
+			}
+		}
+
+		int bitWidth = calculateBitCount(palette.length);
+		int index = y*32*32 + z*32 + x;
+		writeRawIndex(blockData, bitWidth, index, currentPalettePos);
+	}
+
+	public byte getLocalBlock(int x, int y, int z) {
+		if (x < 0 || x > 31) throw new IndexOutOfBoundsException();
+		if (y < 0 || y > 15) throw new IndexOutOfBoundsException();
+		if (z < 0 || z > 31) throw new IndexOutOfBoundsException();
+
+		int index = y*32*32 + z*32 + x;
+		int bitWidth = calculateBitCount(palette.length);
+		return palette[(int)(readRawIndex(blockData, bitWidth, index))];
+	}
+
+	private void writeRawIndex(long[] data, int bitWidth, int index, long value) {
+		int startBit = index*bitWidth;
+		int mainLong = startBit/64;
+		int offset = startBit%64;
+
+		long mask = (1L << bitWidth) - 1L;
+
+		if (offset + bitWidth <= 64) {
+			data[mainLong] = (data[mainLong] &~ (mask << offset)) | (value << offset);
+			return;
+		}
+
+		int bits1 = 64 - offset;
+		data[mainLong] = (data[mainLong] &~ (mask << offset)) | (value << offset);
+		data[mainLong+1] = (data[mainLong+1] &~ (mask >>> bits1)) | (value >>> bits1);
+	}
+
+	private long readRawIndex(long[] data, int bitWidth, int index) {
+		int startBit = index*bitWidth;
+		int mainLong = startBit/64;
+		int offset = startBit%64;
+
+		long mask = (1L << bitWidth) - 1L;
+		if (offset + bitWidth <= 64) {
+			return (data[mainLong] >>> offset) & mask;
+		}
+
+		int bits1 = 64-offset;
+		long part1 = (data[mainLong] >>> offset);
+		long part2 = (data[mainLong+1] << bits1);
+		return (part1 | part2) & mask;
+	}
+
+	private final static ThreadLocal<byte[]> threadByteBuffer = ThreadLocal.withInitial(() -> new byte[32*16*32]);
+	public byte[] getChunkData() {
+		int bitWidth = calculateBitCount(palette.length);
+		byte[] buffer = threadByteBuffer.get();
+		int currentLongIndex = 0;
+		int bitOffset = 0;
+		for (int i = 0; i < (32*16*32); i++) {
+			long mask = (1L << bitWidth) - 1L;
+			if (bitOffset + bitWidth <= 64) {
+				buffer[i] = palette[(int)((blockData[currentLongIndex] >>> bitOffset) & mask)];
+				bitOffset += bitWidth;
+
+				if (bitOffset == 64) {
+					currentLongIndex++;
+					bitOffset = 0;
+				}
+
+				continue;
+			}
+
+			int bits1 = 64-bitOffset;
+			long part1 = (blockData[currentLongIndex] >>> bitOffset);
+			long part2 = (blockData[currentLongIndex+1] << bits1);
+			buffer[i] = palette[(int)((part1 | part2) & mask)];
+			currentLongIndex++;
+			bitOffset = bitWidth-bits1;
+		}
+
+		return buffer;
+	}
+
+	public int getWorldX() {
+		return this.worldX;
+	}
+
+	public int getWorldY() {
+		return this.worldY;
+	}
+
+	public int getWorldZ() {
+		return this.worldZ;
+	}
+
+//	public byte[] getChunkData() {
+//		return this.chunk;
+//	}
+
+	public Mesh getMesh() {
+		return this.mesh;
+	}
+
 	// Chunk must be re-meshed if it is dirty, as either a neighbor chunk impacts
 	// faces, or a player does an action
 	public boolean isDirty() {
 		return this.dirtyMesh;
 	}
-	
+
 	public void setDirty(boolean status) {
 		this.dirtyMesh = status;
 	}
-	
+
 	public static void addGrassShrub(IntArrayList vBuffer, IntArrayList iBuffer, int x, int y, int z, byte blockType) {
 	    int bx = x * 10;
 	    int by = y * 10;
@@ -32,7 +191,7 @@ public class ChunkSection {
 
 	    int uWidth = 1;
 	    int vHeight = 1;
-	    byte noAO = (byte) (3 | (3 << 2) | (3 << 4) | (3 << 6)); 
+	    byte noAO = (byte) (3 | (3 << 2) | (3 << 4) | (3 << 6));
 	    boolean flipQuad = false;
 	    int topY = by + 10;
 
@@ -47,10 +206,10 @@ public class ChunkSection {
 
 	    // Back Face (axis set to 3)
 	    addQuad(vBuffer, iBuffer,
-	            bx + 1, by, bz + 1, 
-	            bx + 1, topY, bz + 1, 
-	            bx + 9, by, bz + 9, 
-	            bx + 9, topY, bz + 9, 
+	            bx + 1, by, bz + 1,
+	            bx + 1, topY, bz + 1,
+	            bx + 9, by, bz + 9,
+	            bx + 9, topY, bz + 9,
 	            uWidth, vHeight, blockType, true, 1, noAO, flipQuad, true);
 
 
@@ -65,13 +224,13 @@ public class ChunkSection {
 
 	    // Back Face (axis set to 3)
 	    addQuad(vBuffer, iBuffer,
-	            bx + 9, by, bz + 1, 
-	            bx + 9, topY, bz + 1, 
-	            bx + 1, by, bz + 9, 
-	            bx + 1, topY, bz + 9, 
+	            bx + 9, by, bz + 1,
+	            bx + 9, topY, bz + 1,
+	            bx + 1, by, bz + 9,
+	            bx + 1, topY, bz + 9,
 	            uWidth, vHeight, blockType, true, 1, noAO, flipQuad, true);
 	}
-		
+
 	private static void addQuad(
 			IntArrayList vBuffer,
 			IntArrayList iBuffer,
@@ -81,13 +240,13 @@ public class ChunkSection {
 			int x4, int y4, int z4,
 			int width, int height, byte blockType, // U width, V height
 			boolean backFace, int axis, byte packedAO, boolean flipQuad, boolean downscale
-			) {	
-		
+			) {
+
 		int addedVerts = vBuffer.size()/2;
 		int texId = 0;
 		if (axis == 1) texId = Texture.getTextureIndex(blockType, "TOP"); // Y
 		if (axis == 2 || axis == 0) texId = Texture.getTextureIndex(blockType, "SIDE");
-		
+
 		int ao1 = packedAO & 0x3;
 	    int ao2 = (packedAO >> 2) & 0x3;
 	    int ao3 = (packedAO >> 4) & 0x3;
@@ -97,16 +256,16 @@ public class ChunkSection {
 		if (axis == 0) {
 			int vert1a = (x1 & 0x1FF) | ((y1 & 0x1FF) << 9) | ((z1 & 0x1FF) << 18);
 			int vert1b = (texId & 0xFF) | ((height & 0x3F) << 8) | ((width & 0x3F) << 14) | ((ao1 & 0x3)) << 20 | (scaleFlag << 22);
-			
+
 			int vert2a = (x2 & 0x1FF) | ((y2 & 0x1FF) << 9) | ((z2 & 0x1FF) << 18); // Position
 			int vert2b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((width & 0x3F) << 14) | ((ao2 & 0x3) << 20) | (scaleFlag << 22);
-			
+
 			int vert3a = (x3 & 0x1FF) | ((y3 & 0x1FF) << 9) | ((z3 & 0x1FF) << 18); // Position
 			int vert3b = (texId & 0xFF) | ((height & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao3 & 0x3) << 20) | (scaleFlag << 22);
-			
+
 			int vert4a = (x4 & 0x1FF) | ((y4 & 0x1FF) << 9) | ((z4 & 0x1FF) << 18); // Position
 			int vert4b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao4 & 0x3) << 20) | (scaleFlag << 22);
-			
+
 			vBuffer.add(vert1a);
 			vBuffer.add(vert1b);
 			vBuffer.add(vert2a);
@@ -118,16 +277,16 @@ public class ChunkSection {
 		} else {
 			int vert1a = (x1 & 0x1FF) | ((y1 & 0x1FF) << 9) | ((z1 & 0x1FF) << 18);
 			int vert1b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((height & 0x3F) << 14) | ((ao1 & 0x3) << 20) | (scaleFlag << 22);
-			
+
 			int vert2a = (x2 & 0x1FF) | ((y2 & 0x1FF) << 9) | ((z2 & 0x1FF) << 18); // Position
 			int vert2b = (texId & 0xFF) | ((0 & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao2 & 0x3) << 20) | (scaleFlag << 22);
-			
+
 			int vert3a = (x3 & 0x1FF) | ((y3 & 0x1FF) << 9) | ((z3 & 0x1FF) << 18); // Position
 			int vert3b = (texId & 0xFF) | ((width & 0x3F) << 8) | ((height & 0x3F) << 14) | ((ao3 & 0x3) << 20) | (scaleFlag << 22);
-			
+
 			int vert4a = (x4 & 0x1FF) | ((y4 & 0x1FF) << 9) | ((z4 & 0x1FF) << 18); // Position
 			int vert4b = (texId & 0xFF) | ((width & 0x3F) << 8) | ((0 & 0x3F) << 14) | ((ao4 & 0x3) << 20) | (scaleFlag << 22);
-			
+
 			vBuffer.add(vert1a);
 			vBuffer.add(vert1b);
 			vBuffer.add(vert2a);
@@ -137,14 +296,14 @@ public class ChunkSection {
 			vBuffer.add(vert4a);
 			vBuffer.add(vert4b);
 		}
-		
+
 		if (backFace) {
 		    if (flipQuad) {
 		        // Slanted the other way for backface: 0-3-1 and 0-2-3
 		        iBuffer.add(addedVerts + 0);
 		        iBuffer.add(addedVerts + 3);
 		        iBuffer.add(addedVerts + 1);
-		        
+
 		        iBuffer.add(addedVerts + 0);
 		        iBuffer.add(addedVerts + 2);
 		        iBuffer.add(addedVerts + 3);
@@ -153,7 +312,7 @@ public class ChunkSection {
 		        iBuffer.add(addedVerts + 0);
 		        iBuffer.add(addedVerts + 2);
 		        iBuffer.add(addedVerts + 1);
-		        
+
 		        iBuffer.add(addedVerts + 2);
 		        iBuffer.add(addedVerts + 3);
 		        iBuffer.add(addedVerts + 1);
@@ -164,7 +323,7 @@ public class ChunkSection {
 		        iBuffer.add(addedVerts + 0);
 		        iBuffer.add(addedVerts + 1);
 		        iBuffer.add(addedVerts + 3);
-		        
+
 		        iBuffer.add(addedVerts + 0);
 		        iBuffer.add(addedVerts + 3);
 		        iBuffer.add(addedVerts + 2);
@@ -173,131 +332,154 @@ public class ChunkSection {
 		        iBuffer.add(addedVerts + 0);
 		        iBuffer.add(addedVerts + 1);
 		        iBuffer.add(addedVerts + 2);
-		        
+
 		        iBuffer.add(addedVerts + 2);
 		        iBuffer.add(addedVerts + 1);
 		        iBuffer.add(addedVerts + 3);
 		    }
 		}
 	}
-	
+
 	// Cache nearby for meshing / face visibility
 	// References passed in
-	
+
 	private final static ThreadLocal<IntArrayList> threadVertexBuffer = ThreadLocal.withInitial(() -> new IntArrayList(8192));
 	private final static ThreadLocal<IntArrayList> threadIndexBuffer = ThreadLocal.withInitial(() -> new IntArrayList(12288));
 	private final static ThreadLocal<IntArrayList> threadWaterVBuffer = ThreadLocal.withInitial(() -> new IntArrayList(8192));
 	private final static ThreadLocal<IntArrayList> threadWaterIBuffer = ThreadLocal.withInitial(() -> new IntArrayList(12288));
-	
+
 	public void setMesh(Mesh mesh) {
 		this.mesh = mesh;
 	}
-	
+
 	public void setWaterMesh(Mesh mesh) {
 		this.waterMesh = mesh;
 	}
-	
+
 	public Mesh getWaterMesh() {
 		return this.waterMesh;
 	}
-	
+
 	public int[] vertices;
 	public int[] indices;
 	public int vCount;
 	public int iCount;
-	
+
 	public int[] waterVertices;
 	public int[] waterIndices;
 	public int wvCount;
 	public int wiCount;
-	
-	private byte[] fillPaddedArr(byte[] arr, ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor) {
-		for (int x = 0; x < 32; x++) {
-			for (int y = 0; y < 16; y++) {
-				int srcPos = (x*(16*32) + y*32);
-				int destPos = ((x+1) * (18*34)) + ((y+1)*34) + 1;
+
+	private void fillPaddedArr(byte[] arr, ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor) {
+		byte[] chunk = this.getChunkData(); // Using getChunkData() for the main chunk
+
+		// --- MAIN CHUNK FILL ---
+		// We can copy along the X axis (size 32) in one go because X is the fastest-moving index
+		for (int y = 0; y < 16; y++) {
+			for (int z = 0; z < 32; z++) {
+				// Source format: x + (z*32) + (y*32*32). We start at x = 0
+				int srcPos = (0) + (z * 32) + (y * 32 * 32);
+
+				// Padded Destination format: (x+1) + ((z+1)*34) + ((y+1)*34*34)
+				int destPos = (0 + 1) + ((z + 1) * 34) + ((y + 1) * 34 * 34);
+
 				System.arraycopy(chunk, srcPos, arr, destPos, 32);
 			}
 		}
-		
+
+		// --- X NEIGHBORS (Padded along the X-edges) ---
+		// Since X is contiguous, we cannot copy a whole row for X-boundaries.
+		// We must copy individual bytes.
 		if (xMinor != null) {
 			byte[] xMinDat = xMinor.getChunkData();
 			for (int y = 0; y < 16; y++) {
-				int srcPos = (31*(16*32)) + (y*32);
-				int destPos = ((y+1)*34)+1;
-				
-				System.arraycopy(xMinDat, srcPos, arr, destPos, 32);
+				for (int z = 0; z < 32; z++) {
+					// Grab the maximum X coordinate (31) of the minor neighbor
+					int srcPos = (31) + (z * 32) + (y * 32 * 32);
+					// Place at X = 0 in the padded array
+					int destPos = (0) + ((z + 1) * 34) + ((y + 1) * 34 * 34);
+
+					arr[destPos] = xMinDat[srcPos];
+				}
 			}
 		}
-		
+
 		if (xMajor != null) {
 			byte[] xMaxDat = xMajor.getChunkData();
 			for (int y = 0; y < 16; y++) {
-				int srcPos = (0*(16*32)) + (y*32);
-				int destPos = (33*(18*34)) + ((y+1)*34)+1;
-				
-				System.arraycopy(xMaxDat, srcPos, arr, destPos, 32);
+				for (int z = 0; z < 32; z++) {
+					// Grab the minimum X coordinate (0) of the major neighbor
+					int srcPos = (0) + (z * 32) + (y * 32 * 32);
+					// Place at X = 33 in the padded array
+					int destPos = (33) + ((z + 1) * 34) + ((y + 1) * 34 * 34);
+
+					arr[destPos] = xMaxDat[srcPos];
+				}
 			}
 		}
-		
+
+		// --- Z NEIGHBORS ---
 		if (zMinor != null) {
 			byte[] zMinDat = zMinor.getChunkData();
-			for (int x = 0; x < 32; x++) {
-				for (int y = 0; y < 16; y++) {
-					int srcPos = (x*(16*32)) + (y*32) + 31;
-					int destPos = ((x+1)*(18*34)) + ((y+1)*34) + 0;
-					
-					arr[destPos] = zMinDat[srcPos];
-				}
+			for (int y = 0; y < 16; y++) {
+				// Grab the maximum Z row (31) of the minor neighbor
+				int srcPos = (0) + (31 * 32) + (y * 32 * 32);
+				// Place at Z = 0 in the padded array
+				int destPos = (0 + 1) + (0 * 34) + ((y + 1) * 34 * 34);
+
+				System.arraycopy(zMinDat, srcPos, arr, destPos, 32);
 			}
 		}
-		
+
 		if (zMajor != null) {
 			byte[] zMaxDat = zMajor.getChunkData();
-			for (int x = 0; x < 32; x++) {
-				for (int y = 0; y < 16; y++) {
-					int srcPos = (x*(16*32)) + (y*32) + 0;
-					int destPos = ((x+1)*(18*34)) + ((y+1)*34) + 33;
-					
-					arr[destPos] = zMaxDat[srcPos];
-				}
+			for (int y = 0; y < 16; y++) {
+				// Grab the minimum Z row (0) of the major neighbor
+				int srcPos = (0) + (0 * 32) + (y * 32 * 32);
+				// Place at Z = 33 in the padded array
+				int destPos = (0 + 1) + (33 * 34) + ((y + 1) * 34 * 34);
+
+				System.arraycopy(zMaxDat, srcPos, arr, destPos, 32);
 			}
 		}
-		
+
+		// --- Y NEIGHBORS ---
 		if (yMinor != null) {
 			byte[] yMinDat = yMinor.getChunkData();
-			for (int x = 0; x < 32; x++) {
-				int srcPos = (x*(16*32)) + (15*32);
-				int destPos = ((x+1)*(18*34)) + (0*34) + 1;
-				
+			for (int z = 0; z < 32; z++) {
+				// Grab the maximum Y slice (15) of the minor neighbor
+				int srcPos = (0) + (z * 32) + (15 * 32 * 32);
+				// Place at Y = 0 in the padded array
+				int destPos = (0 + 1) + ((z + 1) * 34) + (0 * 34 * 34);
+
 				System.arraycopy(yMinDat, srcPos, arr, destPos, 32);
 			}
 		}
-		
+
 		if (yMajor != null) {
 			byte[] yMajDat = yMajor.getChunkData();
-			for (int x = 0; x < 32; x++) {
-				int srcPos = (x*(16*32)) + (0*32);
-				int destPos = ((x+1)*(18*34)) + (17*34) + 1;
-				
+			for (int z = 0; z < 32; z++) {
+				// Grab the minimum Y slice (0) of the major neighbor
+				int srcPos = (0) + (z * 32) + (0 * 32 * 32);
+				// Place at Y = 17 in the padded array
+				int destPos = (0 + 1) + ((z + 1) * 34) + (17 * 34 * 34);
+
 				System.arraycopy(yMajDat, srcPos, arr, destPos, 32);
 			}
 		}
-		
-		return arr;
 	}
-	
+
 	// Used for AO calculations
 	private static boolean isOpqaue(byte block) {
-		return block != 0 && block != Blocks.WATER && block != Blocks.GRASS_DECORATION 
+		return block != 0 && block != Blocks.WATER && block != Blocks.GRASS_DECORATION
 				&& block != Blocks.RED_MUSHROOM_SMALL && block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER;
 	}
-	
+
 	private static byte calculateCornerAO(byte side1, byte side2, byte corner) {
 		byte AO = 3;
 		boolean side1Opaque = isOpqaue(side1);
 		boolean side2Opqaue = isOpqaue(side2);
-		
+
 		if (side1Opaque && side2Opqaue) {
 			AO = 0;
 		} else {
@@ -305,108 +487,114 @@ public class ChunkSection {
 			if (side2Opqaue) AO--;
 			if (isOpqaue(corner)) AO--;
 		}
-		
+
 		return AO;
 	}
-	
+
 	private static byte calculateBlockAO(byte[] padded, int u, int axis, int v, int methodAxis, boolean backFace, int uStride, int vStride, int nStride) {
 		byte corner1AO = 3, corner2AO = 3, corner3AO = 3, corner4AO = 3;
-		int normal = (axis+1) + (backFace ? -1 : 1);
-		
-		int normalIdx = nStride * normal;
+
+		// Calculate the face's normal coordinate layer in padded space
+		int normalCoord = (axis + 1) + (backFace ? -1 : 1);
+		int normalIdx = normalCoord * nStride;
+
+		// Corner 1: du = -1, dv = +1
 		byte c1s1 = padded[(u+1-1)*uStride + (v+1)*vStride + normalIdx];
 		byte c1s2 = padded[(u+1)*uStride + (v+1+1)*vStride + normalIdx];
-		byte c1c = padded[(u+1-1)*uStride + (v+1+1)*vStride + normalIdx];
+		byte c1c  = padded[(u+1-1)*uStride + (v+1+1)*vStride + normalIdx];
 		corner1AO = calculateCornerAO(c1s1, c1s2, c1c);
-		
+
+		// Corner 2: du = +1, dv = +1
 		byte c2s1 = padded[(u+1+1)*uStride + (v+1)*vStride + normalIdx];
 		byte c2s2 = padded[(u+1)*uStride + (v+1+1)*vStride + normalIdx];
-		byte c2c = padded[(u+1+1)*uStride + (v+1+1)*vStride + normalIdx];
+		byte c2c  = padded[(u+1+1)*uStride + (v+1+1)*vStride + normalIdx];
 		corner2AO = calculateCornerAO(c2s1, c2s2, c2c);
-		
+
+		// Corner 3: du = -1, dv = -1
 		byte c3s1 = padded[(u+1-1)*uStride + (v+1)*vStride + normalIdx];
 		byte c3s2 = padded[(u+1)*uStride + (v+1-1)*vStride + normalIdx];
-		byte c3c = padded[(u+1-1)*uStride + (v+1-1)*vStride + normalIdx];
+		byte c3c  = padded[(u+1-1)*uStride + (v+1-1)*vStride + normalIdx];
 		corner3AO = calculateCornerAO(c3s1, c3s2, c3c);
-		
+
+		// Corner 4: du = +1, dv = -1
 		byte c4s1 = padded[(u+1+1)*uStride + (v+1)*vStride + normalIdx];
 		byte c4s2 = padded[(u+1)*uStride + (v+1-1)*vStride + normalIdx];
-		byte c4c = padded[(u+1+1)*uStride + (v+1-1)*vStride + normalIdx];
+		byte c4c  = padded[(u+1+1)*uStride + (v+1-1)*vStride + normalIdx];
 		corner4AO = calculateCornerAO(c4s1, c4s2, c4c);
-		
+
 		return (byte) ((corner1AO & 0x3) | ((corner2AO & 0x3) << 2) | ((corner3AO & 0x3) << 4) | ((corner4AO & 0x3) << 6));
 	}
-	
+
 	private static final ThreadLocal<long[]> TnegVisibleFaces = ThreadLocal.withInitial(() -> new long[32]);
 	private static final ThreadLocal<long[]> TposVisibleFaces = ThreadLocal.withInitial(() -> new long[32]);
-	private static final ThreadLocal<byte[]> TlocalAOFront = ThreadLocal.withInitial(() -> new byte[32 * 32]); 
+	private static final ThreadLocal<byte[]> TlocalAOFront = ThreadLocal.withInitial(() -> new byte[32 * 32]);
 	private static final ThreadLocal<byte[]> TlocalAOBack = ThreadLocal.withInitial(() -> new byte[32 * 32]);
-	
-	private void meshAxis(long[] occupancyMask, long[] waterMask, long[] leavesMask, int methodAxis, 
+
+	private void meshAxis(byte[] chunk, long[] occupancyMask, long[] waterMask, long[] leavesMask, int methodAxis,
 			int axisLimit, int uLimit, int vLimit, int paddedULimit, byte[] padded,
-			IntArrayList vertexBuffer, IntArrayList indexBuffer, 
+			IntArrayList vertexBuffer, IntArrayList indexBuffer,
 			IntArrayList waterVBuffer, IntArrayList waterIBuffer
 			) {
 		// visible faces in 0 to 15 regular chunk range
 		// with information of -1 to 16 or 18 length padded arr
-		
+
 		long[] negVisibleFaces = TnegVisibleFaces.get();
 		long[] posVisibleFaces = TposVisibleFaces.get();
 		byte[] localAOFront = TlocalAOFront.get();
 		byte[] localAOBack = TlocalAOBack.get();
-		
+
 		int uStride = 0, vStride = 0, nStride = 0;
-		if (methodAxis == 2) {
-			uStride = 18*34;
-			vStride = 34;
-			nStride = 1;
-		} else if (methodAxis == 1) {
-			uStride = 18*34;
-			vStride = 1;
-			nStride = 34;
-		} else if (methodAxis == 0) {
-			uStride = 34;
-			vStride = 1;
-			nStride = 18*34;
+		if (methodAxis == 2) { // Z-normal (u=X, v=Y, n=Z)
+			uStride = 1;       // X-stride
+			vStride = 34 * 34; // Y-stride
+			nStride = 34;      // Z-stride
+		} else if (methodAxis == 1) { // Y-normal (u=X, v=Z, n=Y)
+			uStride = 1;       // X-stride
+			vStride = 34;      // Z-stride
+			nStride = 34 * 34; // Y-stride
+		} else if (methodAxis == 0) { // X-normal (u=Y, v=Z, n=X)
+			uStride = 34 * 34; // Y-stride
+			vStride = 34;      // Z-stride
+			nStride = 1;       // X-stride
 		}
-		
+
 		for (int axis = 0; axis < axisLimit; axis++) {
 			// Visibility building for axis
 			for (int u = 0; u < uLimit; u++) {
 				int curIdx = (axis+1) * paddedULimit + (u+1);
 				int negIdx = (axis) * paddedULimit + (u+1);
 				int posIdx = (axis+2) * paddedULimit + (u+1);
-				
+
 				long currentSolid = occupancyMask[curIdx];
 				long currentWater = waterMask[curIdx];
 				long currentLeaves = leavesMask[curIdx];
-				
+
 				long negWater = waterMask[negIdx];
 				long negLeaves = leavesMask[negIdx];
 				long negSolid = occupancyMask[negIdx];
-				
+
 				long negFaces = ((currentSolid | currentLeaves) &~ negSolid) | (currentWater &~ negSolid & ~negWater);
-				
+
 				long posWater = waterMask[posIdx];
 				long posLeaves = leavesMask[posIdx];
 				long posSolid = occupancyMask[posIdx];
-				
+
 				long posFaces = ((currentSolid | currentLeaves) &~ posSolid) | (currentWater &~ posSolid & ~posWater);
-				
-		        // FIX: Discard neighbor block bits (bit 0 and bit 17) 
+
+		        // FIX: Discard neighbor block bits (bit 0 and bit 17)
 		        // and shift right by 1 so bit 1 becomes bit 0 (native 0-15 space)
 		        long mask = (1L << vLimit) - 1L;
 				negVisibleFaces[u] = (negFaces >> 1L) & mask;
 		        posVisibleFaces[u] = (posFaces >> 1L) & mask;
 			}
-			
+
 			for (int u = 0; u < uLimit; u++) {
 				for (int v = 0; v < vLimit; v++) {
 					localAOFront[u*vLimit + v] = calculateBlockAO(padded, u, axis, v, methodAxis, false, uStride, vStride, nStride);
 					localAOBack[u*vLimit + v] = calculateBlockAO(padded, u, axis, v, methodAxis, true, uStride, vStride, nStride);
 				}
 			}
-			
+
 			for (int u = 0; u < uLimit; u++) {
 				while (negVisibleFaces[u] != 0) {
 					int vStart = Long.numberOfTrailingZeros(negVisibleFaces[u]);
@@ -414,58 +602,59 @@ public class ChunkSection {
 					int vEnd = vStart;
 					byte startBlock = 0; // needs conversion
 					byte startAO = localAOBack[u*vLimit + vStart];
+					//y, z, x
 					if (methodAxis == 2) {
-						startBlock = chunk[u*(16*32)+vStart*32+axis];
+						startBlock = chunk[vStart*(32*32)+axis*32+u];
 					} else if (methodAxis == 1) {
-						startBlock = chunk[u*(16*32)+axis*32+vStart];
+						startBlock = chunk[axis*(32*32)+vStart*32+u];
 					} else if (methodAxis == 0) {
-						startBlock = chunk[axis*(16*32)+u*32+vStart];
+						startBlock = chunk[u*(32*32)+vStart*32+axis];
 					}
-					
+
 					IntArrayList targetVBuffer = startBlock == Blocks.WATER ? waterVBuffer : vertexBuffer;
 					IntArrayList targetIBuffer = startBlock == Blocks.WATER ? waterIBuffer : indexBuffer;
-					
+
 					while (vEnd < vLimit && (negVisibleFaces[u] & (1L << vEnd)) != 0) {
 						if (localAOBack[u*vLimit + vEnd] != startAO) break;
-						
+
 						if (methodAxis == 2) {
-							if (chunk[u*(16*32)+vEnd*32+axis] != startBlock) break;
+							if (chunk[vEnd*(32*32)+axis*32+u] != startBlock) break;
 						} else if (methodAxis == 1) {
-							if (chunk[u*(16*32)+axis*32+vEnd] != startBlock) break;
+							if (chunk[axis*(32*32)+vEnd*32+u] != startBlock) break;
 						} else if (methodAxis == 0) {
-							if (chunk[axis*(16*32)+u*32+vEnd] != startBlock) break;
+							if (chunk[u*(32*32)+vEnd*32+axis] != startBlock) break;
 						}
-						
+
 						widthMask |= (1L << vEnd);
 						vEnd++;
 					}
-					
+
 					int quadWidth = vEnd-vStart;
 					int uEnd = u;
-					
+
 					while (uEnd < uLimit && (negVisibleFaces[uEnd] & widthMask) == widthMask) {
 						boolean cancelExpand = false;
 						for (int vc = vStart; vc < vEnd; vc++) {
 							if (localAOBack[uEnd*vLimit + vc] != startAO) {cancelExpand = true; break;}
-							
+
 							if (methodAxis == 2) {
-								if (chunk[uEnd*(16*32)+vc*32+axis] != startBlock) {cancelExpand = true; break;};
+								if (chunk[vc*(32*32)+axis*32+uEnd] != startBlock) {cancelExpand = true; break;};
 							} else if (methodAxis == 1) {
-								if (chunk[uEnd*(16*32)+axis*32+vc] != startBlock) {cancelExpand = true; break;};
+								if (chunk[axis*(32*32)+vc*32+uEnd] != startBlock) {cancelExpand = true; break;};
 							} else if (methodAxis == 0) {
-								if (chunk[axis*(16*32)+uEnd*32+vc] != startBlock) {cancelExpand = true; break;};
+								if (chunk[uEnd*(32*32)+vc*32+axis] != startBlock) {cancelExpand = true; break;};
 							}
 						}
-						
+
 						if (cancelExpand) break;
 						uEnd++;
 					}
-					
+
 					int quadHeight = uEnd-u;
 					for (int uH = u; uH < uEnd; uH++) {
 						negVisibleFaces[uH] &= ~widthMask;
 					}
-					
+
 					int ao_TL = (startAO >> 0) & 0x3;
 					int ao_TR = (startAO >> 2) & 0x3;
 					int ao_BL = (startAO >> 4) & 0x3;
@@ -479,14 +668,14 @@ public class ChunkSection {
 					} else {
 					    quadAo = (byte) ((ao_TL & 0x3) | ((ao_BL & 0x3) << 2) | ((ao_TR & 0x3) << 4) | ((ao_BR & 0x3) << 6));
 					}
-					
+
 					if (methodAxis == 2) {
 					addQuad(targetVBuffer, targetIBuffer,
 							uEnd, vStart, axis,
 							u, vStart, axis,
 							uEnd, vEnd, axis,
 							u, vEnd, axis,
-							
+
 							quadWidth, quadHeight,
 							startBlock, false, 0, quadAo, flipQuad, false
 							);
@@ -496,8 +685,8 @@ public class ChunkSection {
 							u, axis, vStart,
 							uEnd, axis, vEnd,
 							uEnd, axis, vStart,
-							
-							quadHeight, quadWidth, 
+
+							quadHeight, quadWidth,
 							startBlock, false, 1, quadAo, flipQuad, false
 							);
 					} else if (methodAxis == 0) {
@@ -506,14 +695,14 @@ public class ChunkSection {
 							axis, u, vStart,
 							axis, uEnd, vEnd,
 							axis, uEnd, vStart,
-							
-							quadHeight, quadWidth, 
+
+							quadHeight, quadWidth,
 							startBlock, true, 0, quadAo, flipQuad, false
-							);	
+							);
 					}
 				}
 			}
-			
+
 			for (int u = 0; u < uLimit; u++) {
 				while (posVisibleFaces[u] != 0) {
 					int vStart = Long.numberOfTrailingZeros(posVisibleFaces[u]);
@@ -521,59 +710,59 @@ public class ChunkSection {
 					int vEnd = vStart;
 					byte startBlock = 0; // needs conversion
 					byte startAO = localAOFront[u*vLimit + vStart];
-					
+
 					if (methodAxis == 2) {
-						startBlock = chunk[u*(16*32)+vStart*32+axis];
+						startBlock = chunk[vStart*(32*32)+axis*32+u];
 					} else if (methodAxis == 1) {
-						startBlock = chunk[u*(16*32)+axis*32+vStart];
+						startBlock = chunk[axis*(32*32)+vStart*32+u];
 					} else if (methodAxis == 0) {
-						startBlock = chunk[axis*(16*32)+u*32+vStart];
+						startBlock = chunk[u*(32*32)+vStart*32+axis];
 					}
-					
+
 					IntArrayList targetVBuffer = startBlock == Blocks.WATER ? waterVBuffer : vertexBuffer;
 					IntArrayList targetIBuffer = startBlock == Blocks.WATER ? waterIBuffer : indexBuffer;
-					
+
 					while (vEnd < vLimit && (posVisibleFaces[u] & (1L << vEnd)) != 0) {
 						if (localAOFront[u*vLimit + vEnd] != startAO) break;
-						
+
 						if (methodAxis == 2) {
-							if (chunk[u*(16*32)+vEnd*32+axis] != startBlock) break;
+							if (chunk[vEnd*(32*32)+axis*32+u] != startBlock) break;
 						} else if (methodAxis == 1) {
-							if (chunk[u*(16*32)+axis*32+vEnd] != startBlock) break;
+							if (chunk[axis*(32*32)+vEnd*32+u] != startBlock) break;
 						} else if (methodAxis == 0) {
-							if (chunk[axis*(16*32)+u*32+vEnd] != startBlock) break;
+							if (chunk[u*(32*32)+vEnd*32+axis] != startBlock) break;
 						}
-						
+
 						widthMask |= (1L << vEnd);
 						vEnd++;
 					}
-					
+
 					int quadWidth = vEnd-vStart;
 					int uEnd = u;
-					
+
 					while (uEnd < uLimit && (posVisibleFaces[uEnd] & widthMask) == widthMask) {
 						boolean cancelExpand = false;
 						for (int vc = vStart; vc < vEnd; vc++) {
 							if (localAOFront[uEnd*vLimit + vc] != startAO) {cancelExpand = true; break;}
-							
+
 							if (methodAxis == 2) {
-								if (chunk[uEnd*(16*32)+vc*32+axis] != startBlock) {cancelExpand = true; break;};
+								if (chunk[vc*(32*32)+axis*32+uEnd] != startBlock) {cancelExpand = true; break;};
 							} else if (methodAxis == 1) {
-								if (chunk[uEnd*(16*32)+axis*32+vc] != startBlock) {cancelExpand = true; break;};
+								if (chunk[axis*(32*32)+vc*32+uEnd] != startBlock) {cancelExpand = true; break;};
 							} else if (methodAxis == 0) {
-								if (chunk[axis*(16*32)+uEnd*32+vc] != startBlock) {cancelExpand = true; break;};
+								if (chunk[uEnd*(32*32)+vc*32+axis] != startBlock) {cancelExpand = true; break;};
 							}
 						}
-						
+
 						if (cancelExpand) break;
 						uEnd++;
 					}
-					
+
 					int quadHeight = uEnd-u;
 					for (int uH = u; uH < uEnd; uH++) {
 						posVisibleFaces[uH] &= ~widthMask;
 					}
-					
+
 					int ao_TL = (startAO >> 0) & 0x3;
 					int ao_TR = (startAO >> 2) & 0x3;
 					int ao_BL = (startAO >> 4) & 0x3;
@@ -587,14 +776,14 @@ public class ChunkSection {
 					} else {
 					    quadAo = (byte) ((ao_TL & 0x3) | ((ao_BL & 0x3) << 2) | ((ao_TR & 0x3) << 4) | ((ao_BR & 0x3) << 6));
 					}
-					
+
 					if (methodAxis == 2) {
 					addQuad(targetVBuffer, targetIBuffer,
 							uEnd, vStart, axis+1,
 							u, vStart, axis+1,
 							uEnd, vEnd, axis+1,
 							u, vEnd, axis+1,
-							
+
 							quadWidth, quadHeight,
 							startBlock, true, 0, quadAo, flipQuad, false
 							);
@@ -604,8 +793,8 @@ public class ChunkSection {
 							u, axis+1, vStart,
 							uEnd, axis+1, vEnd,
 							uEnd, axis+1, vStart,
-							
-							quadHeight, quadWidth, 
+
+							quadHeight, quadWidth,
 							startBlock, true, 1, quadAo, flipQuad, false
 							);
 					} else if (methodAxis == 0) {
@@ -614,29 +803,29 @@ public class ChunkSection {
 							axis+1, u, vStart,
 							axis+1, uEnd, vEnd,
 							axis+1, uEnd, vStart,
-							
-							quadHeight, quadWidth, 
+
+							quadHeight, quadWidth,
 							startBlock, false, 0, quadAo, flipQuad, false
-							);	
+							);
 					}
 				}
 			}
 		}
 	}
-	
+
 	private final static ThreadLocal<byte[]> threadPadded = ThreadLocal.withInitial(() -> new byte[34*18*34]);
 	private final static ThreadLocal<long[]> tOccZ = ThreadLocal.withInitial(() -> new long[34*34]);
 	private final static ThreadLocal<long[]> tWatZ = ThreadLocal.withInitial(() -> new long[34*34]);
 	private final static ThreadLocal<long[]> tLeaZ = ThreadLocal.withInitial(() -> new long[34*34]);
-	
+
 	private final static ThreadLocal<long[]> tOccY = ThreadLocal.withInitial(() -> new long[18*34]);
 	private final static ThreadLocal<long[]> tWatY = ThreadLocal.withInitial(() -> new long[18*34]);
 	private final static ThreadLocal<long[]> tLeaY = ThreadLocal.withInitial(() -> new long[18*34]);
-	
+
 	private final static ThreadLocal<long[]> tOccX = ThreadLocal.withInitial(() -> new long[18*34]);
 	private final static ThreadLocal<long[]> tWatX = ThreadLocal.withInitial(() -> new long[18*34]);
 	private final static ThreadLocal<long[]> tLeaX = ThreadLocal.withInitial(() -> new long[18*34]);
-	
+
 	public void generateMeshData(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor) {
 		this.vertices = null;
 		this.indices = null;
@@ -646,25 +835,25 @@ public class ChunkSection {
 		this.iCount = 0;
 		this.wvCount = 0;
 		this.wiCount = 0;
-		
+
 		final IntArrayList vertexBuffer = threadVertexBuffer.get();
 		final IntArrayList indexBuffer = threadIndexBuffer.get();
 		final IntArrayList waterVBuffer = threadWaterVBuffer.get();
 		final IntArrayList waterIBuffer = threadWaterIBuffer.get();
-		
+
 		vertexBuffer.clear();
 		indexBuffer.clear();
 		waterVBuffer.clear();
 		waterIBuffer.clear();
-		
+
 		byte[] padded = threadPadded.get();
 		Arrays.fill(padded, (byte)0);
 		fillPaddedArr(padded, xMajor, xMinor, yMajor, yMinor, zMajor, zMinor);
-		
+
 		// 34 x layers, 18 y layers, each mask is 34 z bits
 		// 18 y layers, 34 x layers, each mask is 34 z bits
 		// 34 z layers, 34 x layers, each mask is 18 y bits
-		
+
 		// Iterates x & y, holds z
 		long[] occZ = tOccZ.get();
 		Arrays.fill(occZ, 0L);
@@ -672,7 +861,7 @@ public class ChunkSection {
 		Arrays.fill(watZ, 0L);
 		long[] leaZ = tLeaZ.get();
 		Arrays.fill(leaZ, 0L);
-		
+
 		// Iterates x & z, holds y
 		long[] occY = tOccY.get();
 		Arrays.fill(occY, 0L);
@@ -681,45 +870,47 @@ public class ChunkSection {
 		long[] leaY = tLeaY.get();
 		Arrays.fill(leaY, 0L);
 		// Iterates y & z, holds x
-		
+
 		long[] occX = tOccX.get();
 		Arrays.fill(occX, 0L);
 		long[] watX = tWatX.get();
 		Arrays.fill(watX, 0L);
 		long[] leaX = tLeaX.get();
 		Arrays.fill(leaX, 0L);
-	
-		for (int x = 0; x < 32; x++) {
-			for (int y = 0; y < 16; y++) {
-				for (int z = 0; z < 32; z++) {
-					byte block = chunk[x*16*32 + y*32 + z];
+
+		byte[] chunk = this.getChunkData();
+
+		for (int y = 0; y < 16; y++) {
+			for (int z = 0; z < 32; z++) {
+				for (int x = 0; x < 32; x++) {
+					byte block = chunk[y*32*32 + z*32 + x];
 					if (block == Blocks.GRASS_DECORATION || block == Blocks.RED_MUSHROOM_SMALL
 							|| block == Blocks.BROWN_MUSHROOM_SMALL || block == Blocks.RED_FLOWER) {
-						padded[(x+1)*18*34 + (y+1)*34 + (z+1)] = Blocks.AIR; // = 0
+						padded[(y+1)*34*34 + (z+1)*34 + (x+1)] = Blocks.AIR; // = 0
 						addGrassShrub(vertexBuffer, indexBuffer, x,y,z, block);
 					}
 				}
 			}
 		}
-		
+
 		// Build the masks
-		for (int x = 0; x < 34; x++) {
-			for (int y = 0; y < 18; y++) {
-				for (int z = 0; z < 34; z++) {
-					byte block = padded[x*(18*34) + y*34 + z];
-					
+		for (int y = 0; y < 18; y++) {
+			for (int z = 0; z < 34; z++) {
+				for (int x = 0; x < 34; x++) {
+					byte block = padded[y*(34*34) + z*34 + x];
+
 					if (block == Blocks.WATER) {
 						watZ[z*34+x] |= (1L << y);
 						watY[y*34+x] |= (1L << z);
 						watX[x*18+y] |= (1L << z);
-					} else if (block == Blocks.OAK_LEAVES 
+					} else if (block == Blocks.OAK_LEAVES
 							|| block == Blocks.BIRCH_LEAVES
 							|| block == Blocks.SPRUCE_LEAVES
 							|| block == Blocks.ACACIA_LEAVES) {
 						leaZ[z*34+x] |= (1L << y);
 						leaY[y*34+x] |= (1L << z);
 						leaX[x*18+y] |= (1L << z);
-					} else if (block != 0 && block != Blocks.GRASS_DECORATION 
+					} else if (block != 0 && block != Blocks.GRASS_DECORATION
 							&& block != Blocks.RED_MUSHROOM_SMALL &&
 							block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER) {
 						occZ[z*34+x] |= (1L << y);
@@ -729,68 +920,21 @@ public class ChunkSection {
 				}
 			}
 		}
-		
-		meshAxis(occZ, watZ, leaZ, 2, 32, 32, 16, 34, padded, vertexBuffer, indexBuffer, waterVBuffer, waterIBuffer);
-		meshAxis(occY, watY, leaY, 1, 16, 32, 32, 34, padded, vertexBuffer, indexBuffer, waterVBuffer, waterIBuffer);
-		meshAxis(occX, watX, leaX, 0, 32, 16, 32, 18, padded, vertexBuffer, indexBuffer, waterVBuffer, waterIBuffer);
-		
+
+		meshAxis(chunk, occZ, watZ, leaZ, 2, 32, 32, 16, 34, padded, vertexBuffer, indexBuffer, waterVBuffer, waterIBuffer);
+		meshAxis(chunk, occY, watY, leaY, 1, 16, 32, 32, 34, padded, vertexBuffer, indexBuffer, waterVBuffer, waterIBuffer);
+		meshAxis(chunk, occX, watX, leaX, 0, 32, 16, 32, 18, padded, vertexBuffer, indexBuffer, waterVBuffer, waterIBuffer);
+
 		vertices = vertexBuffer.toIntArray();
 		indices = indexBuffer.toIntArray();
 		vCount = vertexBuffer.size();
 		iCount = indexBuffer.size();
-		
+
 		if (!waterVBuffer.isEmpty()) {
 			waterVertices = waterVBuffer.toIntArray();
 			waterIndices = waterIBuffer.toIntArray();
 			wvCount = waterVBuffer.size();
 			wiCount = waterIBuffer.size();
 		}
-	}
-	
-	public ChunkSection(byte[] data, World worldReference, int wx, int wy, int wz) {
-		this.chunk = data;
-		this.worldReference = worldReference;
-		
-		this.worldX = wx;
-		this.worldY = wy;
-		this.worldZ = wz;
-	}
-	
-	public int getWorldX() {
-		return this.worldX;
-	}
-	
-	public int getWorldY() {
-		return this.worldY;
-	}
-	
-	public int getWorldZ() {
-		return this.worldZ;
-	}
-	
-	public void setBlock(int x, int y, int z, byte block) {
-		if (x < 0 || x > 31) throw new IndexOutOfBoundsException();
-		if (y < 0 || y > 15) throw new IndexOutOfBoundsException();
-		if (z < 0 || z > 31) throw new IndexOutOfBoundsException();
-		
-		int index = x*(16*32) + y*32 + z;
-		chunk[index] = block;
-	}
-	
-	public byte getLocalBlock(int x, int y, int z) {
-		if (x < 0 || x > 31) throw new IndexOutOfBoundsException();
-		if (y < 0 || y > 15) throw new IndexOutOfBoundsException();
-		if (z < 0 || z > 31) throw new IndexOutOfBoundsException();
-		
-		int index = x*(16*32) + y*32 + z;
-		return chunk[index];
-	}
-	
-	public byte[] getChunkData() {	
-		return this.chunk;
-	}
-	
-	public Mesh getMesh() {
-		return this.mesh;
 	}
 }

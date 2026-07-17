@@ -13,8 +13,8 @@ public class App {
 	private static boolean blockAt(World world, int x, int y, int z) {
 		ChunkColumn chunk = world.getLoadedChunkAtPos(x>>5, z>>5);
 		if (chunk == null || !chunk.state.isAtleast(ChunkColumn.ChunkState.TERRAIN)) return false;
-
-		return chunk.getBlockInChunk(x&31, y, z&31) != 0;
+		byte block = chunk.getBlockInChunk(x&31, y, z&31);
+		return block != Blocks.AIR;
 	}
 
 	private static boolean isColliding(World world, float x, float y, float z) {
