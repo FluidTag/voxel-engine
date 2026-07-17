@@ -209,12 +209,12 @@ public class World {
 				ChunkSection sec = chunk.getSection(i);
 				if (sec == null) continue;
 				
-				if ((sec.getMesh() == null || sec.isDirty()) && sec.vertices != null) {
-					sec.setMesh(new Mesh(sec.vertices, sec.indices, sec.vCount, sec.iCount));
+				if ((sec.getMesh() == null || sec.isDirty()) && sec.meshResult != null) {
+					sec.setMesh(new Mesh(sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount));
 				}
 				
-				if ((sec.getWaterMesh() == null || sec.isDirty()) && sec.waterVertices != null) {
-					sec.setWaterMesh(new Mesh(sec.waterVertices, sec.waterIndices, sec.wvCount, sec.wiCount));
+				if ((sec.getWaterMesh() == null || sec.isDirty()) && sec.meshResult != null && sec.meshResult.waterVertices != null) {
+					sec.setWaterMesh(new Mesh(sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount));
 				}
 				
 				if (sec.isDirty()) {

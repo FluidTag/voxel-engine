@@ -29,7 +29,7 @@ public class MeshTask {
 		ChunkSection zMajSec = zMajor.getSection(targetedCSection);
 		ChunkSection zMinSec = zMinor.getSection(targetedCSection);
 		
-		section.generateMeshData(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec);
+		section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec);
 	}
 	
 	public MeshTask(int cx, int cz, ChunkColumn chunk, ChunkColumn xMajor, ChunkColumn xMinor, ChunkColumn zMajor, ChunkColumn zMinor) {
@@ -55,7 +55,7 @@ public class MeshTask {
 			ChunkSection zMajSec = zMajor.getSection(i);
 			ChunkSection zMinSec = zMinor.getSection(i);
 			
-			section.generateMeshData(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec);
+			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec);
 		}
 	}
 }
