@@ -1,6 +1,7 @@
 package com.szymc.voxel_engine;
 import static org.lwjgl.opengl.GL11.*;
 
+import com.google.gson.Gson;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
@@ -9,109 +10,69 @@ import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL42.*; // Required for glTexStorage3D
 import static org.lwjgl.opengl.EXTTextureFilterAnisotropic.*;
 
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.lwjgl.stb.STBImage.*;
 
+enum BLOCK_FACE {
+	TOP,
+	BOTTOM,
+	WEST,
+	EAST,
+	NORTH,
+	SOUTH,
+}
 
 public class Texture {
-	private int id = 0;
-	
-	public static int getTextureIndex(byte blockType, String face) {
-		switch (blockType) {
-		
-		case Blocks.GRASS:
-			if (face.equals("TOP")) return 12;
-			if (face.equals("SIDE")) return 11;
-			return 7;
-		case Blocks.DIRT:
-			return 8;
-		case Blocks.STONE:
-			return 29;
-		case Blocks.OAK_WOOD:
-			return 19;
-		case Blocks.OAK_LEAVES:
-			return 18;
-		case Blocks.WATER:
-			return 34;
-		case Blocks.SAND:
-			return 22;
-		case Blocks.GRAVEL:
-			return 13;
-		case Blocks.BEDROCK:
-			return 2;
-		case Blocks.LAVA:	
-			return 17;
-		case Blocks.BIRCH_LEAVES:
-			return 5;
-		case Blocks.BIRCH_WOOD:
-			return 6;
-		case Blocks.SNOW:
-			return 25;
-		case Blocks.SAVANNA_GRASS:
-			if (face.equals("TOP")) return 24;
-			if (face.equals("SIDE")) return 23;
-			
-			return 8;
-		case Blocks.JUNGLE_GRASS:
-			if (face.equals("TOP")) return 16;
-			if (face.equals("SIDE")) return 15;
-			
-			return 8;
-		case Blocks.TAIGA_GRASS:
-			if (face.equals("TOP")) return 31;
-			if (face.equals("SIDE")) return 30;
-			
-			return 8;
-		case Blocks.TUNDRA_GRASS:
-			if (face.equals("TOP")) return 33;
-			if (face.equals("SIDE")) return 32;
-			
-			return 8;
-		case Blocks.BIRCH_GRASS:
-			if (face.equals("TOP")) return 4;
-			if (face.equals("SIDE")) return 3;
-			
-			return 8;
-		case Blocks.FOREST_GRASS:
-			if (face.equals("TOP")) return 10;
-			if (face.equals("SIDE")) return 9;
-			
-			return 8;
-		case Blocks.ICE:
-			return 14;
-		case Blocks.GRASS_DECORATION:
-			return 35;
-		case Blocks.SPRUCE_LEAVES:
-			return 27;
-		case Blocks.SPRUCE_LOG:
-			return 28;
-		case Blocks.ACACIA_LOG:
-			return 1;
-		case Blocks.ACACIA_LEAVES:
-			return 0;
-		case Blocks.SNOWY_SPRUCE_LEAVES:
-			return 26;
-		case Blocks.RED_MUSHROOM_SMALL:
-			return 21;
-		case Blocks.RED_FLOWER:
-			return 20;
-		case Blocks.BROWN_MUSHROOM_SMALL:
-			return 7;
-		default:
-			return 0;
+	private final int id;
+	private static final HashMap<String, Integer> fileNameMap = new HashMap<>();
+	private static final int[][] blockTextureArray = new int[256][BLOCK_FACE.values().length + 1];; // [blockId][faceOrdinal (first slot reserved for default)]
+	public static void readBlockJson(String path) {
+		Gson gson = new Gson();
+
+		try (InputStream is = App.class.getClassLoader().getResourceAsStream(path)) {
+			try (InputStreamReader reader = new InputStreamReader(is)) {
+				Map<String, Map<String, ?>> data = gson.fromJson(reader, Map.class);
+
+				data.forEach((key, subData) -> {
+					Map<String, String> textures = (Map<String, String>) subData.get("textures");
+					Arrays.fill(blockTextureArray[Integer.parseInt(key)], -1); // Indicates no texture unless specified (0 can be a texId)
+
+					textures.forEach((faceName, texPath) -> {
+						if (faceName.equals("DEFAULT")) {
+							blockTextureArray[Integer.parseInt(key)][0] = fileNameMap.get(texPath);
+							System.out.println("Default for " + subData.get("name") + ": " + texPath);
+							return;
+						}
+
+						BLOCK_FACE face = BLOCK_FACE.valueOf(faceName);
+						blockTextureArray[Integer.parseInt(key)][face.ordinal()+1] = fileNameMap.get(texPath);
+						System.out.println(face + " for " + subData.get("name") + ": " + texPath);
+					});
+					System.out.println(subData.get("name") + ": " + Arrays.toString(blockTextureArray[Integer.parseInt(key)]));
+				});
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
+	}
+
+	public static int getTextureIndex(byte blockType, BLOCK_FACE face) {
+		int val = blockTextureArray[blockType][face.ordinal()+1];
+		System.out.println(face);
+		return val != -1 ? val : blockTextureArray[blockType][0];
 	}
 
 	public static int loadTexturePath(String path) {
@@ -175,6 +136,7 @@ public class Texture {
 		for (int i = 0; i < layerCount; i++) {
 			String fileName = resourcePath + "/" + textureFiles.get(i);
 			uploadLayer(fileName, i, tileSize);
+			fileNameMap.put(textureFiles.get(i), i);
 		}
 		
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);

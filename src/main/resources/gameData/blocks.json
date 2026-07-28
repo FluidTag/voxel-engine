@@ -1,0 +1,190 @@
+{
+  "1": {
+    "name": "GRASS",
+    "textures": {
+      "DEFAULT": "grassSide2Tex.png",
+      "TOP": "grassTopTex4.png",
+      "BOTTOM": "dirtTex.png"
+    }
+  },
+  "2": {
+    "name": "DIRT",
+    "textures": {
+      "DEFAULT": "dirtTex.png"
+    }
+  },
+  "3": {
+    "name": "OAK_WOOD",
+    "textures": {
+      "DEFAULT": "logTex.png"
+    }
+  },
+  "4": {
+    "name": "OAK_LEAVES",
+    "textures": {
+      "DEFAULT": "leafsTex4.png"
+    }
+  },
+  "5": {
+    "name": "STONE",
+    "textures": {
+      "DEFAULT": "stoneTex.png"
+    }
+  },
+  "6": {
+    "name": "WATER",
+    "textures": {
+      "DEFAULT": "waterTex3.png"
+    }
+  },
+  "7": {
+    "name": "SAND",
+    "textures": {
+      "DEFAULT": "sandTex.png"
+    }
+  },
+  "8": {
+    "name": "GRAVEL",
+    "textures": {
+      "DEFAULT": "gravelTex.png"
+    }
+  },
+  "9": {
+    "name": "BEDROCK",
+    "textures": {
+      "DEFAULT": "bedrockTex.png"
+    }
+  },
+  "10": {
+    "name": "LAVA",
+    "textures": {
+      "DEFAULT": "lavaTex.png"
+    }
+  },
+  "11": {
+    "name": "BIRCH_WOOD",
+    "textures": {
+      "DEFAULT": "birchLogTex.png"
+    }
+  },
+  "12": {
+    "name": "BIRCH_LEAVES",
+    "textures": {
+      "DEFAULT": "birchLeavesTex.png"
+    }
+  },
+  "13": {
+    "name": "SNOW",
+    "textures": {
+      "DEFAULT": "snowTex.png"
+    }
+  },
+  "14": {
+    "name": "SAVANNA_GRASS",
+    "textures": {
+      "DEFAULT": "savannaGrassSideTex.png",
+      "TOP": "savannaGrassTex.png",
+      "BOTTOM": "dirtTex.png"
+    }
+  },
+  "15": {
+    "name": "JUNGLE_GRASS",
+    "textures": {
+      "DEFAULT": "jungleGrassSideTex.png",
+      "TOP": "jungleGrassTex.png",
+      "BOTTOM": "dirtTex.png"
+    }
+  },
+  "16": {
+    "name": "TAIGA_GRASS",
+    "textures": {
+      "DEFAULT": "taigaGrassSideTex.png",
+      "TOP": "taigaGrassTex.png",
+      "BOTTOM": "dirtTex.png"
+    }
+  },
+  "17": {
+    "name": "TUNDRA_GRASS",
+    "textures": {
+      "DEFAULT": "tundraGrassSideTex.png",
+      "TOP": "tundraGrassTex.png",
+      "BOTTOM": "dirtTex.png"
+    }
+  },
+  "18": {
+    "name": "ICE",
+    "textures": {
+      "DEFAULT": "iceTex.png"
+    }
+  },
+  "19": {
+    "name": "GRASS_DECORATION",
+    "textures": {
+      "DEFAULT": "zGrass6.png"
+    }
+  },
+  "20": {
+    "name": "FOREST_GRASS",
+    "textures": {
+      "DEFAULT": "forestGrassSideTex.png",
+      "TOP": "forestGrassTex.png",
+      "BOTTOM": "dirtTex.png"
+    }
+  },
+  "21": {
+    "name": "BIRCH_GRASS",
+    "textures": {
+      "DEFAULT": "birchGrassSideTex.png",
+      "TOP": "birchGrassTex.png",
+      "BOTTOM": "dirtTex.png"
+    }
+  },
+  "22": {
+    "name": "SPRUCE_LOG",
+    "textures": {
+      "DEFAULT": "spruceLogTex.png"
+    }
+  },
+  "23": {
+    "name": "SPRUCE_LEAVES",
+    "textures": {
+      "DEFAULT": "spruceLeaveTex.png"
+    }
+  },
+  "24": {
+    "name": "ACACIA_LOG",
+    "textures": {
+      "DEFAULT": "acaciaLogTex.png"
+    }
+  },
+  "25": {
+    "name": "ACACIA_LEAVES",
+    "textures": {
+      "DEFAULT": "acaciaLeavesTex.png"
+    }
+  },
+  "26": {
+    "name": "SNOWY_SPRUCE_LEAVES",
+    "textures": {
+      "DEFAULT": "snowySpruceLeaves.png"
+    }
+  },
+  "27": {
+    "name": "RED_MUSHROOM_SMALL",
+    "textures": {
+      "DEFAULT": "redMushroom.png"
+    }
+  },
+  "28": {
+    "name": "BROWN_MUSHROOM_SMALL",
+    "textures": {
+      "DEFAULT": "brownMushroom.png"
+    }
+  },
+  "29": {
+    "name": "RED_FLOWER",
+    "textures": {
+      "DEFAULT": "redFlower.png"
+    }
+  }
+}

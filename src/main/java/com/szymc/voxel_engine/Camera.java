@@ -17,7 +17,7 @@ import org.joml.Vector3f;
 public class Camera {
 	private float yaw = -90.0f;
 	private float pitch = 0.0f;
-	public Vector3f cameraPos = new Vector3f(0.0f, 100.0f, 3.0f);
+	public Vector3f cameraPos = new Vector3f(0.0f, 150.0f, 3.0f);
 	private Vector3f cameraFront = new Vector3f(0.0f, 0.0f, -1.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private float sensitivity = 0.1f;

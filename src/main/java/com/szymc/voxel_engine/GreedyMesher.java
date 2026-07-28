@@ -1,6 +1,7 @@
 package com.szymc.voxel_engine;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import org.w3c.dom.Text;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -80,8 +81,9 @@ public class GreedyMesher {
 
         int addedVerts = vBuffer.size()/2;
         int texId = 0;
-        if (axis == 1) texId = Texture.getTextureIndex(blockType, "TOP"); // Y
-        if (axis == 2 || axis == 0) texId = Texture.getTextureIndex(blockType, "SIDE");
+        if (axis == 1) texId = Texture.getTextureIndex(blockType, backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM); // Y
+        if (axis == 0) texId = Texture.getTextureIndex(blockType, backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST);
+        if (axis == 2) texId = Texture.getTextureIndex(blockType, backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH);
 
         int ao1 = packedAO & 0x3;
         int ao2 = (packedAO >> 2) & 0x3;
@@ -89,7 +91,7 @@ public class GreedyMesher {
         int ao4 = (packedAO >> 6) & 0x3;
         byte scaleFlag = (byte) (downscale ? 1 : 0);
 
-        if (axis == 0) {
+        if (axis == 0 || axis == 2) {
             int vert1a = (x1 & 0x1FF) | ((y1 & 0x1FF) << 9) | ((z1 & 0x1FF) << 18);
             int vert1b = (texId & 0xFF) | ((height & 0x3F) << 8) | ((width & 0x3F) << 14) | ((ao1 & 0x3)) << 20 | (scaleFlag << 22);
 
@@ -483,7 +485,7 @@ public class GreedyMesher {
                                 u, vEnd, axis,
 
                                 quadWidth, quadHeight,
-                                startBlock, false, 0, quadAo, flipQuad, false
+                                startBlock, false, 2, quadAo, flipQuad, false
                         );
                     } else if (methodAxis == 1) {
                         addQuad(targetVBuffer, targetIBuffer,
@@ -591,7 +593,7 @@ public class GreedyMesher {
                                 u, vEnd, axis+1,
 
                                 quadWidth, quadHeight,
-                                startBlock, true, 0, quadAo, flipQuad, false
+                                startBlock, true, 2, quadAo, flipQuad, false
                         );
                     } else if (methodAxis == 1) {
                         addQuad(targetVBuffer, targetIBuffer,
