@@ -17,7 +17,7 @@ import org.joml.Vector3f;
 public class Camera {
 	private float yaw = -90.0f;
 	private float pitch = 0.0f;
-	public Vector3f cameraPos = new Vector3f(0.0f, 220.0f, 3.0f);
+	public Vector3f cameraPos = new Vector3f(0.0f, 100.0f, 3.0f);
 	private Vector3f cameraFront = new Vector3f(0.0f, 0.0f, -1.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private float sensitivity = 0.1f;
@@ -85,21 +85,41 @@ public class Camera {
 		frustumInt.set(pvMatrix);
 	}
 
-	private Vector3f temp = new Vector3f();
-	public Vector3f pollCameraMovements(long window, float newCamSpeed) {
-		Vector3f lookVector = new Vector3f(cameraFront.x, 0, cameraFront.z);
-		if (lookVector.lengthSquared() > 0) lookVector.normalize();
-		Vector3f result = new Vector3f();
+	private final Vector3f temp = new Vector3f();
+	private final Vector3f tempResult = new Vector3f();
+	private final Vector3f tempLookVector = new Vector3f();
+
+	public Vector3f pollSurvivalCameraMovements(long window, float newCamSpeed) {
+		tempLookVector.x = cameraFront.x;
+		tempLookVector.z = cameraFront.z;
+
+		if (tempLookVector.lengthSquared() > 0) tempLookVector.normalize();
+		tempResult.zero();
 
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			result.add(lookVector.mul(newCamSpeed, temp));
+			tempResult.add(tempLookVector.mul(newCamSpeed, temp));
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			result.sub(lookVector.mul(newCamSpeed, temp));
+			tempResult.sub(tempLookVector.mul(newCamSpeed, temp));
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			result.sub(lookVector.cross(cameraUp, temp).normalize().mul(newCamSpeed));
+			tempResult.sub(tempLookVector.cross(cameraUp, temp).normalize().mul(newCamSpeed));
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			result.add(lookVector.cross(cameraUp, temp).normalize().mul(newCamSpeed));
+			tempResult.add(tempLookVector.cross(cameraUp, temp).normalize().mul(newCamSpeed));
 
-		return result;
+		return tempResult;
+	}
+
+	public Vector3f pollCreativeCameraMovements(long window, float newCamSpeed) {
+		tempResult.zero();
+
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			tempResult.add(cameraFront.mul(newCamSpeed, temp));
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			tempResult.sub(cameraFront.mul(newCamSpeed, temp));
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			tempResult.sub(cameraFront.cross(cameraUp, temp).normalize().mul(newCamSpeed));
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			tempResult.add(cameraFront.cross(cameraUp, temp).normalize().mul(newCamSpeed));
+
+		return tempResult;
 	}
 }
