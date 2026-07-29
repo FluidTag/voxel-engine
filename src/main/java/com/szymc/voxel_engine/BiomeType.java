@@ -1,7 +1,7 @@
 package com.szymc.voxel_engine;
 
 public enum BiomeType {
-	ARTIC,
+	ARCTIC,
 	TUNDRA,
 	TAIGA,
 	BIRCH_FOREST,

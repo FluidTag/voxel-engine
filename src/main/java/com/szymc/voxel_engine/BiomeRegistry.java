@@ -6,7 +6,7 @@ public class BiomeRegistry {
 	private static final EnumMap<BiomeType, Biome> REGISTRY = new EnumMap<>(BiomeType.class);
 	
 	public static void init() {
-		register(new Biome(BiomeType.ARTIC, "Artic", Blocks.SNOW, Blocks.DIRT,
+		register(new Biome(BiomeType.ARCTIC, "Arctic", Blocks.SNOW, Blocks.DIRT,
 				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0f, 0.04f, null));
 		register(new Biome(BiomeType.TUNDRA, "Tundra", Blocks.TUNDRA_GRASS, Blocks.DIRT,
 				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0f, 0.08f, new byte[] {Blocks.GRASS_DECORATION}));

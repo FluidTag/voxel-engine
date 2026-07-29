@@ -296,7 +296,7 @@ public class DecorationTask {
 				int trunkWz = sourceWz+z;
 
 				int surfaceHeight = TerrainTask.getNoiseHeight(trunkWx, trunkWz);
-				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(trunkWx, trunkWz, TerrainTask.getTemp(trunkWx, trunkWz, surfaceHeight), TerrainTask.getMoist(trunkWx, trunkWz)));
+				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(trunkWx, trunkWz, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz)));
 				
 				if (rng.nextFloat() > currentBiome.treeDensity) continue;
 				if (surfaceHeight < 0) continue;
@@ -347,7 +347,7 @@ public class DecorationTask {
 		for (int x = 0; x < 32; x++) {
 			for (int z = 0; z < 32; z++) {
 				int surfaceHeight = findSurface(x, z);
-				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+x, wz+z, TerrainTask.getTemp(wx+x, wz+z, surfaceHeight), TerrainTask.getMoist(wx+x, wz+z)));
+				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+x, wz+z, TerrainTask.getTemp(wx+x, wz+z), TerrainTask.getMoist(wx+x, wz+z)));
 
 				if (currentBiome.type == BiomeType.DESERT) {
 					if (rng.nextFloat() > 0.993f) {

@@ -20,13 +20,13 @@ public class TerrainTask {
 		continentalNoise.SetFractalOctaves(3);
 
 		temperatureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-		temperatureNoise.SetFrequency(0.0006f);
+		temperatureNoise.SetFrequency(0.00045f);
 		temperatureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		temperatureNoise.SetFractalOctaves(5);
 		temperatureNoise.SetSeed(33);
 
 		moistureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-		moistureNoise.SetFrequency(0.0006f);
+		moistureNoise.SetFrequency(0.00045f);
 		moistureNoise.SetSeed(49);
 		moistureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		moistureNoise.SetFractalOctaves(4);
@@ -118,7 +118,7 @@ public class TerrainTask {
 
 	private static final Object[][] dataPoints = new Object[][]{
             // Temp, Moist, Block
-            {0.1f, 0.1f, BiomeType.ARTIC},          // Cold & Dry (Arctic)
+            {0.1f, 0.1f, BiomeType.ARCTIC},          // Cold & Dry (Arctic)
             {0.25f, 0.3f, BiomeType.TUNDRA},   // Cold & Semi-Dry
             {0.35f, 0.35f, BiomeType.TAIGA},  // Intermediate Cool/Dry Buffer
             {0.4f, 0.55f, BiomeType.BIRCH_FOREST},
@@ -130,8 +130,8 @@ public class TerrainTask {
             {0.85f, 0.8f, BiomeType.JUNGLE}   // Hot & Extremely Wet
     };
 
-	public static float getTemp(int wx, int wz, int terrainHeight) {
-		return ((temperatureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f) - (terrainHeight*0.002f);
+	public static float getTemp(int wx, int wz) {
+		return ((temperatureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f);
 	}
 
 	public static float getMoist(int wx, int wz) {
@@ -195,7 +195,7 @@ public class TerrainTask {
 
 					int noiseHeight = getNoiseHeight(worldX, worldZ);
 
-					float temp = getTemp(worldX, worldZ, noiseHeight);
+					float temp = getTemp(worldX, worldZ);
 					float moist = getMoist(worldX, worldZ);
 
 					Biome biome = BiomeRegistry.get(getBiomeType(worldX, worldZ, temp, moist));
