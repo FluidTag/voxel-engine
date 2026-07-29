@@ -7,6 +7,7 @@ public enum BiomeType {
 	BIRCH_FOREST,
 	PLAINS,
 	FOREST,
+	DARK_OAK_FOREST,
 	DESERT,
 	SAVANNA,
 	JUNGLE

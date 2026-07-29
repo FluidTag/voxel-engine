@@ -17,7 +17,9 @@ public class BiomeRegistry {
 		register(new Biome(BiomeType.PLAINS, "Plains", Blocks.GRASS, Blocks.DIRT,
 				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0.1f, 0.07f, new byte[] {Blocks.GRASS_DECORATION, Blocks.RED_FLOWER, Blocks.YELLOW_FLOWER}));
 		register(new Biome(BiomeType.FOREST, "Forest", Blocks.FOREST_GRASS, Blocks.DIRT,
-				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0.78f, 0.07f, new byte[] {Blocks.GRASS_DECORATION, Blocks.RED_FLOWER, Blocks.YELLOW_FLOWER, Blocks.RED_MUSHROOM_SMALL, Blocks.BROWN_MUSHROOM_SMALL}));
+				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0.84f, 0.07f, new byte[] {Blocks.GRASS_DECORATION, Blocks.RED_FLOWER, Blocks.YELLOW_FLOWER, Blocks.RED_MUSHROOM_SMALL, Blocks.BROWN_MUSHROOM_SMALL}));
+		register(new Biome(BiomeType.DARK_OAK_FOREST, "Dark Oak Forest", Blocks.FOREST_GRASS, Blocks.DIRT,
+				Blocks.DARK_OAK_LOG, Blocks.DARK_OAK_LEAVES, 0.9f, 0.12f, new byte[] {Blocks.GRASS_DECORATION, Blocks.RED_MUSHROOM_SMALL, Blocks.BROWN_MUSHROOM_SMALL}));
 		register(new Biome(BiomeType.SAVANNA, "Savanna", Blocks.SAVANNA_GRASS, Blocks.DIRT,
 				Blocks.ACACIA_LOG, Blocks.ACACIA_LEAVES, 0.45f, 0.13f, new byte[] {Blocks.GRASS_DECORATION, Blocks.DEAD_SHRUB, Blocks.YELLOW_FLOWER}));
 		register(new Biome(BiomeType.JUNGLE, "Jungle", Blocks.JUNGLE_GRASS, Blocks.DIRT,

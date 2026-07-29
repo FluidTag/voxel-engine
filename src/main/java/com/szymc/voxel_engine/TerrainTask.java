@@ -116,21 +116,22 @@ public class TerrainTask {
 		}
 	}
 
-	private static final Object[][] dataPoints = {
-	    // Temp, Moist, Block
-	    {0.1f,  0.1f,  BiomeType.ARTIC},          // Cold & Dry (Arctic)
-	    {0.25f, 0.3f, BiomeType.TUNDRA},   // Cold & Semi-Dry
-	    {0.35f, 0.35f,  BiomeType.TAIGA},  // Intermediate Cool/Dry Buffer
-	    {0.4f, 0.55f, BiomeType.BIRCH_FOREST},
-	    {0.5f,  0.5f,  BiomeType.PLAINS},         // Temperate & Medium Moist
-	    {0.6f, 0.6f, BiomeType.FOREST},
-	    {0.75f,  0.2f,  BiomeType.DESERT},          // Hot & Arid (Desert)
-	    {0.79f, 0.4f,  BiomeType.SAVANNA}, // Hot & Semi-Arid
-	    {0.85f, 0.8f,  BiomeType.JUNGLE}   // Hot & Extremely Wet
-	};
+	private static final Object[][] dataPoints = new Object[][]{
+            // Temp, Moist, Block
+            {0.1f, 0.1f, BiomeType.ARTIC},          // Cold & Dry (Arctic)
+            {0.25f, 0.3f, BiomeType.TUNDRA},   // Cold & Semi-Dry
+            {0.35f, 0.35f, BiomeType.TAIGA},  // Intermediate Cool/Dry Buffer
+            {0.4f, 0.55f, BiomeType.BIRCH_FOREST},
+            {0.5f, 0.5f, BiomeType.PLAINS},         // Temperate & Medium Moist
+            {0.6f, 0.6f, BiomeType.FOREST},
+            {0.45f, 0.85f, BiomeType.DARK_OAK_FOREST},
+            {0.75f, 0.2f, BiomeType.DESERT},          // Hot & Arid (Desert)
+            {0.79f, 0.4f, BiomeType.SAVANNA}, // Hot & Semi-Arid
+            {0.85f, 0.8f, BiomeType.JUNGLE}   // Hot & Extremely Wet
+    };
 
-	public static float getTemp(int wx, int wz) {
-		return (temperatureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f;
+	public static float getTemp(int wx, int wz, int terrainHeight) {
+		return ((temperatureNoise.GetNoise(wx+noise.GetNoise(wx, wz)*100, wz+noise.GetNoise(wx, wz)*100) + 1.0f) / 2.0f) - (terrainHeight*0.002f);
 	}
 
 	public static float getMoist(int wx, int wz) {
@@ -194,8 +195,9 @@ public class TerrainTask {
 
 					int noiseHeight = getNoiseHeight(worldX, worldZ);
 
-					float temp = getTemp(worldX, worldZ);
+					float temp = getTemp(worldX, worldZ, noiseHeight);
 					float moist = getMoist(worldX, worldZ);
+
 					Biome biome = BiomeRegistry.get(getBiomeType(worldX, worldZ, temp, moist));
 
 					for (int y = 0; y < 16; y++) {

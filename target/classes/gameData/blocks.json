@@ -214,5 +214,19 @@
       "BOTTOM": "cactusTop.png",
       "DEFAULT": "cactusSide.png"
     }
+  },
+  "34": {
+    "name": "DARK_OAK_LOG",
+    "textures": {
+      "TOP": "darkOakLogTop.png",
+      "BOTTOM": "darkOakLogTop.png",
+      "DEFAULT": "darkOakLogSide.png"
+    }
+  },
+  "35": {
+    "name": "DARK_OAK_LEAVES",
+    "textures": {
+      "DEFAULT": "darkOakLeaves.png"
+    }
   }
 }

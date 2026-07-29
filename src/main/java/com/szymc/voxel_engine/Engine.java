@@ -189,12 +189,12 @@ public class Engine {
 			float crossY = (900/2.0f) - 8.0f;
 
 			uiRenderer.drawTexture(crosshairTexture, crossX, crossY, 16, 16);
-			uiRenderer.drawRect((1600/2.0f)-300, 820, 600, 60, 1f, 1f, 1f, 1f);
-			int slotSize = 60;
-			for (int i = 0; i < 10; i++) {
-				uiRenderer.drawRect((1600/2.0f)-300 + (60*i) - 3, 820-3, slotSize+6, slotSize+6, 0.1f, 0.1f, 0.1f, 1.0f);
-				uiRenderer.drawRect((1600/2.0f)-300 + (60*i), 820, slotSize, slotSize, 0.5f, 0.5f, 0.5f, 0.3f);
-			}
+//			uiRenderer.drawRect((1600/2.0f)-300, 820, 600, 60, 1f, 1f, 1f, 1f);
+//			int slotSize = 60;
+//			for (int i = 0; i < 10; i++) {
+//				uiRenderer.drawRect((1600/2.0f)-300 + (60*i) - 3, 820-3, slotSize+6, slotSize+6, 0.1f, 0.1f, 0.1f, 1.0f);
+//				uiRenderer.drawRect((1600/2.0f)-300 + (60*i), 820, slotSize, slotSize, 0.5f, 0.5f, 0.5f, 0.3f);
+//			}
 			uiRenderer.end();
 
 			glDepthMask(true);

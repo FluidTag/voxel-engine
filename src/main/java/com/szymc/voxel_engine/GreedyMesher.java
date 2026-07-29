@@ -716,7 +716,8 @@ public class GreedyMesher {
                     } else if (block == Blocks.OAK_LEAVES
                             || block == Blocks.BIRCH_LEAVES
                             || block == Blocks.SPRUCE_LEAVES
-                            || block == Blocks.ACACIA_LEAVES) {
+                            || block == Blocks.ACACIA_LEAVES
+                            || block == Blocks.DARK_OAK_LEAVES) {
                         leaZ[z*34+x] |= (1L << y);
                         leaY[y*34+x] |= (1L << z);
                         leaX[x*18+y] |= (1L << z);
