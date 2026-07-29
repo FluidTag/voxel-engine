@@ -33,4 +33,5 @@ public class Blocks {
 	public static final byte JUNGLE_LOG = 30;
 	public static final byte DEAD_SHRUB = 31;
 	public static final byte YELLOW_FLOWER = 32;
+	public static final byte CACTUS = 33;
 }

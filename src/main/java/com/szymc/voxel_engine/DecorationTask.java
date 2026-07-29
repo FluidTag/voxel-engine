@@ -14,7 +14,7 @@ public class DecorationTask {
 	private int wx, wz;
 	private static final ThreadLocal<boolean[]> TREE_OCCUPIED = ThreadLocal.withInitial(() -> new boolean[32*32]);
 	private boolean[] treeOccupied = TREE_OCCUPIED.get();
-	
+
 	private int findSurface(int x, int z) {
 		for (int y = 255; y >= 60; y--) {
 			byte b = chunk.getBlockInChunk(x, y, z);
@@ -236,7 +236,7 @@ public class DecorationTask {
 				byte surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, trunkWx, surfaceHeight, trunkWz, currentBiome, 0, 0);
 				
 				//System.out.println(surfaceBlock);
-				if (surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS && 
+				if (surfaceHeight <= 64 && surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS &&
 						surfaceBlock != Blocks.FOREST_GRASS && surfaceBlock != Blocks.JUNGLE_GRASS &&
 						surfaceBlock != Blocks.TAIGA_GRASS 
 						&& surfaceBlock != Blocks.SAVANNA_GRASS
@@ -253,7 +253,7 @@ public class DecorationTask {
 					spruceTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.JUNGLE) {
 					if (rng.nextFloat() > 0.65) {jungleTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);} else regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
-				} else if (currentBiome.type == BiomeType.SAVANNA) {
+				} else if (currentBiome.type == BiomeType.SAVANNA || currentBiome.type == BiomeType.DESERT) {
 					acaciaTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else {
 					regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
@@ -277,6 +277,24 @@ public class DecorationTask {
 		for (int x = 0; x < 32; x++) {
 			for (int z = 0; z < 32; z++) {
 				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+x, wz+z, TerrainTask.getTemp(wx+x, wz+z), TerrainTask.getMoist(wx+x, wz+z)));
+
+				if (currentBiome.type == BiomeType.DESERT) {
+					if (rng.nextFloat() > 0.993f) {
+						int surfaceHeight = findSurface(x, z);
+						if (surfaceHeight == -1) continue;
+						byte topBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
+
+						if (topBlock != currentBiome.topBlock) continue;
+						if (chunk.getBlockInChunk(x, surfaceHeight+1, z) != Blocks.AIR) continue;
+
+						for (int i = 1; i <= rng.nextInt(3); i++) {
+							editRequests.add(packLocal(x, surfaceHeight + i, z, Blocks.CACTUS));
+						}
+
+						continue;
+					}
+				}
+
 				if (rng.nextFloat() > currentBiome.decorationChance) continue;
 				if (currentBiome.possibleDecorations == null) continue;
 				
@@ -286,7 +304,8 @@ public class DecorationTask {
 				
 				if (topBlock != currentBiome.topBlock) continue;
 				if (chunk.getBlockInChunk(x, surfaceHeight+1, z) != Blocks.AIR) continue;
-				if (treeOccupied[x*32+z] == true) continue;
+
+				if (treeOccupied[x * 32 + z]) continue;
 				
 				byte decoration = currentBiome.possibleDecorations[rng.nextInt(currentBiome.possibleDecorations.length)];
 				editRequests.add(packLocal(x, surfaceHeight+1, z, decoration));

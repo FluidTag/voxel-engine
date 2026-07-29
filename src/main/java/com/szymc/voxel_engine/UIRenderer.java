@@ -12,7 +12,7 @@ import static org.lwjgl.opengl.GL30.*;
 public class UIRenderer {
     private final int vao;
     private final int programId;
-    private final int locProjection, locTransform, locColorTint, locUseTexture;
+    private final int locProjection, locTransform, locColorTint, locUseTexture, locResolution, locRect, locBorder;
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
     public UIRenderer() {
@@ -22,6 +22,9 @@ public class UIRenderer {
         locTransform = glGetUniformLocation(programId, "transform");
         locColorTint = glGetUniformLocation(programId, "colorTint");
         locUseTexture = glGetUniformLocation(programId, "useTexture");
+        locResolution = glGetUniformLocation(programId, "u_resolution");
+        locRect = glGetUniformLocation(programId, "u_rect");
+        locBorder = glGetUniformLocation(programId, "u_border");
 
         float[] vertices = {
                 0.0f, 0.0f, 0.0f, 0.0f,
@@ -64,6 +67,8 @@ public class UIRenderer {
             glUniform1i(locImage, 2);
         }
 
+        glUniform2f(locResolution, windowWidth, windowHeight);
+
         Matrix4f ortho = new Matrix4f().ortho2D(0, windowWidth, windowHeight, 0);
         matrixBuffer.clear();
         glUniformMatrix4fv(locProjection, false, ortho.get(matrixBuffer));
@@ -82,10 +87,12 @@ public class UIRenderer {
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
 
-    public void drawRect(float x, float y, float z, float height, float width, float r, float g, float b, float a) {
+    public void drawRect(float x, float y, float width, float height, float r, float g, float b, float a) {
         glUniform1i(locUseTexture, 0);
         glUniform4f(locTransform, x, y, width, height);
         glUniform4f(locColorTint, r, g, b, a);
+        glUniform4f(locRect, x, y, width, height);
+        glUniform1i(locBorder, 2);
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }

@@ -206,5 +206,13 @@
     "textures": {
       "DEFAULT": "yellowFlower.png"
     }
+  },
+  "33": {
+    "name": "CACTUS",
+    "textures": {
+      "TOP": "cactusTop.png",
+      "BOTTOM": "cactusTop.png",
+      "DEFAULT": "cactusSide.png"
+    }
   }
 }

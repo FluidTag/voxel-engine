@@ -23,7 +23,7 @@ public class BiomeRegistry {
 		register(new Biome(BiomeType.JUNGLE, "Jungle", Blocks.JUNGLE_GRASS, Blocks.DIRT,
 				Blocks.JUNGLE_LOG, Blocks.OAK_LEAVES, 0.65f, 0.12f, new byte[] {Blocks.GRASS_DECORATION}));
 		register(new Biome(BiomeType.DESERT, "Desert", Blocks.SAND, Blocks.DIRT,
-				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0, 0.05f, new byte[] {Blocks.GRASS_DECORATION, Blocks.DEAD_SHRUB}));
+				Blocks.ACACIA_LOG, Blocks.ACACIA_LEAVES, 0.03f, 0.05f, new byte[] {Blocks.GRASS_DECORATION, Blocks.DEAD_SHRUB}));
 		
 	}
 	

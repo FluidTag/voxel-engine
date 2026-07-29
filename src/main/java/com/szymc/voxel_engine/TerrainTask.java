@@ -20,13 +20,13 @@ public class TerrainTask {
 		continentalNoise.SetFractalOctaves(3);
 
 		temperatureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-		temperatureNoise.SetFrequency(0.0004f);
+		temperatureNoise.SetFrequency(0.0006f);
 		temperatureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		temperatureNoise.SetFractalOctaves(5);
 		temperatureNoise.SetSeed(33);
 
 		moistureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-		moistureNoise.SetFrequency(0.0004f);
+		moistureNoise.SetFrequency(0.0006f);
 		moistureNoise.SetSeed(49);
 		moistureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		moistureNoise.SetFractalOctaves(4);

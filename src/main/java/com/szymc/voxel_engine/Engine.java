@@ -1,41 +1,26 @@
 package com.szymc.voxel_engine;
 import com.szymc.localShaders.OutlineShader;
-import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL11;
 
 
-import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
-import static org.lwjgl.opengl.GL13.glActiveTexture;
-import static org.lwjgl.system.MemoryUtil.NULL;
+
 import org.lwjgl.system.MemoryStack;
 
 
-import com.szymc.localShaders.DebugShader;
 import com.szymc.localShaders.WorldShader;
 
 
 import static org.lwjgl.system.MemoryStack.*;
 
 
-import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
-import static org.lwjgl.opengl.GL20.*; // Shader/Attribute functions (glVertexAttribPointer)
 import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
 
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-import java.util.stream.Collectors;
 
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.FrustumIntersection;
 
 
 public class Engine {
@@ -204,6 +189,12 @@ public class Engine {
 			float crossY = (900/2.0f) - 8.0f;
 
 			uiRenderer.drawTexture(crosshairTexture, crossX, crossY, 16, 16);
+			uiRenderer.drawRect((1600/2.0f)-300, 820, 600, 60, 1f, 1f, 1f, 1f);
+			int slotSize = 60;
+			for (int i = 0; i < 10; i++) {
+				uiRenderer.drawRect((1600/2.0f)-300 + (60*i) - 3, 820-3, slotSize+6, slotSize+6, 0.1f, 0.1f, 0.1f, 1.0f);
+				uiRenderer.drawRect((1600/2.0f)-300 + (60*i), 820, slotSize, slotSize, 0.5f, 0.5f, 0.5f, 0.3f);
+			}
 			uiRenderer.end();
 
 			glDepthMask(true);
