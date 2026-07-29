@@ -183,8 +183,72 @@ public class TerrainTask {
 		return Blocks.AIR;
 	}
 
+	private static final ThreadLocal<int[]> tNoiseMap = ThreadLocal.withInitial(() -> new int[32*32]);
+	private static final ThreadLocal<float[]> tTempMap = ThreadLocal.withInitial(() -> new float[32*32]);
+	private static final ThreadLocal<float[]> tMoistMap = ThreadLocal.withInitial(() -> new float[32*32]);
+	private static final ThreadLocal<Biome[]> tBiomeMap  = ThreadLocal.withInitial(() -> new Biome[32*32]);
+	private static final ThreadLocal<float[]> tSlopeMap = ThreadLocal.withInitial(() -> new float[32*32]);
+	public static byte getSurfaceBlock(int wx, int noiseHeight, int wz, Biome biome) { // Simulates generate chunk for one tile
+		float temp = getTemp(wx, wz); float moist = getMoist(wx, wz);
+		if (biome == null) biome = BiomeRegistry.get(getBiomeType(wx, wz, temp, moist));
+
+		int hxl = getNoiseHeight(wx-1, wz);
+		int hxr = getNoiseHeight(wx+1, wz);
+		int hzl = getNoiseHeight(wx, wz-1);
+		int hzr = getNoiseHeight(wx, wz+1);
+
+		float steepX = (float)Math.abs(hxr - hxl) / 2.0f;
+		float steepZ = (float)Math.abs(hzr - hzl) / 2.0f;
+
+		float steepness = (float)Math.sqrt(steepX * steepX + steepZ * steepZ);
+		boolean isCliff = steepness >= 1.5f;
+
+		byte block = noiseGetBlock(noiseHeight, wx, noiseHeight, wz, biome, temp, moist);
+		if (isCliff && block != Blocks.AIR && block != Blocks.WATER) {
+			block = (steepness < 2.2f) ? Blocks.STONE : Blocks.HARDENED_STONE;
+		}
+
+		return block;
+	}
+
 	private ChunkSection[] generateChunk() {
 		ChunkSection[] sections = new ChunkSection[16];
+		int[] chunkNoise = tNoiseMap.get();
+		float[] chunkTemp = tTempMap.get();
+		float[] chunkMoist = tMoistMap.get();
+		Biome[] chunkBiome = tBiomeMap.get();
+		float[] chunkSteep = tSlopeMap.get();
+
+		for (int z = 0; z < 32; z++) {
+			for (int x = 0; x < 32; x++) {
+				int worldX = (cx*32)+x;
+				int worldZ = (cz*32)+z;
+				float temp = getTemp(worldX, worldZ); float moist = getMoist(worldX, worldZ);
+
+				chunkNoise[z*32+x] = getNoiseHeight(worldX, worldZ);
+				chunkTemp[z*32+x] = temp;
+				chunkMoist[z*32+x] = moist;
+				chunkBiome[z*32+x] = BiomeRegistry.get(getBiomeType(worldX, worldZ, temp, moist));
+			}
+		}
+
+		for (int z = 0; z < 32; z++) {
+			for (int x = 0; x < 32; x++) {
+				int worldX = (cx*32)+x;
+				int worldZ = (cz*32)+z;
+				int hxl = (x > 0) ? chunkNoise[z*32+(x-1)] : getNoiseHeight(worldX-1, worldZ);
+				int hxr = (x < 31) ? chunkNoise[z*32+(x+1)] : getNoiseHeight(worldX+1, worldZ);
+				int hzl = (z > 0) ? chunkNoise[(z-1)*32+x] : getNoiseHeight(worldX, worldZ-1);
+				int hzr = (z < 31) ? chunkNoise[(z+1)*32+x] : getNoiseHeight(worldX, worldZ+1);
+
+				float steepX = (float)Math.abs(hxr - hxl) / 2.0f;
+				float steepZ = (float)Math.abs(hzr - hzl) / 2.0f;
+
+				float steepness = (float)Math.sqrt(steepX * steepX + steepZ * steepZ);
+				chunkSteep[z*32+x] = steepness;
+			}
+		}
+
 		for (int sec = 0; sec < 16; sec++) {
 			byte[] chunkData = null;
 			boolean changed = false;
@@ -193,17 +257,23 @@ public class TerrainTask {
 					int worldX = (cx*32)+x;
 					int worldZ = (cz*32)+z;
 
-					int noiseHeight = getNoiseHeight(worldX, worldZ);
+					int noiseHeight = chunkNoise[z*32+x];
+					float temp = chunkTemp[z*32+x];
+					float moist = chunkMoist[z*32+x];
+					Biome biome = chunkBiome[z*32+x];
+					float steepness = chunkSteep[z*32+x];
 
-					float temp = getTemp(worldX, worldZ);
-					float moist = getMoist(worldX, worldZ);
-
-					Biome biome = BiomeRegistry.get(getBiomeType(worldX, worldZ, temp, moist));
+					boolean isCliff = (steepness >= 1.5f);
 
 					for (int y = 0; y < 16; y++) {
-						int worldY = sec*16 +y;
+						int worldY = sec*16+y;
+						int depth = noiseHeight-worldY;
 
 						byte block = noiseGetBlock(noiseHeight, worldX, worldY, worldZ, biome, temp, moist);
+						if (isCliff && depth >= 0 && depth <= (1 + (int)(steepness)) && block != Blocks.AIR && block != Blocks.WATER) {
+							block = (steepness < 2.2f) ? Blocks.STONE : Blocks.HARDENED_STONE;
+						}
+
 						if (block != Blocks.AIR) {
 							if (chunkData == null) chunkData = new byte[32*16*32];
 							chunkData[y*(32*32) + z*32 + x] = block;

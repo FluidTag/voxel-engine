@@ -15,15 +15,6 @@ public class DecorationTask {
 	private int wx, wz;
 	private static final ThreadLocal<boolean[]> TREE_OCCUPIED = ThreadLocal.withInitial(() -> new boolean[32*32]);
 	private boolean[] treeOccupied = TREE_OCCUPIED.get();
-
-	private int findSurface(int x, int z) {
-		for (int y = 255; y >= 60; y--) {
-			byte b = chunk.getBlockInChunk(x, y, z);
-			if (b != Blocks.AIR) return y;
-		}
-		
-		return -1;
-	}
 	
 	private static int packLocal(int x, int y, int z, byte block) {
 		return (x & 0x7F) | ((y & 0xFF) << 7) | ((z & 0x7F) << 15) | ((block & 0xFF) << 22);
@@ -295,19 +286,17 @@ public class DecorationTask {
 				int trunkWx = sourceWx+x;
 				int trunkWz = sourceWz+z;
 
-				int surfaceHeight = TerrainTask.getNoiseHeight(trunkWx, trunkWz);
 				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(trunkWx, trunkWz, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz)));
 				
 				if (rng.nextFloat() > currentBiome.treeDensity) continue;
-				if (surfaceHeight < 0) continue;
-				
-				byte surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, trunkWx, surfaceHeight, trunkWz, currentBiome, 0, 0);
+				int surfaceHeight = TerrainTask.getNoiseHeight(trunkWx, trunkWz);
+				byte surfaceBlock = TerrainTask.getSurfaceBlock(trunkWx, surfaceHeight, trunkWz, currentBiome);
 				
 				//System.out.println(surfaceBlock);
-				if (surfaceHeight <= 64 && surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS &&
+				if (surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS &&
 						surfaceBlock != Blocks.FOREST_GRASS && surfaceBlock != Blocks.JUNGLE_GRASS &&
 						surfaceBlock != Blocks.TAIGA_GRASS 
-						&& surfaceBlock != Blocks.SAVANNA_GRASS
+						&& surfaceBlock != Blocks.SAVANNA_GRASS && surfaceBlock != Blocks.SAND
 						) continue;
 				
 				if (sourceCx == this.cx && sourceCz == this.cz) {
@@ -346,8 +335,8 @@ public class DecorationTask {
 		SplittableRandom rng = new SplittableRandom((long)(cx)*341873128712L ^ (long)(cz) * 132897987541L);
 		for (int x = 0; x < 32; x++) {
 			for (int z = 0; z < 32; z++) {
-				int surfaceHeight = findSurface(x, z);
 				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+x, wz+z, TerrainTask.getTemp(wx+x, wz+z), TerrainTask.getMoist(wx+x, wz+z)));
+				int surfaceHeight = TerrainTask.getNoiseHeight(wx+x, wz+z);
 
 				if (currentBiome.type == BiomeType.DESERT) {
 					if (rng.nextFloat() > 0.993f) {

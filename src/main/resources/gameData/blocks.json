@@ -228,5 +228,11 @@
     "textures": {
       "DEFAULT": "darkOakLeaves.png"
     }
+  },
+  "36": {
+    "name": "HARDENED_STONE",
+    "textures": {
+      "DEFAULT": "hardenedStone.png"
+    }
   }
 }

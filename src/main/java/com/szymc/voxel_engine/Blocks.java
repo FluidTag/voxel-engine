@@ -36,4 +36,5 @@ public class Blocks {
 	public static final byte CACTUS = 33;
 	public static final byte DARK_OAK_LOG = 34;
 	public static final byte DARK_OAK_LEAVES = 35;
+	public static final byte HARDENED_STONE = 36;
 }
