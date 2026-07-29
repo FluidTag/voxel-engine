@@ -53,15 +53,12 @@ public class Texture {
 					textures.forEach((faceName, texPath) -> {
 						if (faceName.equals("DEFAULT")) {
 							blockTextureArray[Integer.parseInt(key)][0] = fileNameMap.get(texPath);
-							System.out.println("Default for " + subData.get("name") + ": " + texPath);
 							return;
 						}
 
 						BLOCK_FACE face = BLOCK_FACE.valueOf(faceName);
 						blockTextureArray[Integer.parseInt(key)][face.ordinal()+1] = fileNameMap.get(texPath);
-						System.out.println(face + " for " + subData.get("name") + ": " + texPath);
 					});
-					System.out.println(subData.get("name") + ": " + Arrays.toString(blockTextureArray[Integer.parseInt(key)]));
 				});
 			}
 		} catch (IOException e) {
@@ -71,7 +68,7 @@ public class Texture {
 
 	public static int getTextureIndex(byte blockType, BLOCK_FACE face) {
 		int val = blockTextureArray[blockType][face.ordinal()+1];
-		System.out.println(face);
+
 		return val != -1 ? val : blockTextureArray[blockType][0];
 	}
 

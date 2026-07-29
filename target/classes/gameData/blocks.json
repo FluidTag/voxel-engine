@@ -82,8 +82,8 @@
   "14": {
     "name": "SAVANNA_GRASS",
     "textures": {
-      "DEFAULT": "savannaGrassSideTex.png",
-      "TOP": "savannaGrassTex.png",
+      "DEFAULT": "savannaGrassSide.png",
+      "TOP": "savannaGrass.png",
       "BOTTOM": "dirtTex.png"
     }
   },
@@ -154,13 +154,13 @@
   "24": {
     "name": "ACACIA_LOG",
     "textures": {
-      "DEFAULT": "acaciaLogTex.png"
+      "DEFAULT": "acaciaLog.png"
     }
   },
   "25": {
     "name": "ACACIA_LEAVES",
     "textures": {
-      "DEFAULT": "acaciaLeavesTex.png"
+      "DEFAULT": "acaciaLeaves.png"
     }
   },
   "26": {
@@ -185,6 +185,26 @@
     "name": "RED_FLOWER",
     "textures": {
       "DEFAULT": "redFlower.png"
+    }
+  },
+  "30": {
+    "name": "JUNGLE_LOG",
+    "textures": {
+      "DEFAULT": "jungleLogSide.png",
+      "TOP": "jungleLogTop.png",
+      "BOTTOM": "jungleLogTop.png"
+    }
+  },
+  "31": {
+    "name": "DEAD_SHRUB",
+    "textures": {
+      "DEFAULT": "deadShrub.png"
+    }
+  },
+  "32": {
+    "name": "YELLOW_FLOWER",
+    "textures": {
+      "DEFAULT": "yellowFlower.png"
     }
   }
 }

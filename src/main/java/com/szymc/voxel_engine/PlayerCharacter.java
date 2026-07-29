@@ -20,9 +20,14 @@ public class PlayerCharacter {
     private boolean isSprinting = false;
     private final boolean[] keysPressed = new boolean[GLFW_KEY_LAST + 1];
 
+    private boolean spectatorMode = true;
+
     private static boolean blockAt(World world, int x, int y, int z) {
         ChunkColumn chunk = world.getLoadedChunkAtPos(x>>5, z>>5);
         if (chunk == null || !chunk.state.isAtleast(ChunkColumn.ChunkState.TERRAIN)) return false;
+
+        if (y < 0 && y > -50) return false;
+        if (y <= -50) return true;
 
         byte block = chunk.getBlockInChunk(x&31, y, z&31);
         return block != Blocks.AIR;
@@ -160,28 +165,35 @@ public class PlayerCharacter {
             engineAttachment.removeOutlineLoc();
         }
 
+        if (!keysPressed[GLFW_KEY_PAGE_UP] && glfwGetKey(windowReference.getWindowId(), GLFW_KEY_PAGE_UP) == GLFW_PRESS) {
+            spectatorMode = !spectatorMode;
+        }
         if (!keysPressed[GLFW_KEY_LEFT_CONTROL] && glfwGetKey(windowReference.getWindowId(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
             isSprinting = !isSprinting;
         }
         keysPressed[GLFW_KEY_LEFT_CONTROL] = glfwGetKey(windowReference.getWindowId(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+        keysPressed[GLFW_KEY_PAGE_UP] = glfwGetKey(windowReference.getWindowId(), GLFW_KEY_PAGE_UP) == GLFW_PRESS;
 
-        float newCamSpeed = (isSprinting ? 6 : 4) * deltaTime;
-        Vector3f playerMoveIntent = playerCamera.pollSurvivalCameraMovements(windowReference.getWindowId(), newCamSpeed);
+        float newCamSpeed = (!spectatorMode ? (isSprinting ? 6 : 4) : 60) * deltaTime;
+        Vector3f playerMoveIntent = spectatorMode ? playerCamera.pollCreativeCameraMovements(windowReference.getWindowId(), newCamSpeed) :
+                playerCamera.pollSurvivalCameraMovements(windowReference.getWindowId(), newCamSpeed);
         boolean jumpPressed = glfwGetKey(windowReference.getWindowId(), GLFW_KEY_SPACE) == GLFW_PRESS;
 
-        //playerCamera.cameraPos.y += playerMoveIntent.y;
-        if (isColliding(worldReference, playerCamera.cameraPos.x + playerMoveIntent.x, playerCamera.cameraPos.y, playerCamera.cameraPos.z)) {
+        playerCamera.cameraPos.y += playerMoveIntent.y;
+        if (!spectatorMode && isColliding(worldReference, playerCamera.cameraPos.x + playerMoveIntent.x, playerCamera.cameraPos.y, playerCamera.cameraPos.z)) {
             playerMoveIntent.x = 0;
         }
         playerCamera.cameraPos.x += playerMoveIntent.x;
 
-        if (isColliding(worldReference, playerCamera.cameraPos.x, playerCamera.cameraPos.y, playerCamera.cameraPos.z + playerMoveIntent.z)) {
+        if (!spectatorMode && isColliding(worldReference, playerCamera.cameraPos.x, playerCamera.cameraPos.y, playerCamera.cameraPos.z + playerMoveIntent.z)) {
             playerMoveIntent.z = 0;
         }
 
         playerCamera.cameraPos.z += playerMoveIntent.z;
 
         // Gravity
+        if (spectatorMode) return;
+
         velocityY -= 13*deltaTime;
         float deltaY = (float) (velocityY*deltaTime);
 

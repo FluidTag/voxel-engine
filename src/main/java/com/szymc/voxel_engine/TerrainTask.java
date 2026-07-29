@@ -161,6 +161,13 @@ public class TerrainTask {
 		if (wy > height && wy == 64 && temp < 0.2f && ((iceOceanNoise.GetNoise(wx, wz) > 0.3f) || subIceOceanNoise.GetNoise(wx, wz) > 0.3f)) return Blocks.ICE;
 		if (wy > height && wy <= 64) return Blocks.WATER;
 
+		// Caves
+		if (wy <= height) {
+			double threshold = -0.4 - (wy*0.002);
+
+			if (noise.GetNoise(wx, wy, wz) < threshold) return wy < 5 ? Blocks.LAVA : Blocks.AIR;
+		}
+
 		if (wy == height) {
 			if (wy < 59) return Blocks.GRAVEL;
 			if (wy < 66) return Blocks.SAND;

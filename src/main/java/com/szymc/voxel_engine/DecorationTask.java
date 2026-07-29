@@ -36,6 +36,118 @@ public class DecorationTask {
 			edits.add(packLocal(lx, blockWy, lz, blockType));
 		}
 	}
+
+	private void acaciaTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
+		SplittableRandom treeRng = new SplittableRandom(treeSeed);
+
+		int treeHeight = 5+treeRng.nextInt(2);
+		for (int jy = 0; jy <= treeHeight; jy++) {
+			tryAddEdit(trunkWx, surfaceHeight+jy, trunkWz, woodType, edits);
+		}
+
+		int branchXDir = treeRng.nextBoolean() ? 1 : -1;
+		int branchZDir = treeRng.nextBoolean() ? 1 : -1;
+		int branchLength = treeRng.nextInt(2, 5);
+		int curBranchHeight = treeHeight;
+		int x = 0; int y = 0; int z = 0;
+
+		for (int i = 0; i < branchLength; i++) {
+			x += branchXDir;
+			z += branchZDir;
+			y += treeRng.nextBoolean() ? 1 : 0;
+			tryAddEdit(trunkWx+x, surfaceHeight+treeHeight+y, trunkWz+z, woodType, edits);
+		};
+
+		int radius = 14;
+		for (int jy = 0; jy <= 3; jy++) {
+			for (int jx = -3; jx <= 3; jx++) {
+				for (int jz = -3; jz <= 3; jz++) {
+					int dist = (jx * jx) + (jz * jz);
+					if (dist <= radius)
+						tryAddEdit(trunkWx + x + jx, surfaceHeight + treeHeight + y + jy + 1, trunkWz + z + jz, leaveType, edits);
+				}
+			}
+			radius-=6;
+		}
+
+		if (treeRng.nextBoolean()) return;
+
+		x = 0; y = 0; z = 0;
+		branchXDir*=-1; branchZDir *=-1;
+		treeHeight-=treeRng.nextInt(3);
+		branchLength-=treeRng.nextInt(1, 4);
+		radius = 10;
+		if (branchLength <= 0) return;
+
+		for (int i = 0; i < branchLength; i++) {
+			x += branchXDir;
+			z += branchZDir;
+			y += treeRng.nextFloat() > 0.75 ? 1 : 0;
+			tryAddEdit(trunkWx+x, surfaceHeight+treeHeight+y, trunkWz+z, woodType, edits);
+		};
+
+		for (int jy = 0; jy <= 3; jy++) {
+			for (int jx = -3; jx <= 3; jx++) {
+				for (int jz = -3; jz <= 3; jz++) {
+					int dist = (jx * jx) + (jz * jz);
+					if (dist <= radius)
+						tryAddEdit(trunkWx + x + jx, surfaceHeight + treeHeight + y + jy + 1, trunkWz + z + jz, leaveType, edits);
+				}
+			}
+			radius-=4;
+		}
+	}
+
+	private void jungleTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
+		SplittableRandom treeRng = new SplittableRandom(treeSeed);
+		int treeHeight = 20 + treeRng.nextInt(7);
+		for (int jy = 0; jy <= treeHeight; jy++) {
+			for (int jx = 0; jx <= 1; jx++) {
+				for (int jz = 0; jz <= 1; jz++) {
+					tryAddEdit(trunkWx + jx, surfaceHeight+jy, trunkWz+jz, woodType, edits);
+				}
+			}
+		}
+
+		double spawnChance = 0.9;
+		for (int jy = 0; jy <= 5; jy++) {
+			for (int jx = -3; jx <= 4; jx++) {
+				for (int jz = -3; jz <= 4; jz++) {
+					double distance = ((jx+0.5)*(jx+0.5))+((jz+0.5)*(jz+0.5));
+					if (treeRng.nextFloat() < spawnChance - (distance*0.1)) tryAddEdit(trunkWx + jx, surfaceHeight+jy, trunkWz+jz, woodType, edits);
+				}
+			}
+			spawnChance-=0.27;
+		}
+
+		int rad = 25;
+		for (int jy = treeHeight; jy <= treeHeight+3; jy++) {
+			for (int jx = -7; jx <= 6; jx++) {
+				for (int jz = -7; jz <= 6; jz++) {
+					double dist = ((jx + 0.5) * (jx + 0.5)) + ((jz + 0.5) * (jz + 0.5));
+					if (dist <= rad) {
+						tryAddEdit(trunkWx + jx + 1, surfaceHeight + jy, trunkWz + jz + 1, leaveType, edits);
+					}
+				}
+			}
+			rad-=4;
+		}
+
+		rad = 20;
+		for (int jy = surfaceHeight+15; jy <= surfaceHeight + 17; jy++) {
+			for (int jx = -6; jx <= 5; jx++) {
+				for (int jz = -6; jz <= 5; jz++) {
+					double dist = ((jx + 0.5) * (jx + 0.5)) + ((jz + 0.5) * (jz + 0.5));
+					if (dist <= rad) {
+						tryAddEdit(trunkWx + jx + 1, jy, trunkWz + jz + 1, leaveType, edits);
+					}
+				}
+			}
+			rad-=7;
+		}
+	}
 	
 	private void spruceTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
 //		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
@@ -52,9 +164,9 @@ public class DecorationTask {
 			int r = shortRad ? Math.max(rad-4, 3) : rad;
 			for (int jx = -3; jx <= 3; jx++) {
 				for (int jz = -3; jz <= 3; jz++) {
-					float dist = (jx*jx) + (jz*jz);
+					int dist = (jx*jx) + (jz*jz);
 					
-					if (dist <= r) {
+					if (dist <= r && dist != 0) {
 						tryAddEdit(trunkWx+jx, ring, trunkWz+jz, leaveType, edits);
 					}
 				}
@@ -139,6 +251,10 @@ public class DecorationTask {
 				
 				if (currentBiome.type == BiomeType.TAIGA) {
 					spruceTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
+				} else if (currentBiome.type == BiomeType.JUNGLE) {
+					if (rng.nextFloat() > 0.65) {jungleTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);} else regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
+				} else if (currentBiome.type == BiomeType.SAVANNA) {
+					acaciaTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else {
 					regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				}

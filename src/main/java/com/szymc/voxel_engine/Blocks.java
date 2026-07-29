@@ -30,4 +30,7 @@ public class Blocks {
 	public static final byte RED_MUSHROOM_SMALL = 27;
 	public static final byte BROWN_MUSHROOM_SMALL = 28;
 	public static final byte RED_FLOWER = 29;
+	public static final byte JUNGLE_LOG = 30;
+	public static final byte DEAD_SHRUB = 31;
+	public static final byte YELLOW_FLOWER = 32;
 }

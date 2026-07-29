@@ -280,7 +280,8 @@ public class GreedyMesher {
     // Used for AO calculations
     private static boolean isOpqaue(byte block) {
         return block != 0 && block != Blocks.WATER && block != Blocks.GRASS_DECORATION
-                && block != Blocks.RED_MUSHROOM_SMALL && block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER;
+                && block != Blocks.RED_MUSHROOM_SMALL && block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER && block != Blocks.DEAD_SHRUB
+                && block != Blocks.YELLOW_FLOWER;
     }
 
     private static byte calculateCornerAO(byte side1, byte side2, byte corner) {
@@ -694,7 +695,7 @@ public class GreedyMesher {
                 for (int x = 0; x < 32; x++) {
                     byte block = chunk[y*32*32 + z*32 + x];
                     if (block == Blocks.GRASS_DECORATION || block == Blocks.RED_MUSHROOM_SMALL
-                            || block == Blocks.BROWN_MUSHROOM_SMALL || block == Blocks.RED_FLOWER) {
+                            || block == Blocks.BROWN_MUSHROOM_SMALL || block == Blocks.RED_FLOWER || block == Blocks.DEAD_SHRUB || block == Blocks.YELLOW_FLOWER) {
                         padded[(y+1)*34*34 + (z+1)*34 + (x+1)] = Blocks.AIR; // = 0
                         addGrassShrub(vertexBuffer, indexBuffer, x,y,z, block);
                     }
@@ -721,7 +722,7 @@ public class GreedyMesher {
                         leaX[x*18+y] |= (1L << z);
                     } else if (block != 0 && block != Blocks.GRASS_DECORATION
                             && block != Blocks.RED_MUSHROOM_SMALL &&
-                            block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER) {
+                            block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER && block != Blocks.DEAD_SHRUB && block != Blocks.YELLOW_FLOWER) {
                         occZ[z*34+x] |= (1L << y);
                         occY[y*34+x] |= (1L << z);
                         occX[x*18+y] |= (1L << z);
