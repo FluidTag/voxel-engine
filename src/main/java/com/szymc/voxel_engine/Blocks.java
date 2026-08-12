@@ -37,4 +37,15 @@ public class Blocks {
 	public static final byte DARK_OAK_LOG = 34;
 	public static final byte DARK_OAK_LEAVES = 35;
 	public static final byte HARDENED_STONE = 36;
+	public static final byte SANDSTONE = 37;
+	public static final byte RED_TERRACOTTA = 38;
+	public static final byte ORANGE_TERRACOTTA = 39;
+	public static final byte YELLOW_TERRACOTTA = 40;
+	public static final byte RED_SAND = 41;
+	public static final byte FERN = 42;
+	public static final byte SNOWY_FERN = 43;
+	public static final byte COARSE_DIRT = 44;
+	public static final byte SWAMP_GRASS = 45;
+	public static final byte RED_WOOD = 46;
+	public static final byte RED_DIRT = 47;
 }

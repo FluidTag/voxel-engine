@@ -234,5 +234,74 @@
     "textures": {
       "DEFAULT": "hardenedStone.png"
     }
+  },
+  "37": {
+    "name": "SANDSTONE",
+    "textures": {
+      "DEFAULT": "sandstone.png"
+    }
+  },
+  "38": {
+    "name": "RED_TERRACOTTA",
+    "textures": {
+      "DEFAULT": "redTerracotta.png"
+    }
+  },
+  "39": {
+    "name": "ORANGE_TERRACOTTA",
+    "textures": {
+      "DEFAULT": "orangeTerracotta.png"
+    }
+  },
+  "40": {
+    "name": "YELLOW_TERRACOTTA",
+    "textures": {
+      "DEFAULT": "yellowTerracotta.png"
+    }
+  },
+  "41": {
+    "name": "RED_SAND",
+    "textures": {
+      "DEFAULT": "redSand.png"
+    }
+  },
+  "42": {
+    "name": "FERN",
+    "textures": {
+      "DEFAULT": "fern.png"
+    }
+  },
+  "43": {
+    "name": "SNOWY_FERN",
+    "textures": {
+      "DEFAULT": "snowyFern.png"
+    }
+  },
+  "44": {
+    "name": "COARSE_DIRT",
+    "textures": {
+      "DEFAULT": "coarseDirt.png"
+    }
+  },
+  "45": {
+    "name": "SWAMP_GRASS",
+    "textures": {
+      "TOP": "swampGrassTop.png",
+      "DEFAULT": "swampGrassSide.png"
+    }
+  },
+  "46": {
+    "name": "RED_WOOD",
+    "textures": {
+      "TOP": "redwoodTop.png",
+      "BOTTOM": "redwoodTop.png",
+      "DEFAULT": "redwoodSide.png"
+    }
+  },
+  "47": {
+    "name": "RED_DIRT",
+    "textures": {
+      "DEFAULT": "redDirt.png"
+    }
   }
 }

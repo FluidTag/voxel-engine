@@ -18,6 +18,7 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -52,7 +53,13 @@ public class Texture {
 
 					textures.forEach((faceName, texPath) -> {
 						if (faceName.equals("DEFAULT")) {
-							blockTextureArray[Integer.parseInt(key)][0] = fileNameMap.get(texPath);
+							if (!fileNameMap.containsKey(texPath)) try {
+                                throw new NoSuchFileException("The texture file " + texPath + " is not in the directory.");
+                            } catch (NoSuchFileException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                            blockTextureArray[Integer.parseInt(key)][0] = fileNameMap.get(texPath);
 							return;
 						}
 

@@ -1,7 +1,6 @@
 package com.szymc.voxel_engine;
 
 
-import java.awt.*;
 import java.util.Arrays;
 import java.util.SplittableRandom;
 
@@ -26,6 +25,139 @@ public class DecorationTask {
 		
 		if (lx >= 0 && lx <= 31 && lz >= 0 && lz <= 31) {
 			edits.add(packLocal(lx, blockWy, lz, blockType));
+		}
+	}
+
+	private void redwoodTreeAlt(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
+		SplittableRandom treeRng = new SplittableRandom(treeSeed);
+		int treeHeight = 26 + treeRng.nextInt(11);
+
+		for (int jy = 0; jy <= treeHeight+7; jy++) {
+			for (int jx = 0; jx <= 1; jx++) {
+				for (int jz = 0; jz <= 1; jz++) {
+					tryAddEdit(trunkWx + jx, surfaceHeight+jy, trunkWz+jz, woodType, edits);
+				}
+			}
+		}
+
+		int trunkRad = 25;
+		for (int jy = -4; jy <= 5; jy++) {
+			for (int jx = -8; jx <= 7; jx++) {
+				for (int jz = -8; jz <= 7; jz++) {
+					double dist = ((jx + 0.5) * (jx + 0.5)) + ((jz + 0.5) * (jz + 0.5));
+					if (dist <= trunkRad) {
+						tryAddEdit(trunkWx + jx + 1, surfaceHeight + jy, trunkWz + jz + 1, woodType, edits);
+					}
+				}
+			}
+			trunkRad-=3;
+		}
+
+		int rad = 35;
+		boolean smallRad = false;
+		for (int jy = treeHeight-9; jy <= treeHeight+12; jy++) {
+			for (int jx = -7; jx <= 6; jx++) {
+				for (int jz = -7; jz <= 6; jz++) {
+					double dist = ((jx + 0.5) * (jx + 0.5)) + ((jz + 0.5) * (jz + 0.5));
+					int eRad = smallRad ? rad-6 : rad;
+					if (jy == treeHeight-9) eRad = 10;
+					if (dist <= eRad) {
+						tryAddEdit(trunkWx + jx + 1, surfaceHeight + jy, trunkWz + jz + 1, leaveType, edits);
+					}
+				}
+			}
+			rad-=2;
+			smallRad = !smallRad;
+		}
+	}
+
+	private void redwoodTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
+		SplittableRandom treeRng = new SplittableRandom(treeSeed);
+		int treeHeight = 26 + treeRng.nextInt(11);
+
+		for (int jy = 0; jy <= treeHeight; jy++) {
+			for (int jx = 0; jx <= 1; jx++) {
+				for (int jz = 0; jz <= 1; jz++) {
+					tryAddEdit(trunkWx + jx, surfaceHeight+jy, trunkWz+jz, woodType, edits);
+				}
+			}
+		}
+
+		int trunkRad = 25;
+		for (int jy = -4; jy <= 5; jy++) {
+			for (int jx = -8; jx <= 7; jx++) {
+				for (int jz = -8; jz <= 7; jz++) {
+					double dist = ((jx + 0.5) * (jx + 0.5)) + ((jz + 0.5) * (jz + 0.5));
+					if (dist <= trunkRad) {
+						tryAddEdit(trunkWx + jx + 1, surfaceHeight + jy, trunkWz + jz + 1, woodType, edits);
+					}
+				}
+			}
+			trunkRad-=3;
+		}
+
+		int rad = 29;
+		boolean smallRad = false;
+		for (int jy = treeHeight-7; jy <= treeHeight+9; jy++) {
+			for (int jx = -7; jx <= 6; jx++) {
+				for (int jz = -7; jz <= 6; jz++) {
+					double dist = ((jx + 0.5) * (jx + 0.5)) + ((jz + 0.5) * (jz + 0.5));
+					int eRad = smallRad ? rad-6 : rad;
+					if (jy == treeHeight-7) eRad = 10;
+					if (dist <= eRad) {
+						tryAddEdit(trunkWx + jx + 1, surfaceHeight + jy, trunkWz + jz + 1, leaveType, edits);
+					}
+				}
+			}
+			if (jy <= treeHeight-4) rad+=3; else rad-= (jy >= treeHeight+5) ? 4 : 2;
+			smallRad = !smallRad;
+		}
+
+		for (int jy = 5; jy < treeHeight-8; jy+=4) {
+			if (treeRng.nextFloat() > 0.7f) {
+				int subRad = 14;
+				for (int ky = jy; ky < jy+treeRng.nextInt(2,5); ky++) {
+					for (int jx = -7; jx <= 6; jx++) {
+						for (int jz = -7; jz <= 6; jz++) {
+							double dist = ((jx + 0.5) * (jx + 0.5)) + ((jz + 0.5) * (jz + 0.5));
+							int eRad = smallRad ? subRad - 6 : subRad;
+							if (dist <= eRad) {
+								tryAddEdit(trunkWx + jx + 1, surfaceHeight + ky, trunkWz + jz + 1, leaveType, edits);
+							}
+						}
+					}
+					subRad-=4;
+				}
+			} else if (treeRng.nextBoolean()) {
+				int branchXDir = treeRng.nextInt(-1, 2);
+				int branchZDir = treeRng.nextInt(-1, 2);
+				int jx = trunkWx + treeRng.nextInt(0, 2);
+				int jz = trunkWz + treeRng.nextInt(0, 2);
+				int length = treeRng.nextInt(1, 4);
+				int i = 0;
+
+				while (i < length) {
+					tryAddEdit(jx, surfaceHeight+jy, jz, woodType, edits);
+					jx += branchXDir;
+					jz += branchZDir;
+					i++;
+				}
+
+				int subRad = 9;
+				for (int ky = jy+1; ky <= jy+2; ky++) {
+					for (int kx = jx - 4; kx <= jx + 4; kx++) {
+						for (int kz = jz - 4; kz <= jz + 4; kz++) {
+							if ((kx == trunkWx || kx == trunkWx+1) && (kz == trunkWz || kz == trunkWz + 1)) continue;
+
+							float dist = (kx-jx)*(kx-jx) + (kz-jz)*(kz-jz);
+							if (dist <= subRad) tryAddEdit(kx, surfaceHeight+ky, kz, leaveType, edits);
+						}
+					}
+					subRad-=3;
+				}
+			}
 		}
 	}
 
@@ -209,8 +341,8 @@ public class DecorationTask {
 	}
 	
 	private void spruceTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
-//		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
-//      SplittableRandom treeRng = new SplittableRandom(treeSeed);
+		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
+      	SplittableRandom treeRng = new SplittableRandom(treeSeed);
         
 		for (int j = 1; j <= 12; j++) {
 			tryAddEdit(trunkWx, surfaceHeight+j, trunkWz, woodType, edits);
@@ -226,7 +358,10 @@ public class DecorationTask {
 					int dist = (jx*jx) + (jz*jz);
 					
 					if (dist <= r && dist != 0) {
-						tryAddEdit(trunkWx+jx, ring, trunkWz+jz, leaveType, edits);
+						byte effectiveLeaf = leaveType;
+						if (leaveType == Blocks.SNOWY_SPRUCE_LEAVES && treeRng.nextFloat() > 0.5f + (ring-surfaceHeight)*0.01f) effectiveLeaf = Blocks.SPRUCE_LEAVES;
+
+						tryAddEdit(trunkWx+jx, ring, trunkWz+jz, effectiveLeaf, edits);
 					}
 				}
 			}
@@ -286,17 +421,19 @@ public class DecorationTask {
 				int trunkWx = sourceWx+x;
 				int trunkWz = sourceWz+z;
 
-				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(trunkWx, trunkWz, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz)));
+				int surfaceHeight = TerrainTask.getNoiseHeight(trunkWx, trunkWz);
+				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(surfaceHeight, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz),
+						TerrainTask.getContinental(trunkWx, trunkWz), TerrainTask.getErosion(trunkWx, trunkWz),  TerrainTask.getWeirdness(trunkWx, trunkWz) ));
 				
 				if (rng.nextFloat() > currentBiome.treeDensity) continue;
-				int surfaceHeight = TerrainTask.getNoiseHeight(trunkWx, trunkWz);
+
 				byte surfaceBlock = TerrainTask.getSurfaceBlock(trunkWx, surfaceHeight, trunkWz, currentBiome);
-				
-				//System.out.println(surfaceBlock);
+
+				if (surfaceHeight <= 64) continue;
 				if (surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS &&
 						surfaceBlock != Blocks.FOREST_GRASS && surfaceBlock != Blocks.JUNGLE_GRASS &&
-						surfaceBlock != Blocks.TAIGA_GRASS 
-						&& surfaceBlock != Blocks.SAVANNA_GRASS && surfaceBlock != Blocks.SAND
+						surfaceBlock != Blocks.TAIGA_GRASS && surfaceBlock != Blocks.TUNDRA_GRASS
+						&& surfaceBlock != Blocks.SAVANNA_GRASS && surfaceBlock != Blocks.SAND && surfaceBlock != Blocks.SNOW && surfaceBlock != Blocks.SWAMP_GRASS && surfaceBlock != Blocks.RED_DIRT
 						) continue;
 				
 				if (sourceCx == this.cx && sourceCz == this.cz) {
@@ -306,14 +443,16 @@ public class DecorationTask {
 				byte woodType = currentBiome.woodBlock;
 				byte leaveType = currentBiome.leafBlock;
 				
-				if (currentBiome.type == BiomeType.TAIGA) {
+				if (currentBiome.type == BiomeType.TAIGA || currentBiome.type == BiomeType.SNOWY_TAIGA) {
 					spruceTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.JUNGLE) {
-					if (rng.nextFloat() > 0.65) {jungleTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);} else regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
+					if (rng.nextFloat() > 0.65f) {jungleTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);} else regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.SAVANNA || currentBiome.type == BiomeType.DESERT) {
 					acaciaTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.DARK_OAK_FOREST) {
 					darkOakTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
+				} else if (currentBiome.type == BiomeType.REDWOOD_FOREST) {
+					if (rng.nextFloat() < 0.6f) {redwoodTreeAlt(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);} else redwoodTree(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);
 				} else {
 					regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				}
@@ -335,8 +474,10 @@ public class DecorationTask {
 		SplittableRandom rng = new SplittableRandom((long)(cx)*341873128712L ^ (long)(cz) * 132897987541L);
 		for (int x = 0; x < 32; x++) {
 			for (int z = 0; z < 32; z++) {
-				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(wx+x, wz+z, TerrainTask.getTemp(wx+x, wz+z), TerrainTask.getMoist(wx+x, wz+z)));
 				int surfaceHeight = TerrainTask.getNoiseHeight(wx+x, wz+z);
+				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(surfaceHeight, TerrainTask.getTemp(wx+x, wz+z),
+						TerrainTask.getMoist(wx+x, wz+z), TerrainTask.getContinental(wx+x, wz+z), TerrainTask.getErosion(wx+x, wz+z), TerrainTask.getWeirdness(wx+x, wz+z)));
+				if (currentBiome.possibleDecorations == null) continue;
 
 				if (currentBiome.type == BiomeType.DESERT) {
 					if (rng.nextFloat() > 0.993f) {
