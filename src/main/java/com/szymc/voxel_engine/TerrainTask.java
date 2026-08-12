@@ -1,4 +1,7 @@
 package com.szymc.voxel_engine;
+
+import java.util.ArrayList;
+
 public class TerrainTask {
 	private final World worldReference;
 	private static final FastNoiseLite noise = new FastNoiseLite();
@@ -22,13 +25,13 @@ public class TerrainTask {
 		continentalNoise.SetFractalOctaves(3);
 
 		temperatureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-		temperatureNoise.SetFrequency(0.0002f);
+		temperatureNoise.SetFrequency(0.0003f);
 		temperatureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		temperatureNoise.SetFractalOctaves(5);
 		temperatureNoise.SetSeed(33);
 
 		moistureNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-		moistureNoise.SetFrequency(0.0002f);
+		moistureNoise.SetFrequency(0.0004f);
 		moistureNoise.SetSeed(49);
 		moistureNoise.SetFractalType(FastNoiseLite.FractalType.FBm);
 		moistureNoise.SetFractalOctaves(4);
@@ -141,7 +144,7 @@ public class TerrainTask {
 	}
 
 	private static final Object[][] biomePoints = new Object[][]{
-			// Format: { Temp, Temp-Min, Temp-Max, Moist, Cont, Eros, Weird, Height, Height-Min, Height-Max, Biome }
+			// Format: { Temp, Temp-Min, Temp-Max, Moist, Moist-Min, Moist-Max, Cont, Eros, Weird, Height, Height-Min, Height-Max, Biome }
 
 			// --- AQUATIC & COASTAL TRANSITIONS ---
 			{ 0.50f,  0.0f, 1.0f, 0.50f, 0.0f, 1.0f,  0.05f,  0.50f,  0.50f,  0.08f, 0f, 0.25f,  BiomeType.OCEAN },
@@ -151,7 +154,7 @@ public class TerrainTask {
 			{ 0.05f,  0.0f, 0.3f, 0.20f, 0.0f, 0.36f,  0.50f,  0.80f,  0.50f,  0.30f, 0f, 1f,  BiomeType.ARCTIC },
 			{ 0.18f,  0.0f, 0.35f, 0.30f, 0.0f, 1f,  0.50f,  0.65f,  0.50f,  0.32f, 0f, 1f,  BiomeType.TUNDRA },
 			{ 0.20f,  0.0f, 0.37f, 0.60f, 0.2f, 1f,  0.55f,  0.50f,  0.40f,  0.45f, 0f, 1f,  BiomeType.SNOWY_TAIGA },
-			{ 0.10f,  0.0f, 0.25f, 0.40f, 0.2f, 0.65f,  0.60f,  0.20f,  0.50f,  0.75f, 0.5f, 0.7f, BiomeType.SNOWY_MOUNTAIN },
+			{ 0.10f,  0.0f, 0.31f, 0.40f, 0.2f, 0.65f,  0.60f,  0.20f,  0.50f,  0.75f, 0.5f, 1f, BiomeType.SNOWY_MOUNTAIN },
 			{ 0.02f,  0.0f, 0.08f, 0.2f, 0.0f, 0.34f,  0.70f,  0.05f,  0.50f,  0.92f, 0.71f, 1f,  BiomeType.FROZEN_PEAKS }, // NEW: Extreme altitude
 
 			// --- TEMPERATE & COOL BIOMES ---
@@ -159,19 +162,19 @@ public class TerrainTask {
 			{ 0.4f, 0.3f, 0.65f, 0.90f, 0.60f, 1.0f,  0.55f,  0.40f,  0.50f,  0.36f, 0f, 1f,  BiomeType.REDWOOD_FOREST}, // NEW: High-moisture temperate
 			{ 0.45f,  0.37f, 0.57f, 0.65f, 0.53f, 0.74f,  0.50f,  0.45f,  0.30f,  0.36f, 0f, 1f,  BiomeType.BIRCH_FOREST },
 			{ 0.50f,  0.35f, 0.65f,  0.10f,  0.00f, 0.34f,  0.50f,  0.70f,  0.50f,  0.32f,  0.00f, 1f,  BiomeType.STEPPE },
-			{ 0.50f,  0.39f, 0.65f, 0.4f, 0f, 1f,  0.50f,  0.85f,  0.50f,  0.32f, 0f, 1f,  BiomeType.PLAINS },
-			{ 0.52f,  0.39f, 0.65f, 0.55f, 0.3f, 0.64f,  0.50f,  0.50f,  0.40f,  0.36f, 0f, 1f,  BiomeType.FOREST },
+			{ 0.50f,  0.38f, 0.65f, 0.4f, 0f, 1f,  0.50f,  0.85f,  0.50f,  0.32f, 0f, 1f,  BiomeType.PLAINS },
+			{ 0.52f,  0.38f, 0.65f, 0.55f, 0.3f, 0.64f,  0.50f,  0.50f,  0.40f,  0.36f, 0f, 1f,  BiomeType.FOREST },
 			{ 0.55f,  0.42f, 0.67f, 0.60f, 0.45f, 0.7f,  0.55f,  0.40f,  0.80f,  0.38f, 0f, 1f,  BiomeType.DARK_OAK_FOREST },
 			{ 0.45f,  0.3f, 0.76f, 0.50f, 0.4f, 0.6f,  0.55f,  0.30f,  0.50f,  0.58f, 0f, 1f,  BiomeType.MEADOW }, // NEW: Elevated mountain valley
 			{ 0.50f,  0.33f, 0.76f, 0.40f, 0.34f, 0.54f,  0.60f,  0.15f,  0.85f,  0.52f, 0f, 1f,  BiomeType.WINDSWEPT_HILLS }, // NEW: Jagged low-elevation hills
 			{ 0.45f,  0.3f, 0.52f, 0.85f, 0.65f, 0.9f,  0.40f,  0.90f,  0.50f,  0.27f, 0f, 0.28f,  BiomeType.SWAMP }, // NEW: Temperate wetland
-			{ 0.40f,  0.3f, 0.7f, 0.40f, 0f, 1f,  0.65f,  0.15f,  0.50f,  0.78f, 0.49f, 1f, BiomeType.ROCKY_MOUNTAIN },
+			{ 0.40f,  0.3f, 1f, 0.40f, 0f, 1f,  0.65f,  0.15f,  0.50f,  0.78f, 0.49f, 1f, BiomeType.ROCKY_MOUNTAIN },
 
 			// --- WARM / HOT / ARID BIOMES ---
 			{ 0.70f, 0.6f, 0.8f,  0.35f, 0.1f, 0.52f,  0.55f,  0.60f,  0.40f,  0.35f, 0f, 1f,  BiomeType.SAVANNA },
-			//{ 0.72f,  0.22f,  0.60f,  0.50f,  0.70f,  0.38f,  BiomeType.RED_DESERT}, // NEW: Semi-arid shrubland
-			{ 0.88f,  0.73f, 1.0f, 0.10f, 0f, 0.3f,  0.65f,  0.80f,  0.30f,  0.30f, 0f, 1f,  BiomeType.DESERT },
-			{ 0.85f,  0.7f, 1.0f, 0.15f, 0.02f, 0.34f,  0.70f,  0.30f,  0.85f,  0.48f, 0.35f, 1f,  BiomeType.MESA },
+			{ 0.9f, 0.85f, 1.0f, 0.08f, 0f, 0.35f, 0.67f, 0.76f, 0f, 0.32f, 0f, 1f,  BiomeType.RED_DESERT}, // NEW: Semi-arid shrubland
+			{ 0.88f,  0.6f, 1.0f, 0.10f, 0f, 0.5f,  0.65f,  0.80f,  0.30f,  0.30f, 0f, 1f,  BiomeType.DESERT },
+			{ 0.85f,  0.8f, 1.0f, 0.15f, 0.02f, 0.34f,  0.70f,  0.30f,  1f,  0.48f, 0.35f, 1f,  BiomeType.MESA },
 			{ 0.80f,  0.6f, 0.95f, 0.80f, 0.5f, 1.0f,  0.55f,  0.40f,  0.40f,  0.38f, 0f, 1f,  BiomeType.JUNGLE },
 	};
 
@@ -195,8 +198,11 @@ public class TerrainTask {
 		return (weirdnessNoise.GetNoise(wx, wz)+1.0f)/2.0f;
 	}
 
+	private final static ThreadLocal<ArrayList<String>> biomeDebug = ThreadLocal.withInitial(ArrayList::new);
 	public static BiomeType getBiomeType(int height, float temp, float moist, float cont, float erosion, float weirdness) {
-		float normHeight = (float) height / 256.0f; // Scale height into 0.0 - 1.0 range
+		float normHeight = Math.max(0f, Math.min(0.99f, (float) height / 256.0f)); // Scale height into 0.0 - 1.0 range
+		//ArrayList<String> debug = biomeDebug.get();
+		//debug.clear();
 
 		float lowestDist = Float.MAX_VALUE;
 		BiomeType resultType = null;
@@ -218,10 +224,13 @@ public class TerrainTask {
 			float hMin = (float) point[10];
 			float hMax = (float) point[11];
 
-			if (temp < tMin || temp > tMax || moist < mMin || moist > mMax || normHeight < hMin || normHeight > hMax) continue;
+			if (temp < tMin || temp > tMax || moist < mMin || moist > mMax || normHeight < hMin || normHeight > hMax) {
+				//debug.add(pointType + " was denied: [T: " + temp + ", Min: " + tMin + ", Max: " + tMax + ", Passed: " + (temp >= tMin && temp <= tMax) + "|| [M: " + moist + ", Min: " + mMin + ", Max: " + mMax + ", Passed: " + (moist >= mMin && moist <= mMax) + " || " + "[H: " + normHeight + ", Min: " + hMin + ", Max: " + hMax + ", Passed " + (normHeight >= hMin && normHeight <= hMax) + "]");
+				continue;
+			};
 
 			// Weighted Squared Euclidean Distance
-			float dist = (dT*dT*3) + (dM*dM*3) + dC*dC + dE*dE + dW*dW + dH*dH;
+			float dist = (dT*dT*3) + (dM*dM*3) + dC*dC + dE*dE + (dW*dW*2) + dH*dH;
 
 			if (dist < lowestDist) {
 				lowestDist = dist;
@@ -229,6 +238,10 @@ public class TerrainTask {
 			}
 		}
 
+//		if (resultType == null) {
+//			for (String log : debug) System.out.println(log);
+//			System.out.println("_________________________");
+//		}
 		return resultType;
 	}
 

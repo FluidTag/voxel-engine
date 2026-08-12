@@ -39,9 +39,9 @@ public class App {
 				float erosion = TerrainTask.getErosion(wx, wz);
 
 				BiomeType surfaceBiome = TerrainTask.getBiomeType(surfaceHeight, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));
-				BiomeType biome = TerrainTask.getBiomeType(wy, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));
+				//BiomeType biome = TerrainTask.getBiomeType(wy, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));
 
-				System.out.println(wx + ", " + wy + ", " + wz + " | Surface Biome: " + surfaceBiome + " [T "+Math.round(temp*100f)/100f+", M "+Math.round(moist*100f)/100f+", E "+Math.round(erosion*100f)/100f+"]  || Camera Biome: " + biome);
+				System.out.println(wx + ", " + wy + ", " + wz + " | Surface Biome ("+surfaceHeight+"): " + surfaceBiome + " [T "+Math.round(temp*100f)/100f+", M "+Math.round(moist*100f)/100f+", E "+Math.round(erosion*100f)/100f + "]");
 			}
 
 			window.swapBuffers();

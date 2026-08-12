@@ -31,6 +31,9 @@ public class BiomeRegistry {
 		register(new Biome(BiomeType.FROZEN_PEAKS, "Frozen Peaks", Blocks.SNOW, Blocks.STONE,
 				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0f, 0f, null, new GroundLayer[]{new GroundLayer(Blocks.ICE, 0.07f, 0.5f)}));
 
+		register(new Biome(BiomeType.JAGGED_PEAKS, "Jagged Peaks", Blocks.STONE, Blocks.STONE,
+				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0f, 0f, null, null));
+
 		register(new Biome(BiomeType.ARCTIC, "Arctic", Blocks.SNOW, Blocks.DIRT,
 				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0f, 0.04f, null, null));
 
