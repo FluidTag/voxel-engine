@@ -8,7 +8,6 @@ uniform mat4 projection;
 uniform vec4 transform;
 
 void main() {
-    vec2 pixelPosition = transform.xy + (aPos * transform.zw);
-    gl_Position = projection * vec4(pixelPosition, 0.0, 1.0);
     TexCoords = aTexCoords;
+    gl_Position = projection * vec4(aPos.x * transform.z + transform.x, aPos.y * transform.w + transform.y, 0.0, 1.0);
 }

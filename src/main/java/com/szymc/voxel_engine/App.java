@@ -13,9 +13,9 @@ public class App {
 		window.attachCamera(camera);
 		Engine engine = new Engine(mainWorld, camera);
 		PlayerCharacter character = new PlayerCharacter(camera, mainWorld, window, engine);
+		engine.setPlayer(character);
 
 		BiomeRegistry.init();
-		Texture.readBlockJson("gameData/blocks.json");
 
 		double lastFrameTime = 0.0;
 		while (!window.shouldClose()) {

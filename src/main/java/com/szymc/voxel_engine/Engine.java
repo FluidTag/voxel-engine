@@ -28,6 +28,7 @@ public class Engine {
 	private World worldScene;
 	private WorldShader mainShader;
 	private DebugManager debugger;
+	private PlayerCharacter player;
 	private OutlineShader outlineShader;
 	private Matrix4f outlineLoc;
 	private BlockOutline outline;
@@ -42,14 +43,18 @@ public class Engine {
 		this.outlineLoc = new Matrix4f().translation(x, y, z);
 	}
 
+	public void setPlayer(PlayerCharacter player) {
+		this.player = player;
+	}
+
 	public Engine(World world, Camera camera) {
 		this.worldScene = world;
 		this.camera = camera;
 
 		this.debugger = new DebugManager(world, camera);
 		this.mainShader = new WorldShader();
-
-		this.uiRenderer = new UIRenderer();
+		Texture.readBlockJson("gameData/blocks.json");
+		this.uiRenderer = new UIRenderer(mainShader.getTexture().getId());
 		this.crosshairTexture = Texture.loadTexturePath("src/main/resources/ui/crosshair.png");
 
 		this.outlineShader = new OutlineShader();
@@ -189,12 +194,19 @@ public class Engine {
 			float crossY = (900/2.0f) - 8.0f;
 
 			uiRenderer.drawTexture(crosshairTexture, crossX, crossY, 16, 16);
-//			uiRenderer.drawRect((1600/2.0f)-300, 820, 600, 60, 1f, 1f, 1f, 1f);
-//			int slotSize = 60;
-//			for (int i = 0; i < 10; i++) {
-//				uiRenderer.drawRect((1600/2.0f)-300 + (60*i) - 3, 820-3, slotSize+6, slotSize+6, 0.1f, 0.1f, 0.1f, 1.0f);
-//				uiRenderer.drawRect((1600/2.0f)-300 + (60*i), 820, slotSize, slotSize, 0.5f, 0.5f, 0.5f, 0.3f);
-//			}
+			int slotSize = 64;
+			int offsetX = (int)((1600/2.0f)-(slotSize*4.5f));
+			uiRenderer.drawRect(offsetX-2, 820-2, slotSize*9 + 4, slotSize + 4, 0.7f, 0.7f, 0.7f, 0.8f);
+			byte[] inventory = player.getInventory();
+
+			for (int i = 0; i < 9; i++) {
+				float color = player.currentHotbarSlot == i ? 0.45f : 0.2f;
+				uiRenderer.drawRect(offsetX + (slotSize*i) + 2, 820+2, slotSize-4, slotSize-4, color, color, color, 0.6f);
+				byte item = inventory[i];
+				if (item != 0) uiRenderer.drawIcon(item, offsetX + (slotSize*i), 820, slotSize, slotSize);
+			}
+
+
 			uiRenderer.end();
 
 			glDepthMask(true);

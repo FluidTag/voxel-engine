@@ -22,6 +22,8 @@ public class PlayerCharacter {
 
     private boolean spectatorMode = true;
 
+    private byte[] inventory = new byte[36];
+    public int currentHotbarSlot = 0;
     private static boolean blockAt(World world, int x, int y, int z) {
         ChunkColumn chunk = world.getLoadedChunkAtPos(x>>5, z>>5);
         if (chunk == null || !chunk.state.isAtleast(ChunkColumn.ChunkState.TERRAIN)) return false;
@@ -122,8 +124,25 @@ public class PlayerCharacter {
         this.windowReference = windowReference;
         this.engineAttachment = engineAttachment;
 
+        inventory[0] = Blocks.GRASS;
+        inventory[1] = Blocks.DIRT;
+        inventory[2] = Blocks.OAK_WOOD;
+
+        glfwSetScrollCallback(windowReference.getWindowId(), (windowHandle, xOffset, yOffset) -> {
+            if (yOffset < 0) {
+                currentHotbarSlot++;
+            } else {
+                currentHotbarSlot--;
+            }
+
+            if (currentHotbarSlot > 8) currentHotbarSlot = 0;
+            if (currentHotbarSlot < 0) currentHotbarSlot = 8;
+        });
+
         glfwSetMouseButtonCallback(windowReference.getWindowId(), (windowHandle, button, action, mods) -> {
             if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
+                if (button == GLFW_MOUSE_BUTTON_RIGHT && inventory[currentHotbarSlot] == 0) return;
+
                 RaycastResult result = getRaycastResult(worldReference, playerCamera);
 
                 if (result != null) {
@@ -148,13 +167,17 @@ public class PlayerCharacter {
                     int cx = x >> 5;
                     int cz = z >> 5;
                     ChunkColumn chunk = worldReference.getLoadedChunkAtPos(cx, cz);
-                    chunk.setBlockInChunk(x & 31, y, z & 31, button == GLFW_MOUSE_BUTTON_RIGHT ? Blocks.DIRT : Blocks.AIR);
+                    chunk.setBlockInChunk(x & 31, y, z & 31, button == GLFW_MOUSE_BUTTON_RIGHT ? inventory[currentHotbarSlot] : Blocks.AIR);
                     chunk.dirtyCount++;
                     chunk.setSectionDirty(y >> 4);
                     worldReference.updateChunk(cx, cz);
                 }
             }
         });
+    }
+
+    public byte[] getInventory() {
+        return inventory;
     }
 
     public void poll(float deltaTime) {

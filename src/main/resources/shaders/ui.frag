@@ -5,19 +5,19 @@ in vec2 TexCoords;
 
 uniform sampler2D uiTexture;
 uniform vec4 colorTint;
-uniform bool useTexture;
+uniform int useTexture;
 
 uniform vec2 u_resolution;
 uniform vec4 u_rect;
-uniform int u_border;
+
+uniform vec4 u_uvTransform;
 
 void main() {
-    if (useTexture) {
+    if (useTexture == 1) {
+        vec2 tileUv = TexCoords * u_uvTransform.zw + u_uvTransform.xy;
+        FragColor = texture(uiTexture, tileUv);
+    } else if (useTexture == 2) {
         vec4 texColor = texture(uiTexture, TexCoords);
-        ivec2 pixelCoord = ivec2(gl_FragCoord.xy);
-        int x = pixelCoord.x;
-        int y = pixelCoord.y;
-
         if (texColor.a < 0.05) discard;
         FragColor = texColor * colorTint;
     } else {
