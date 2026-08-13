@@ -18,10 +18,17 @@ public class App {
 		BiomeRegistry.init();
 
 		double lastFrameTime = 0.0;
+		double tIncrement = 0;
+		int ticks = 0;
 		while (!window.shouldClose()) {
 			double currentFrameTime = window.getFrameTime();
 			float deltaTime = (float)(currentFrameTime - lastFrameTime);
 			lastFrameTime = currentFrameTime;
+			tIncrement += 1*deltaTime;
+			if (tIncrement >= 1) {
+				ticks++;
+				tIncrement = 0;
+			}
 
 			character.poll(deltaTime);
 

@@ -4,10 +4,14 @@ import com.szymc.localShaders.WorldShader;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -21,8 +25,9 @@ public class UIRenderer {
     private final int locProjection, locTransform, locColorTint, locUseTexture, locResolution, locRect, locUvTransform;
     private int atlasId;
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
-    private int primaryBlockTextureId;
+    private Texture primaryBlockTextures;
     private final static int atlasSize = 1024; // Use power of 2
+
     private static void addQuad(
             IntArrayList vBuffer,
             IntArrayList iBuffer,
@@ -40,7 +45,7 @@ public class UIRenderer {
         if (axis == 1) texId = Texture.getTextureIndex(blockType, backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM); // Y
         if (axis == 0) texId = Texture.getTextureIndex(blockType, backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST); // X
         if (axis == 2) texId = Texture.getTextureIndex(blockType, backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH); // Z
-        System.out.println(blockType + ": " + texId + ": On Axis " + axis + ", Backface? " + backFace);
+        //System.out.println(blockType + ": " + texId + ": On Axis " + axis + ", Backface? " + backFace);
         int ao1 = packedAO & 0x3;
         int ao2 = (packedAO >> 2) & 0x3;
         int ao3 = (packedAO >> 4) & 0x3;
@@ -205,7 +210,87 @@ public class UIRenderer {
         glDisable(GL_CULL_FACE);
     }
 
-    public UIRenderer(int blockTextureId) {
+    private static ByteBuffer upscaleImage(ByteBuffer src16) {
+        src16.rewind();
+        ByteBuffer dst32 = MemoryUtil.memAlloc(32*32*4);
+
+        for (int y = 0; y < 16; y++) {
+            for (int x = 0; x < 16; x++) {
+                int srcIndex = (y * 16 + x) * 4;
+                byte r = src16.get(srcIndex);
+                byte g = src16.get(srcIndex+1);
+                byte b = src16.get(srcIndex+2);
+                byte a = src16.get(srcIndex+3);
+
+                for (int dy = 0; dy < 2; dy++) {
+                    for (int dx = 0; dx < 2; dx++) {
+                        int destX = x*2 + dx;
+                        int destY = y*2 + dy;
+                        int destIndex = (destY*32 + destX) * 4;
+
+                        dst32.put(destIndex, r);
+                        dst32.put(destIndex+1, g);
+                        dst32.put(destIndex+2, b);
+                        dst32.put(destIndex+3, a);
+                    }
+                }
+            }
+        }
+
+        dst32.rewind();
+        return dst32;
+    }
+
+    private static void xTextureDirectUpload(byte blockType, int slotX, int slotY, int atlasId, Texture blockTextures) {
+        int xOffset = (64-32)/2;
+        int yOffset = (64-32)/2;
+
+        int x = slotX*64 + xOffset;
+        int y = atlasSize-((slotY+1)*64) + yOffset;
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, blockTextures.getId());
+
+        ByteBuffer pixelBuffer = blockTextures.getLayer(Texture.getTextureIndex(blockType, BLOCK_FACE.NORTH)); // Any face should be sufficient for now
+        pixelBuffer = upscaleImage(pixelBuffer);
+
+        pixelBuffer.rewind();
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glBindTexture(GL_TEXTURE_2D, atlasId);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        STBImage.stbi_image_free(pixelBuffer);
+    }
+
+    private static void uploadIcon(String path, int slotX, int slotY, int atlasId) {
+        int offsetX = (64-32)/2;
+        int offsetY = (64-32)/2;
+
+        int x = slotX*64 + offsetX;
+        int y = atlasSize-((slotY+1)*64) + offsetY;
+
+        ByteBuffer pixelBuffer;
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            IntBuffer width = stack.mallocInt(1);
+            IntBuffer height = stack.mallocInt(1);
+            IntBuffer channels = stack.mallocInt(1);
+
+            pixelBuffer = STBImage.stbi_load(path, width, height, channels, 4);
+            if (pixelBuffer == null) {
+                System.err.println("Failed to load icon: " + STBImage.stbi_failure_reason());
+                return;
+            }
+            pixelBuffer = upscaleImage(pixelBuffer);
+
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glBindTexture(GL_TEXTURE_2D, atlasId);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+            STBImage.stbi_image_free(pixelBuffer);
+        }
+    }
+
+    public UIRenderer(Texture blockTextures) {
         this.programId = compileUIShaders();
 
         locProjection = glGetUniformLocation(programId, "projection");
@@ -215,7 +300,7 @@ public class UIRenderer {
         locResolution = glGetUniformLocation(programId, "u_resolution");
         locRect = glGetUniformLocation(programId, "u_rect");
         locUvTransform = glGetUniformLocation(programId, "u_uvTransform");
-        this.primaryBlockTextureId = blockTextureId;
+        primaryBlockTextures = blockTextures;
 
         float[] vertices = {
                 0.0f, 0.0f, 0.0f, 0.0f,
@@ -270,7 +355,14 @@ public class UIRenderer {
         int x = 0;
         int y = 0;
         for (int i = 0; i <= 47; i++) {
-            bakeBlockMesh((byte)i, x, y, this.primaryBlockTextureId);
+            if (Texture.itemTexturePaths[i] != null) {
+                uploadIcon(Texture.itemTexturePaths[i], x, y, atlasId);
+            } else if (Texture.isXShapedBlock[i]) {
+                xTextureDirectUpload((byte)i, x, y, atlasId, primaryBlockTextures);
+            } else {
+                bakeBlockMesh((byte)i, x, y, primaryBlockTextures.getId());
+            }
+
             x++;
             if (x==16) {
                 x = 0;

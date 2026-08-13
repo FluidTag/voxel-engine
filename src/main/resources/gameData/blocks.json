@@ -21,12 +21,14 @@
   },
   "4": {
     "name": "OAK_LEAVES",
+    "isLeaves": true,
     "textures": {
       "DEFAULT": "leafsTex4.png"
     }
   },
   "5": {
     "name": "STONE",
+    "icon": "stoneIconTest.png",
     "textures": {
       "DEFAULT": "stoneTex.png"
     }
@@ -69,6 +71,7 @@
   },
   "12": {
     "name": "BIRCH_LEAVES",
+    "isLeaves": true,
     "textures": {
       "DEFAULT": "birchLeavesTex.png"
     }
@@ -119,6 +122,7 @@
   },
   "19": {
     "name": "GRASS_DECORATION",
+    "xMesh": true,
     "textures": {
       "DEFAULT": "zGrass6.png"
     }
@@ -147,6 +151,7 @@
   },
   "23": {
     "name": "SPRUCE_LEAVES",
+    "isLeaves": true,
     "textures": {
       "DEFAULT": "spruceLeaveTex.png"
     }
@@ -159,30 +164,35 @@
   },
   "25": {
     "name": "ACACIA_LEAVES",
+    "isLeaves": true,
     "textures": {
       "DEFAULT": "acaciaLeaves.png"
     }
   },
   "26": {
     "name": "SNOWY_SPRUCE_LEAVES",
+    "isLeaves": true,
     "textures": {
       "DEFAULT": "snowySpruceLeaves.png"
     }
   },
   "27": {
     "name": "RED_MUSHROOM_SMALL",
+    "xMesh": true,
     "textures": {
       "DEFAULT": "redMushroom.png"
     }
   },
   "28": {
     "name": "BROWN_MUSHROOM_SMALL",
+    "xMesh": true,
     "textures": {
       "DEFAULT": "brownMushroom.png"
     }
   },
   "29": {
     "name": "RED_FLOWER",
+    "xMesh": true,
     "textures": {
       "DEFAULT": "redFlower.png"
     }
@@ -197,12 +207,14 @@
   },
   "31": {
     "name": "DEAD_SHRUB",
+    "xMesh": true,
     "textures": {
       "DEFAULT": "deadShrub.png"
     }
   },
   "32": {
     "name": "YELLOW_FLOWER",
+    "xMesh": true,
     "textures": {
       "DEFAULT": "yellowFlower.png"
     }
@@ -225,6 +237,7 @@
   },
   "35": {
     "name": "DARK_OAK_LEAVES",
+    "isLeaves": true,
     "textures": {
       "DEFAULT": "darkOakLeaves.png"
     }
@@ -267,12 +280,14 @@
   },
   "42": {
     "name": "FERN",
+    "xMesh": true,
     "textures": {
       "DEFAULT": "fern.png"
     }
   },
   "43": {
     "name": "SNOWY_FERN",
+    "xMesh": true,
     "textures": {
       "DEFAULT": "snowyFern.png"
     }

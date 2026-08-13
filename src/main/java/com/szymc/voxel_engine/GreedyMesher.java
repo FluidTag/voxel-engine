@@ -280,9 +280,7 @@ public class GreedyMesher {
 
     // Used for AO calculations
     private static boolean isOpqaue(byte block) {
-        return block != 0 && block != Blocks.WATER && block != Blocks.GRASS_DECORATION
-                && block != Blocks.RED_MUSHROOM_SMALL && block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER && block != Blocks.DEAD_SHRUB
-                && block != Blocks.YELLOW_FLOWER && block != Blocks.FERN && block != Blocks.SNOWY_FERN;
+        return block != 0 && block != Blocks.WATER && !Texture.isXShapedBlock[block];
     }
 
     private static byte calculateCornerAO(byte side1, byte side2, byte corner) {
@@ -695,9 +693,7 @@ public class GreedyMesher {
             for (int z = 0; z < 32; z++) {
                 for (int x = 0; x < 32; x++) {
                     byte block = chunk[y*32*32 + z*32 + x];
-                    if (block == Blocks.GRASS_DECORATION || block == Blocks.RED_MUSHROOM_SMALL
-                            || block == Blocks.BROWN_MUSHROOM_SMALL || block == Blocks.RED_FLOWER || block == Blocks.DEAD_SHRUB || block == Blocks.YELLOW_FLOWER
-                            || block == Blocks.FERN || block == Blocks.SNOWY_FERN) {
+                    if (Texture.isXShapedBlock[block]) {
                         padded[(y+1)*34*34 + (z+1)*34 + (x+1)] = Blocks.AIR; // = 0
                         addGrassShrub(vertexBuffer, indexBuffer, x,y,z, block);
                     }
@@ -715,20 +711,11 @@ public class GreedyMesher {
                         watZ[z*34+x] |= (1L << y);
                         watY[y*34+x] |= (1L << z);
                         watX[x*18+y] |= (1L << z);
-                    } else if (block == Blocks.OAK_LEAVES
-                            || block == Blocks.BIRCH_LEAVES
-                            || block == Blocks.SPRUCE_LEAVES
-                            || block == Blocks.ACACIA_LEAVES
-                            || block == Blocks.DARK_OAK_LEAVES
-                            || block == Blocks.SNOWY_SPRUCE_LEAVES
-                    ) {
+                    } else if (Texture.isLeafBlock[block]) {
                         leaZ[z*34+x] |= (1L << y);
                         leaY[y*34+x] |= (1L << z);
                         leaX[x*18+y] |= (1L << z);
-                    } else if (block != 0 && block != Blocks.GRASS_DECORATION
-                            && block != Blocks.RED_MUSHROOM_SMALL &&
-                            block != Blocks.BROWN_MUSHROOM_SMALL && block != Blocks.RED_FLOWER && block != Blocks.DEAD_SHRUB
-                            && block != Blocks.YELLOW_FLOWER && block != Blocks.FERN && block != Blocks.SNOWY_FERN) {
+                    } else if (block != 0 && !Texture.isXShapedBlock[block]) {
                         occZ[z*34+x] |= (1L << y);
                         occY[y*34+x] |= (1L << z);
                         occX[x*18+y] |= (1L << z);

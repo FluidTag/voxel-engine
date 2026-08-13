@@ -5,6 +5,8 @@ import com.google.gson.Gson;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
+
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL42.*; // Required for glTexStorage3D
@@ -24,6 +26,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import static org.lwjgl.opengl.GL45.*;
 
 import static org.lwjgl.stb.STBImage.*;
 
@@ -40,6 +43,12 @@ public class Texture {
 	private final int id;
 	private static final HashMap<String, Integer> fileNameMap = new HashMap<>();
 	private static final int[][] blockTextureArray = new int[256][BLOCK_FACE.values().length + 1];; // [blockId][faceOrdinal (first slot reserved for default)]
+	// Used extremely hotly in meshing, rather use slightly more memory than have to unbitpack and read, instead simple array lookup
+	public static final boolean[] isXShapedBlock = new boolean[256];
+	public static final boolean[] isLeafBlock = new boolean[256];
+
+	public static final String[] itemTexturePaths = new String[256];
+
 	public static void readBlockJson(String path) {
 		Gson gson = new Gson();
 
@@ -49,7 +58,13 @@ public class Texture {
 
 				data.forEach((key, subData) -> {
 					Map<String, String> textures = (Map<String, String>) subData.get("textures");
-					Arrays.fill(blockTextureArray[Integer.parseInt(key)], -1); // Indicates no texture unless specified (0 can be a texId)
+					int blockKey = Integer.parseInt(key);
+
+					Arrays.fill(blockTextureArray[blockKey], -1); // Indicates no texture unless specified (0 can be a texId)
+
+					if (subData.containsKey("xMesh")) isXShapedBlock[blockKey] = true;
+					if (subData.containsKey("isLeaves")) isLeafBlock[blockKey] = true;
+					if (subData.containsKey("icon")) itemTexturePaths[blockKey] = "src/main/resources/itemIcons/"+subData.get("icon");
 
 					textures.forEach((faceName, texPath) -> {
 						if (faceName.equals("DEFAULT")) {
@@ -59,12 +74,12 @@ public class Texture {
                                 throw new RuntimeException(e);
                             }
 
-                            blockTextureArray[Integer.parseInt(key)][0] = fileNameMap.get(texPath);
+                            blockTextureArray[blockKey][0] = fileNameMap.get(texPath);
 							return;
 						}
 
 						BLOCK_FACE face = BLOCK_FACE.valueOf(faceName);
-						blockTextureArray[Integer.parseInt(key)][face.ordinal()+1] = fileNameMap.get(texPath);
+						blockTextureArray[blockKey][face.ordinal()+1] = fileNameMap.get(texPath);
 					});
 				});
 			}
@@ -166,6 +181,12 @@ public class Texture {
 		
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	}
+
+	public ByteBuffer getLayer(int layer) {
+		ByteBuffer image = MemoryUtil.memAlloc(16 * 16 * 4);
+		glGetTextureSubImage(this.id, 0, 0, 0, layer, 16, 16, 1, GL_RGBA, GL_UNSIGNED_BYTE, image);
+		return image;
 	}
 	
 	private void uploadLayer(String path, int layer, int size) {

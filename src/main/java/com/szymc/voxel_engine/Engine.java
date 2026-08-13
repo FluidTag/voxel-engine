@@ -54,7 +54,7 @@ public class Engine {
 		this.debugger = new DebugManager(world, camera);
 		this.mainShader = new WorldShader();
 		Texture.readBlockJson("gameData/blocks.json");
-		this.uiRenderer = new UIRenderer(mainShader.getTexture().getId());
+		this.uiRenderer = new UIRenderer(mainShader.getTexture());
 		this.crosshairTexture = Texture.loadTexturePath("src/main/resources/ui/crosshair.png");
 
 		this.outlineShader = new OutlineShader();

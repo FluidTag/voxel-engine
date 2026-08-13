@@ -124,9 +124,15 @@ public class PlayerCharacter {
         this.windowReference = windowReference;
         this.engineAttachment = engineAttachment;
 
-        inventory[0] = Blocks.GRASS;
-        inventory[1] = Blocks.DIRT;
-        inventory[2] = Blocks.OAK_WOOD;
+        inventory[0] = Blocks.GRASS_DECORATION;
+        inventory[1] = Blocks.RED_FLOWER;
+        inventory[2] = Blocks.RED_MUSHROOM_SMALL;
+        inventory[3] = Blocks.YELLOW_FLOWER;
+        inventory[4] = Blocks.STONE;
+        inventory[5] = Blocks.RED_WOOD;
+        inventory[6] = Blocks.OAK_WOOD;
+        inventory[7] = Blocks.ICE;
+        inventory[8] = Blocks.HARDENED_STONE;
 
         glfwSetScrollCallback(windowReference.getWindowId(), (windowHandle, xOffset, yOffset) -> {
             if (yOffset < 0) {
@@ -137,6 +143,12 @@ public class PlayerCharacter {
 
             if (currentHotbarSlot > 8) currentHotbarSlot = 0;
             if (currentHotbarSlot < 0) currentHotbarSlot = 8;
+        });
+
+        glfwSetKeyCallback(windowReference.getWindowId(), (windowHandle, key, scancode, action, mods) -> {
+            if (key >= GLFW_KEY_1 && key <= GLFW_KEY_9) {
+                currentHotbarSlot = key - GLFW_KEY_0 - 1;
+            }
         });
 
         glfwSetMouseButtonCallback(windowReference.getWindowId(), (windowHandle, button, action, mods) -> {
