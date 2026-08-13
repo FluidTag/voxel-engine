@@ -1,4 +1,5 @@
 package com.szymc.voxel_engine;
+import com.szymc.localShaders.EntityShader;
 import com.szymc.localShaders.OutlineShader;
 
 
@@ -27,6 +28,7 @@ public class Engine {
 	private Camera camera;
 	private World worldScene;
 	private WorldShader mainShader;
+	private EntityShader entityShader;
 	private DebugManager debugger;
 	private PlayerCharacter player;
 	private OutlineShader outlineShader;
@@ -53,6 +55,7 @@ public class Engine {
 
 		this.debugger = new DebugManager(world, camera);
 		this.mainShader = new WorldShader();
+		this.entityShader = new EntityShader(mainShader.getTexture());
 		Texture.readBlockJson("gameData/blocks.json");
 		this.uiRenderer = new UIRenderer(mainShader.getTexture());
 		this.crosshairTexture = Texture.loadTexturePath("src/main/resources/ui/crosshair.png");
@@ -89,7 +92,6 @@ public class Engine {
 
 			//debugger.renderDebug(matrixBuffer);
 			mainShader.start();
-
 			for (ChunkColumn chunk : worldScene.getRendered().values()) {
 				if (chunk == null) continue;
 
@@ -125,6 +127,24 @@ public class Engine {
 					section.getMesh().render();
 				}
 			}
+
+			mainShader.stop();
+			entityShader.start();
+			entityShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
+
+			for (Entity entity : worldScene.getEntities().values()) {
+				tempModel.set(entity.position.x, entity.position.y, entity.position.z);
+				modelVec.translation(tempModel);
+				entityShader.setModel(modelVec, matrixBuffer);
+
+				if (entity.getClass() == EntityItem.class) {
+					EntityItem item = (EntityItem)entity;
+					if (item.itemMesh != null) item.itemMesh.render();
+				}
+			}
+
+			entityShader.stop();
+			mainShader.start();
 
 			if (outlineLoc != null) {
 				outlineShader.start();

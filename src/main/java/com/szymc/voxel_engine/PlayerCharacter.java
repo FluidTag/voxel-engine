@@ -172,16 +172,20 @@ public class PlayerCharacter {
                             case "NORTH": z -= 1; break;
                             case "SOUTH": z += 1; break;
                         }
-                    } else {
-                        engineAttachment.removeOutlineLoc();
                     }
 
                     int cx = x >> 5;
                     int cz = z >> 5;
                     ChunkColumn chunk = worldReference.getLoadedChunkAtPos(cx, cz);
+                    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+                        engineAttachment.removeOutlineLoc();
+                        worldReference.spawnNewItemEntity(chunk.getBlockInChunk(x & 31, y, z & 31), x, y, z);
+                    }
+
                     chunk.setBlockInChunk(x & 31, y, z & 31, button == GLFW_MOUSE_BUTTON_RIGHT ? inventory[currentHotbarSlot] : Blocks.AIR);
                     chunk.dirtyCount++;
                     chunk.setSectionDirty(y >> 4);
+
                     worldReference.updateChunk(cx, cz);
                 }
             }

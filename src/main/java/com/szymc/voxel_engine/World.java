@@ -1,6 +1,7 @@
 package com.szymc.voxel_engine;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
@@ -34,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class World {
 	private final Long2ObjectMap<ChunkColumn> renderedColumns = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectMap<ChunkColumn> loadedColumns = new Long2ObjectOpenHashMap<>();
+	private final Int2ObjectMap<Entity> entityMap = new Int2ObjectOpenHashMap<>();
 
 	private final int renderDistance = 15;
 	private final long winId;
@@ -311,6 +313,13 @@ public class World {
 				}
 			}
 		}
+	}
+
+	public Int2ObjectMap<Entity> getEntities() {return this.entityMap;}
+	public void spawnNewItemEntity(byte block, int wx, int wy, int wz) {
+		EntityItem item = new EntityItem(block);
+		item.setPosition(wx, wy, wz);
+		entityMap.put(item.entityId, item);
 	}
 }
 
