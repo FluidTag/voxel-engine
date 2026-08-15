@@ -7,9 +7,6 @@ public abstract class Entity {
 
     public Vector3f position = new Vector3f();
     public Vector3f velocity = new Vector3f();
-    int entityId;
-
-    public void setPosition(float x, float y, float z) {
-        this.position.set(x, y, z);
-    }
+    public int entityId;
+    public boolean onGround = false;
 }

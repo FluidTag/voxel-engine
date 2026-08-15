@@ -318,8 +318,19 @@ public class World {
 	public Int2ObjectMap<Entity> getEntities() {return this.entityMap;}
 	public void spawnNewItemEntity(byte block, int wx, int wy, int wz) {
 		EntityItem item = new EntityItem(block);
-		item.setPosition(wx, wy, wz);
+		float blockSize = 0.3f;
+		float offset = (1f-blockSize)/2f;
+		item.position.set(wx+offset, wy+offset, wz+offset);
+
 		entityMap.put(item.entityId, item);
+	}
+
+	public void destroyItemEntity(int entityId) {
+		if (!entityMap.containsKey(entityId)) {
+			System.err.println("Error, could not delete entityId " + entityId + " as it does not exist in the worlds entity map.");
+			return;
+		}
+		entityMap.remove(entityId);
 	}
 }
 

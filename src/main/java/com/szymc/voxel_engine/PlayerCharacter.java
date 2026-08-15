@@ -22,7 +22,22 @@ public class PlayerCharacter {
 
     private boolean spectatorMode = true;
 
+    private byte[] inventoryAmounts = new byte[36];
     private byte[] inventory = new byte[36];
+
+    public void setInventorySlot(byte index, byte type, byte amount) {
+        this.inventory[index] = type;
+        this.inventoryAmounts[index] = amount;
+    }
+
+    public byte readInventoryType(byte index) {
+        return this.inventory[index];
+    }
+
+    public byte readInventoryAmount(byte index) {
+        return this.inventoryAmounts[index];
+    }
+
     public int currentHotbarSlot = 0;
     private static boolean blockAt(World world, int x, int y, int z) {
         ChunkColumn chunk = world.getLoadedChunkAtPos(x>>5, z>>5);
@@ -123,16 +138,6 @@ public class PlayerCharacter {
         this.worldReference = worldReference;
         this.windowReference = windowReference;
         this.engineAttachment = engineAttachment;
-
-        inventory[0] = Blocks.GRASS_DECORATION;
-        inventory[1] = Blocks.RED_FLOWER;
-        inventory[2] = Blocks.RED_MUSHROOM_SMALL;
-        inventory[3] = Blocks.YELLOW_FLOWER;
-        inventory[4] = Blocks.STONE;
-        inventory[5] = Blocks.RED_WOOD;
-        inventory[6] = Blocks.OAK_WOOD;
-        inventory[7] = Blocks.ICE;
-        inventory[8] = Blocks.HARDENED_STONE;
 
         glfwSetScrollCallback(windowReference.getWindowId(), (windowHandle, xOffset, yOffset) -> {
             if (yOffset < 0) {
