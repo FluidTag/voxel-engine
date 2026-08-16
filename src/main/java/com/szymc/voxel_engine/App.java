@@ -75,8 +75,8 @@ public class App {
 						float distance = (item.position.x - character.getPlayerCamera().cameraPos.x) * (item.position.x - character.getPlayerCamera().cameraPos.x)
 											+ (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f) * (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f)
 											+ (item.position.z - character.getPlayerCamera().cameraPos.z) * (item.position.z - character.getPlayerCamera().cameraPos.z);
-						System.out.println(distance);
-						if (distance <= 2.4) {
+
+						if (distance <= 2.3) {
 							// Locate empty inventory slot
 							byte slot = -1;
 							for (byte i = 0; i < 36; i++) {

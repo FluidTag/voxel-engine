@@ -1,13 +1,17 @@
 package com.szymc.voxel_engine;
+import com.szymc.localShaders.FontShader;
 import com.szymc.localShaders.UIShader;
 import com.szymc.localShaders.WorldShader;
+import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.stb.STBImage;
+import org.lwjgl.stb.*;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -20,9 +24,9 @@ import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
 public class UIRenderer {
-    private final int vao;
-    private final int programId;
-    private final int locProjection, locTransform, locColorTint, locUseTexture, locResolution, locRect, locUvTransform;
+    private final int uiVao;
+    private final int mainProgramId;
+    private final int locProjection, locTransform, locColorTint, locUseTexture, locRect, locUvTransform, locTexture;
     private int atlasId;
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     private Texture primaryBlockTextures;
@@ -289,17 +293,21 @@ public class UIRenderer {
             STBImage.stbi_image_free(pixelBuffer);
         }
     }
+    Matrix4f screenOrtho = null;
+    public void setScreenDimensions(int windowWidth, int windowHeight) {
+        screenOrtho = new Matrix4f().ortho2D(0, windowWidth, windowHeight, 0);
+    }
 
     public UIRenderer(Texture blockTextures) {
-        this.programId = compileUIShaders();
+        this.mainProgramId = compileUIShaders();
 
-        locProjection = glGetUniformLocation(programId, "projection");
-        locTransform = glGetUniformLocation(programId, "transform");
-        locColorTint = glGetUniformLocation(programId, "colorTint");
-        locUseTexture = glGetUniformLocation(programId, "useTexture");
-        locResolution = glGetUniformLocation(programId, "u_resolution");
-        locRect = glGetUniformLocation(programId, "u_rect");
-        locUvTransform = glGetUniformLocation(programId, "u_uvTransform");
+        locProjection = glGetUniformLocation(mainProgramId, "projection");
+        locTransform = glGetUniformLocation(mainProgramId, "transform");
+        locColorTint = glGetUniformLocation(mainProgramId, "colorTint");
+        locUseTexture = glGetUniformLocation(mainProgramId, "useTexture");
+        locTexture = glGetUniformLocation(mainProgramId, "uiTexture");
+        locRect = glGetUniformLocation(mainProgramId, "u_rect");
+        locUvTransform = glGetUniformLocation(mainProgramId, "u_uvTransform");
         primaryBlockTextures = blockTextures;
 
         float[] vertices = {
@@ -310,8 +318,8 @@ public class UIRenderer {
         };
         int[] indices = {0, 1, 2, 2, 3, 0};
 
-        vao = glGenVertexArrays();
-        glBindVertexArray(vao);
+        uiVao = glGenVertexArrays();
+        glBindVertexArray(uiVao);
 
         int vbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -375,25 +383,32 @@ public class UIRenderer {
         glViewport(0, 0, 1600, 900);
     }
 
-    public void begin(int windowWidth, int windowHeight) {
+    public void beginUiRendering(int windowWidth, int windowHeight) {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        glUseProgram(programId);
-        int locImage = glGetUniformLocation(programId, "uiTexture");
-        if (locImage != -1) {
-            glUniform1i(locImage, 2);
-        }
+        glUseProgram(mainProgramId);
+        glUniform1i(locTexture, 2);
 
-        glUniform2f(locResolution, windowWidth, windowHeight);
-
-        Matrix4f ortho = new Matrix4f().ortho2D(0, windowWidth, windowHeight, 0);
         matrixBuffer.clear();
-        glUniformMatrix4fv(locProjection, false, ortho.get(matrixBuffer));
+        glUniformMatrix4fv(locProjection, false, screenOrtho.get(matrixBuffer));
 
-        glBindVertexArray(vao);
+        glBindVertexArray(uiVao);
+    }
+
+    public void beginTextRendering(int windowWidth, int windowHeight) {
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glUseProgram(fontShader.getProgramID());
+        glUniform1i(fontShader.fontTex_loc, 5);
+
+        matrixBuffer.clear();
+        glUniformMatrix4fv(fontShader.proj_loc, false, screenOrtho.get(matrixBuffer));
     }
 
     public void drawIcon(byte blockId, float screenX, float screenY, float width, float height) {
@@ -437,6 +452,145 @@ public class UIRenderer {
         glUniform4f(locRect, x, y, width, height);
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    }
+
+    private STBTTBakedChar.Buffer cdata;
+    private int fontAtlasId;
+    public FontShader fontShader = new FontShader();
+
+    public void loadFont(String resourcePath) throws IOException {
+        try (InputStream is = UIRenderer.class.getResourceAsStream(resourcePath)) {
+            if (is == null) {
+                throw new IOException("Font file not found: " + resourcePath);
+            }
+
+            byte[] bytes = is.readAllBytes();
+            ByteBuffer ttfBuffer = BufferUtils.createByteBuffer(bytes.length);
+            ttfBuffer.put(bytes);
+            ttfBuffer.flip();
+
+            STBTTFontinfo fontInfo = STBTTFontinfo.create();
+            boolean success = STBTruetype.stbtt_InitFont(fontInfo, ttfBuffer, 0);
+            if (!success) {
+                throw new RuntimeException("Failed to initialize STB TTF font info!");
+            }
+
+            int[] pAscent = new int[1];
+            int[] pDescent = new int[1];
+            int[] pLineGap = new int[1];
+
+            STBTruetype.stbtt_GetFontVMetrics(fontInfo, pAscent, pDescent, pLineGap);
+            float fontSizePx = 32.0f;
+            float scale = STBTruetype.stbtt_ScaleForPixelHeight(fontInfo, fontSizePx);
+
+            float scaledAscent = pAscent[0]*scale;
+            float scaledDescent = pDescent[0]*scale;
+            float scaledLineGap = pLineGap[0]*scale;
+
+            int atlasWidth = 512;
+            int atlasHeight = 512;
+            float fontSize = 32.0f;
+
+            ByteBuffer bitmapBuffer = MemoryUtil.memAlloc(atlasWidth*atlasHeight);
+            cdata = STBTTBakedChar.malloc(95);
+            int result = STBTruetype.stbtt_BakeFontBitmap(
+                    ttfBuffer, fontSize, bitmapBuffer, atlasWidth, atlasHeight, 32, cdata
+            );
+
+            if (result <= 0) {
+                throw new RuntimeException("Font atlas too small for specified font size!");
+            }
+
+            fontAtlasId = glGenTextures();
+            fontShader.start();
+            int texLoc = glGetUniformLocation(fontShader.getProgramID(), "fontTexture");
+            glUniform1i(texLoc, 5);
+            fontShader.stop();
+
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_2D, fontAtlasId);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, atlasWidth, atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, bitmapBuffer);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+            MemoryUtil.memFree(bitmapBuffer);
+            glActiveTexture(GL_TEXTURE0);
+        }
+    }
+
+    float[] xpos = new float[1];
+    float[] ypos = new float[1];
+    STBTTAlignedQuad quad = STBTTAlignedQuad.malloc();
+
+    private void addVertex(FloatArrayList verts, float x, float y, float s, float t) {
+        verts.add(x);
+        verts.add(y);
+        verts.add(s);
+        verts.add(t);
+    }
+
+    private int fontVao;
+    private int fontVbo;
+    public void prepareFontRendering() {
+        fontVao = glGenVertexArrays();
+        fontVbo = glGenBuffers();
+
+        glBindVertexArray(fontVao);
+        glBindBuffer(GL_ARRAY_BUFFER, fontVbo);
+
+        long maxBufferSize = 1000 * 6 * 4 * Float.BYTES;
+        glBufferData(GL_ARRAY_BUFFER, maxBufferSize, GL_DYNAMIC_DRAW);
+
+        glVertexAttribPointer(0, 2, GL_FLOAT, false, 4*Float.BYTES, 0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, 4*Float.BYTES, 2*Float.BYTES);
+        glEnableVertexAttribArray(1);
+
+        glBindVertexArray(0);
+    }
+
+    public void renderFont(String text, int x, int y) {
+        xpos[0] = x;
+        ypos[0] = y;
+        FloatArrayList verts = new FloatArrayList(4*6*text.length()); // Max possible allocated
+        int charsAdded = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c < 32 || c > 126) continue;
+            STBTruetype.stbtt_GetBakedQuad(cdata, 512, 512, c-32, xpos, ypos, quad, true);
+            addVertex(verts, quad.x0(), quad.y0(), quad.s0(), quad.t0());
+            // Bottom-Left
+            addVertex(verts, quad.x0(), quad.y1(), quad.s0(), quad.t1());
+            // Bottom-Right
+            addVertex(verts, quad.x1(), quad.y1(), quad.s1(), quad.t1());
+
+            // Top-Left
+            addVertex(verts, quad.x0(), quad.y0(), quad.s0(), quad.t0());
+            // Bottom-Right
+            addVertex(verts, quad.x1(), quad.y1(), quad.s1(), quad.t1());
+            // Top-Right
+            addVertex(verts, quad.x1(), quad.y0(), quad.s1(), quad.t0());
+            charsAdded++;
+        }
+
+        glBindVertexArray(fontVao);
+        glBindBuffer(GL_ARRAY_BUFFER, fontVbo);
+
+        // Note: Engine renderer must enable font shader before calling this method
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            FloatBuffer bufferedElements = stack.mallocFloat(charsAdded * 6 * 4);
+            bufferedElements.put(verts.elements(), 0, charsAdded * 6 * 4);
+            bufferedElements.flip();
+
+            glBufferSubData(GL_ARRAY_BUFFER, 0, bufferedElements);
+            glDrawArrays(GL_TRIANGLES, 0, verts.size()/4);
+        }
     }
 
     public void end() {

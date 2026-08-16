@@ -17,6 +17,7 @@ import static org.lwjgl.system.MemoryStack.*;
 import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
 
 
+import java.io.IOException;
 import java.nio.FloatBuffer;
 
 
@@ -65,6 +66,14 @@ public class Engine {
 		outlineShader.setColor(0.5f, 1.0f, 0.5f);
 		outlineShader.stop();
 		this.outline = new BlockOutline();
+
+		uiRenderer.setScreenDimensions(1600, 900);
+		try {
+			uiRenderer.loadFont("/fonts/mainFont.ttf");
+			uiRenderer.prepareFontRendering();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		//glLineWidth(2);
@@ -209,7 +218,7 @@ public class Engine {
 
 			mainShader.stop();
 
-			uiRenderer.begin(1600, 900);
+			uiRenderer.beginUiRendering(1600, 900);
 			float crossX = (1600/2.0f) - 8.0f;
 			float crossY = (900/2.0f) - 8.0f;
 
@@ -226,6 +235,9 @@ public class Engine {
 				if (item != 0) uiRenderer.drawIcon(item, offsetX + (slotSize*i), 820, slotSize, slotSize);
 			}
 
+			uiRenderer.beginTextRendering(1600, 900);
+			glActiveTexture(GL_TEXTURE5);
+			uiRenderer.renderFont("Hello World", 100, 100);
 
 			uiRenderer.end();
 
