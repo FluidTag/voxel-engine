@@ -68,6 +68,8 @@ public class Engine {
 		this.outline = new BlockOutline();
 
 		uiRenderer.setScreenDimensions(1600, 900);
+		uiRenderer.setFontColor(1.0f, 1.0f, 1.0f, 1.0f);
+
 		try {
 			uiRenderer.loadFont("/fonts/mainFont.ttf");
 			uiRenderer.prepareFontRendering();
@@ -236,9 +238,14 @@ public class Engine {
 			}
 
 			uiRenderer.beginTextRendering(1600, 900);
-			glActiveTexture(GL_TEXTURE5);
-			uiRenderer.renderFont("Hello World", 100, 100);
 
+			for (byte i = 0; i < 9; i++) {
+				if (player.readInventoryType(i) != 0) {
+					uiRenderer.renderFont(Integer.toString(player.readInventoryAmount(i)), offsetX + (slotSize*i) + (slotSize-4), 820-4+slotSize, UIRenderer.TextAlignment.RIGHT);
+				}
+			}
+
+			//uiRenderer.renderFont("Hello World, Text rendering has been added successfully! 1234567890", 100, 100);
 			uiRenderer.end();
 
 			glDepthMask(true);

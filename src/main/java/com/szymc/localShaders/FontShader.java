@@ -30,11 +30,12 @@ import org.joml.FrustumIntersection;
 import org.joml.Matrix4f;
 
 public class FontShader extends Shader {
-    public int proj_loc, fontTex_loc;
+    public int proj_loc, fontTex_loc, color_loc;
     public FontShader() {
         super("/shaders/font.vert", "/shaders/font.frag");
 
         proj_loc = glGetUniformLocation(this.getProgramID(), "projection");
         fontTex_loc = glGetUniformLocation(this.getProgramID(), "fontTexture");
+        color_loc = glGetUniformLocation(this.getProgramID(), "fontColor");
     }
 }

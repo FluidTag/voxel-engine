@@ -391,6 +391,7 @@ public class UIRenderer {
 
         glUseProgram(mainProgramId);
         glUniform1i(locTexture, 2);
+        glActiveTexture(GL_TEXTURE2);
 
         matrixBuffer.clear();
         glUniformMatrix4fv(locProjection, false, screenOrtho.get(matrixBuffer));
@@ -406,6 +407,7 @@ public class UIRenderer {
 
         glUseProgram(fontShader.getProgramID());
         glUniform1i(fontShader.fontTex_loc, 5);
+        glActiveTexture(GL_TEXTURE5);
 
         matrixBuffer.clear();
         glUniformMatrix4fv(fontShader.proj_loc, false, screenOrtho.get(matrixBuffer));
@@ -457,6 +459,10 @@ public class UIRenderer {
     private STBTTBakedChar.Buffer cdata;
     private int fontAtlasId;
     public FontShader fontShader = new FontShader();
+    private int[] pAscent;
+    private int[] pDescent;
+    private int[] pLineGap;
+    private STBTTFontinfo fontInfo;
 
     public void loadFont(String resourcePath) throws IOException {
         try (InputStream is = UIRenderer.class.getResourceAsStream(resourcePath)) {
@@ -469,15 +475,15 @@ public class UIRenderer {
             ttfBuffer.put(bytes);
             ttfBuffer.flip();
 
-            STBTTFontinfo fontInfo = STBTTFontinfo.create();
+            fontInfo = STBTTFontinfo.create();
             boolean success = STBTruetype.stbtt_InitFont(fontInfo, ttfBuffer, 0);
             if (!success) {
                 throw new RuntimeException("Failed to initialize STB TTF font info!");
             }
 
-            int[] pAscent = new int[1];
-            int[] pDescent = new int[1];
-            int[] pLineGap = new int[1];
+            pAscent = new int[1];
+            pDescent = new int[1];
+            pLineGap = new int[1];
 
             STBTruetype.stbtt_GetFontVMetrics(fontInfo, pAscent, pDescent, pLineGap);
             float fontSizePx = 32.0f;
@@ -555,9 +561,44 @@ public class UIRenderer {
         glBindVertexArray(0);
     }
 
-    public void renderFont(String text, int x, int y) {
+    public void setFontColor(float r, float g, float b, float a) {
+        fontShader.start();
+        glUniform4f(fontShader.color_loc, r, g, b, a);
+        fontShader.stop();
+    }
+
+    enum TextAlignment {
+        LEFT,
+        CENTER,
+        RIGHT
+    }
+
+    public void renderFont(String text, int x, int y, TextAlignment alignment) {
+        int totalWidth = 0;
+        int xOffset = 0;
+        if (alignment != TextAlignment.LEFT) {
+            float[] dummyX = new float[] { 0.0f };
+            float[] dummyY = new float[] { 0.0f };
+
+            for (int i = 0; i < text.length(); i++) {
+                char c = text.charAt(i);
+                if (c < 32 || c > 126) continue;
+
+                STBTruetype.stbtt_GetBakedQuad(cdata, 512, 512, c - 32, dummyX, dummyY, quad, true);
+            }
+
+            totalWidth = (int)quad.x1();
+        }
+
         xpos[0] = x;
         ypos[0] = y;
+
+        if (alignment == TextAlignment.CENTER) {
+            xpos[0] -= (float) totalWidth /2;
+        } else if (alignment == TextAlignment.RIGHT) {
+            xpos[0] -= (float) totalWidth;
+        }
+
         FloatArrayList verts = new FloatArrayList(4*6*text.length()); // Max possible allocated
         int charsAdded = 0;
         for (int i = 0; i < text.length(); i++) {
