@@ -77,7 +77,7 @@ public class Window {
         // 5. Show the window
         glfwShowWindow(window);
         this.windowId = window;
-        
+
         glfwSetCursorPosCallback(window, (windowHandle, xPos, yPos) -> {
     		if (firstMouse) {
     			lastX = (float) xPos;

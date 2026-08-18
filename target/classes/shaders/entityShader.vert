@@ -10,11 +10,11 @@ uniform mat4 view;
 uniform mat4 projection;
 
 void main() {
-	gl_Position = projection * view * model * vec4(pos * 0.3, 1.0);
+	gl_Position = projection * view * model * vec4(pos, 1.0);
 	int u = ((uvData >> 8) & 0x3F);
     	int v = ((uvData >> 14) & 0x3F);
     	int TexId = (uvData & 0xFF);
 
-	TexCoord = vec3(float(u), float(v), int(TexId));
+	TexCoord = vec3(float(u)/16.0, float(v)/16.0, int(TexId));
 	vAoFactor = 1.0;
 }

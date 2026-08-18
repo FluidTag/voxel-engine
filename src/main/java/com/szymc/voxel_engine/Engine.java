@@ -49,7 +49,7 @@ public class Engine {
 	public void setPlayer(PlayerCharacter player) {
 		this.player = player;
 	}
-
+	public static boolean wireframeMode = false;
 	public Engine(World world, Camera camera) {
 		this.worldScene = world;
 		this.camera = camera;
@@ -69,6 +69,7 @@ public class Engine {
 
 		uiRenderer.setScreenDimensions(1600, 900);
 		uiRenderer.setFontColor(1.0f, 1.0f, 1.0f, 1.0f);
+		EntityItem.setBlockTextures(mainShader.getTexture());
 
 		try {
 			uiRenderer.loadFont("/fonts/mainFont.ttf");
@@ -88,6 +89,7 @@ public class Engine {
 	public void render() {
 		glClearColor(0.5f, 0.6f, 0.8f, 1.0f); // Sky Blue
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		if (wireframeMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		try (MemoryStack stack = stackPush()) {
 			mainShader.start();

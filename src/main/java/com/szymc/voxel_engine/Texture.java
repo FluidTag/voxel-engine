@@ -213,7 +213,6 @@ public class Texture {
 	            throw new RuntimeException("STB fail for " + path + ": " + stbi_failure_reason());
 	        }
 
-
 	        // Upload to the specific layer in your GL_TEXTURE_2D_ARRAY
 	        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer, size, size, 1, GL_RGBA, GL_UNSIGNED_BYTE, image);
 	        
