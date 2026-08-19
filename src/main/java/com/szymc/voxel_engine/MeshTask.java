@@ -43,7 +43,7 @@ public class MeshTask {
 		this.cz = cz;
 	}
 	
-	public void runTask() {
+	public void runFullMeshTask() {
 		for (int i = 0; i < 16; i++) {
 			ChunkSection section = chunk.getSection(i);
 			if (section == null) continue;
@@ -56,6 +56,24 @@ public class MeshTask {
 			ChunkSection zMinSec = zMinor.getSection(i);
 			
 			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec);
+		}
+	}
+
+	public void fastTargetDirty(int dirtyBits) {
+		int n = dirtyBits;
+		while (n != 0) {
+			int index = Integer.numberOfTrailingZeros(n);
+			ChunkSection xMajSec = xMajor.getSection(index);
+			ChunkSection xMinSec = xMinor.getSection(index);
+			ChunkSection yMajSec = index < 15 ? chunk.getSection(index+1) : null;
+			ChunkSection yMinSec = index > 0 ? chunk.getSection(index-1) : null;
+			ChunkSection zMajSec = zMajor.getSection(index);
+			ChunkSection zMinSec = zMinor.getSection(index);
+
+			ChunkSection section = chunk.getSection(index);
+			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec);
+
+			n &= (n - 1);
 		}
 	}
 }

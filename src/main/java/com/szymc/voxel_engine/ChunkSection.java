@@ -10,7 +10,6 @@ public class ChunkSection {
 	private World worldReference;
 	private Mesh mesh = null;
 	private Mesh waterMesh = null;
-	private boolean dirtyMesh = false;
 
 	public ChunkSection(byte[] data, World worldReference, int wx, int wy, int wz) {
 		for (int y = 0; y < 16; y++) {
@@ -72,13 +71,6 @@ public class ChunkSection {
 
 	// Chunk must be re-meshed if it is dirty, as either a neighbor chunk impacts
 	// faces, or a player does an action
-	public boolean isDirty() {
-		return this.dirtyMesh;
-	}
-
-	public void setDirty(boolean status) {
-		this.dirtyMesh = status;
-	}
 
 	// Cache nearby for meshing / face visibility
 	// References passed in

@@ -1,6 +1,5 @@
 package com.szymc.voxel_engine;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -11,7 +10,6 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import java.util.concurrent.ExecutorService;
 
 
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_W;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 import static org.lwjgl.glfw.GLFW.glfwGetKey;
@@ -29,7 +27,6 @@ import com.szymc.voxel_engine.ChunkColumn.ChunkState;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 public class World {
@@ -128,13 +125,20 @@ public class World {
 					}
 				}
 				
-				if (xMaj == null || xMin == null || zMaj == null || zMin == null) continue; 
-				if ((chunk.state == ChunkState.DECORATED || (chunk.state == ChunkState.MESHED && chunk.dirtyCount > 0)) &&
+				if (xMaj == null || xMin == null || zMaj == null || zMin == null) continue;
+				boolean needsDirtyRemesh = (chunk.state == ChunkState.MESHED && chunk.dirtyBits > 0);
+
+				if ((chunk.state == ChunkState.DECORATED || needsDirtyRemesh) &&
 						neighborsQualify(ChunkState.DECORATED, xMaj, xMin, zMaj, zMin)) {
 					if (chunk.meshQueued.compareAndSet(false, true)) {
+						int dirtyCopy = chunk.dirtyBits;
+						if (needsDirtyRemesh) {
+							chunk.dirtyBits = 0; // All dirty chunks remeshed here
+						}
+
 						meshPool.execute(new PriorityGenTask(0, () -> {
 							MeshTask task = new MeshTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin);
-							task.runTask();
+							if (needsDirtyRemesh) task.fastTargetDirty(dirtyCopy); else task.runFullMeshTask();
 							
 							completedMeshes.add(task);
 						}));
@@ -211,23 +215,17 @@ public class World {
 				ChunkSection sec = chunk.getSection(i);
 				if (sec == null) continue;
 				
-				if ((sec.getMesh() == null || sec.isDirty()) && sec.meshResult != null) {
+				if (sec.meshResult != null) {
 					sec.setMesh(new Mesh(sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount));
 				}
-				
-				if ((sec.getWaterMesh() == null || sec.isDirty()) && sec.meshResult != null && sec.meshResult.waterVertices != null) {
+
+				if (sec.meshResult != null && sec.meshResult.waterVertices != null) {
 					sec.setWaterMesh(new Mesh(sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount));
-				}
-				
-				if (sec.isDirty()) {
-					sec.setDirty(false);
-					chunk.dirtyCount--;
 				}
 			}
 			
 			chunk.state = chunk.state.next();
 			chunk.meshQueued.set(false);
-
 
 		    renderedColumns.put(key, chunk);
 			checkStateAdvances(task.cx, task.cz);

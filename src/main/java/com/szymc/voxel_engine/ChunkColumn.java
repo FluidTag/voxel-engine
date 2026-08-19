@@ -14,7 +14,7 @@ public class ChunkColumn {
 	private int worldX = 0;
 	private int worldZ = 0;
 	public ChunkState state = ChunkState.EMPTY;
-	public int dirtyCount = 0;
+	public int dirtyBits = 0; // First 16 bits used to denote if a chunk section is dirty (Room to expand to 32 height later)
 	
 	public String toString() {
 		return "Chunk (" + worldX + ", " + worldZ + ")\n" + state + "\n" +
@@ -61,8 +61,10 @@ public class ChunkColumn {
 		return section.getLocalBlock(cx, cy & 15, cz);
 	}
 
-	public void setSectionDirty(int section) {
-		sections[section].setDirty(true);
+	public void setSectionDirty(int sectorI) {
+		if (sections[sectorI] == null) return;
+
+		dirtyBits |= (1 << sectorI);
 	}
 
 	// Also need to set neighboring chunk segments to dirty if its on a border
@@ -74,62 +76,31 @@ public class ChunkColumn {
 		section.setBlock(cx, (cy & 15), cz, blockType);
 		
 		if (sectorI > 0 && (cy&15) == 0) {
-			ChunkSection target = this.getSection(sectorI-1);
-
-			if (target != null) {
-				if (!target.isDirty()) this.dirtyCount++;
-				target.setDirty(true);
-			}
+			setSectionDirty(sectorI-1);
 		}
 
 		if (sectorI < 15 && (cy&15) == 15) {
-			ChunkSection target = this.getSection(sectorI+1);
-
-			if (target != null) {
-				if (!target.isDirty()) this.dirtyCount++;
-				target.setDirty(true);
-			}
+			setSectionDirty(sectorI+1);
 		}
 		
 		ChunkColumn xMinorChunk = worldReference.getLoadedChunkAtPos(worldX-1, worldZ);
 		if (cx == 0 && xMinorChunk != null) {
-			ChunkSection target = xMinorChunk.getSection(sectorI);
-			
-			if (target != null) {
-				if (!target.isDirty()) xMinorChunk.dirtyCount++;
-				target.setDirty(true);
-			}
+			xMinorChunk.setSectionDirty(sectorI);
 		}
 		
 		ChunkColumn xMajorChunk = worldReference.getLoadedChunkAtPos(worldX+1, worldZ);
 		if (cx == 31 && xMajorChunk != null) {
-			ChunkSection target = xMajorChunk.getSection(sectorI);
-			
-			if (target != null) {
-				if (!target.isDirty()) xMajorChunk.dirtyCount++;
-				target.setDirty(true);	
-			}
+			xMajorChunk.setSectionDirty(sectorI);
 		}
 		
 		ChunkColumn zMinorChunk = worldReference.getLoadedChunkAtPos(worldX, worldZ-1);
 		if (cz == 0 && zMinorChunk != null) {
-			ChunkSection target = zMinorChunk.getSection(sectorI);
-			
-			if (target != null) {
-				if (!target.isDirty()) zMinorChunk.dirtyCount++;
-				target.setDirty(true);
-			}
+			zMinorChunk.setSectionDirty(sectorI);
 		}
 		
 		ChunkColumn zMajorChunk = worldReference.getLoadedChunkAtPos(worldX, worldZ+1);
 		if (cz == 31 && zMajorChunk != null) {
-			ChunkSection target = zMajorChunk.getSection(sectorI);
-
-
-			if (target != null) {
-				if (!target.isDirty()) zMajorChunk.dirtyCount++;
-				target.setDirty(true);
-			}
+			zMajorChunk.setSectionDirty(sectorI);
 		}
 	}
 	

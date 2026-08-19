@@ -192,7 +192,6 @@ public class PlayerCharacter {
 
                         chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
                         worldReference.spawnNewItemEntity(block, x, y, z);
-                        chunk.dirtyCount++;
                         chunk.setSectionDirty(y >> 4);
 
                         worldReference.updateChunk(cx, cz);
@@ -200,7 +199,6 @@ public class PlayerCharacter {
                         chunk.setBlockInChunk(x & 31, y, z & 31, inventory[currentHotbarSlot]);
                         inventoryAmounts[currentHotbarSlot]--;
                         if (inventoryAmounts[currentHotbarSlot] == 0) inventory[currentHotbarSlot] = 0;
-                        chunk.dirtyCount++;
                         chunk.setSectionDirty(y >> 4);
 
                         worldReference.updateChunk(cx, cz);
