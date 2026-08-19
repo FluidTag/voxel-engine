@@ -318,9 +318,9 @@ public class World {
 	public Int2ObjectMap<Entity> getEntities() {return this.entityMap;}
 	public void spawnNewItemEntity(byte block, int wx, int wy, int wz) {
 		EntityItem item = new EntityItem(block);
-		float blockSize = 0.3f;
-		float offset = (1f-blockSize)/2f;
-		item.position.set(wx+offset, wy+offset, wz+offset);
+		float xOffset = (1-item.xWidth)/2;
+		float zOffset = (1-item.zWidth)/2;
+		item.position.set(wx+xOffset, wy+0.5f, wz+zOffset);
 
 		entityMap.put(item.entityId, item);
 	}
