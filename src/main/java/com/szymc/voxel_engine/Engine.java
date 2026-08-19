@@ -4,7 +4,7 @@ import com.szymc.localShaders.OutlineShader;
 
 
 import static org.lwjgl.opengl.GL11.*;
-
+import static org.lwjgl.opengl.GL32.*;
 import org.lwjgl.system.MemoryStack;
 
 
@@ -70,6 +70,7 @@ public class Engine {
 		uiRenderer.setScreenDimensions(1600, 900);
 		uiRenderer.setFontColor(1.0f, 1.0f, 1.0f, 1.0f);
 		EntityItem.setBlockTextures(mainShader.getTexture());
+		EntityItem.generateEaoCache();
 
 		try {
 			uiRenderer.loadFont("/fonts/mainFont.ttf");
@@ -145,6 +146,7 @@ public class Engine {
 			entityShader.start();
 			entityShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
 
+			glBindVertexArray(EntityItem.getVao());
 			for (Entity entity : worldScene.getEntities().values()) {
 				tempModel.set(entity.position.x, entity.position.y, entity.position.z);
 				modelVec.translation(tempModel);
@@ -152,7 +154,7 @@ public class Engine {
 
 				if (entity.getClass() == EntityItem.class) {
 					EntityItem item = (EntityItem)entity;
-					if (item.itemMesh != null) item.itemMesh.render();
+					glDrawElementsBaseVertex(GL_TRIANGLES, item.itemMesh.indexCount, GL_UNSIGNED_INT, item.itemMesh.byteOffset, item.itemMesh.baseVertex);
 				}
 			}
 

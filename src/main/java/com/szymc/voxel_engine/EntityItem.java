@@ -7,6 +7,18 @@ import org.lwjgl.system.MemoryUtil;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
+import static org.lwjgl.opengl.GL20.*; // Shader/Attribute functions (glVertexAttribPointer)
+import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
+
+
+class MeshDrawCommand {
+    public int indexCount;
+    public long byteOffset;
+    public int baseVertex;
+}
+
 public class EntityItem extends Entity {
     byte item;
     boolean isBlock;
@@ -78,7 +90,7 @@ public class EntityItem extends Entity {
         }
     }
 
-    private static EntityMesh buildBlockMesh(byte blockType) {
+    private static MeshDrawCommand buildBlockMesh(byte blockType) {
         FloatArrayList vBuffer = new FloatArrayList(4*4);
         IntArrayList iBuffer = new IntArrayList(4*4*3);
 
@@ -104,7 +116,7 @@ public class EntityItem extends Entity {
         // 6. SOUTH (Z = size, Axis 2, backFace = false)
         addQuad(vBuffer, iBuffer, 0,0,size, size,0,size, 0,size,size, size,size,size, blockType, false, 2, fullAO);
 
-        return new EntityMesh(vBuffer.toFloatArray(), iBuffer.toIntArray(), vBuffer.size(), iBuffer.size());
+        return generateEAOMesh(vBuffer.toFloatArray(), iBuffer.toIntArray(), vBuffer.size()/4, iBuffer.size());
     }
 
     private static int packUV(int texId, int x, int y) {
@@ -227,8 +239,57 @@ public class EntityItem extends Entity {
         }
     }
 
+    private static int vao, vbo, ebo;
+    public static int getVao() {return vao;}
+
+    private static int currentVertexOffset = 0; // Total vertices uploaded so far
+    private static int currentIndexOffset = 0;  // Total indices uploaded so far
+    private final static int VERTEX_SIZE = 3*Float.BYTES + Integer.BYTES;
+    private static void setupEAOCache() {
+        vao = glGenVertexArrays();
+        glBindVertexArray(vao);
+
+        vbo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, 2*1024*1024, GL_STATIC_DRAW);
+
+        ebo = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, 1024*1024, GL_STATIC_DRAW);
+
+        int stride = (3*Float.BYTES) + (1*Integer.BYTES);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0L);
+        glVertexAttribIPointer(1, 1, GL_INT, stride, 3*Float.BYTES);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+
+        glBindVertexArray(0);
+    }
+
+    public static MeshDrawCommand generateEAOMesh(float[] vertices, int[] indices, int numVertices, int numIndices) {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        long offset = (long) currentVertexOffset *VERTEX_SIZE;
+        glBufferSubData(GL_ARRAY_BUFFER, offset, vertices);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        long eboByteOffset = (long) currentIndexOffset *Integer.BYTES;
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, eboByteOffset, indices);
+
+        MeshDrawCommand cmd = new MeshDrawCommand();
+        cmd.indexCount = numIndices;
+        cmd.byteOffset = eboByteOffset;
+        cmd.baseVertex = currentVertexOffset;
+
+        currentVertexOffset += numVertices;
+        currentIndexOffset += numIndices;
+
+        return cmd;
+    }
+
+    private static MeshDrawCommand[] meshCache = new MeshDrawCommand[256];
+
     private static boolean[] meshed = new boolean[16*16]; // Use red channel as key
-    private static EntityMesh threeDimensionalFaceMesh(ByteBuffer pixels16, byte block) {
+    private static MeshDrawCommand threeDimensionalFaceMesh(ByteBuffer pixels16, byte block) {
         Arrays.fill(meshed, false);
         FloatArrayList verts = new FloatArrayList(128);
         IntArrayList indices = new IntArrayList(128);
@@ -303,28 +364,37 @@ public class EntityItem extends Entity {
                 addPrimaryFace(block, verts, indices, x0, y0, x1, y1, -1, true);
             }
         }
-
-        return new EntityMesh(verts.toFloatArray(), indices.toIntArray(), verts.size(), indices.size());
+        return generateEAOMesh(verts.toFloatArray(), indices.toIntArray(), verts.size()/4, indices.size());
     }
 
     public static Texture blockTextures;
-    public EntityMesh itemMesh;
+    public MeshDrawCommand itemMesh;
     public float xWidth, zWidth;
+
+    public static void generateEaoCache() {
+        setupEAOCache();
+        for (byte item = 1; item <= 47; item++) {
+            if (Texture.itemTexturePaths[item] == null && !Texture.isXShapedBlock[item]) {
+                meshCache[item] = buildBlockMesh(item);
+            } else if (Texture.isXShapedBlock[item]) {
+                ByteBuffer pixels = blockTextures.getLayer(Texture.getTextureIndex(item, BLOCK_FACE.NORTH));
+
+                meshCache[item] = threeDimensionalFaceMesh(pixels, item);
+                MemoryUtil.memFree(pixels);
+            }
+        }
+    }
+
     public EntityItem(byte item) {
         this.item = item;
         this.entityId = Entity.entitiesCreated++;
+        this.itemMesh = meshCache[item];
 
-        //itemMesh = buildBlockMesh(item);
         if (Texture.itemTexturePaths[item] == null && !Texture.isXShapedBlock[item]) {
-            itemMesh = buildBlockMesh(item);
             isBlock = true;
             xWidth = 0.4f;
             zWidth = 0.4f;
         } else if (Texture.isXShapedBlock[item]) {
-            ByteBuffer pixels = blockTextures.getLayer(Texture.getTextureIndex(item, BLOCK_FACE.NORTH));
-
-            itemMesh = threeDimensionalFaceMesh(pixels, item);
-            MemoryUtil.memFree(pixels);
             xWidth = 1;
             zWidth = 1/16f;
         }

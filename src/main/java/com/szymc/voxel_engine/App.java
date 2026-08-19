@@ -58,7 +58,7 @@ public class App {
 			float deltaTime = (float)(currentFrameTime - lastFrameTime);
 			lastFrameTime = currentFrameTime;
 			tIncrement += 1*deltaTime;
-			if (tIncrement >= 0.10f) {
+			if (tIncrement >= 0.02f) {
 				ticks++;
 				tIncrement = 0;
 
@@ -66,7 +66,7 @@ public class App {
 				for (Entity entity : mainWorld.getEntities().values()) {
 					if (entity.getClass() == EntityItem.class) {
 						EntityItem item = (EntityItem) entity;
-						item.velocity.y += -0.1f;
+						item.velocity.y += -0.02f;
 						if (isCubeColliding(mainWorld, item.position.x, item.position.y + item.velocity.y, item.position.z, 0.3f)) {
 							item.velocity.y = 0;
 							item.onGround = true;
