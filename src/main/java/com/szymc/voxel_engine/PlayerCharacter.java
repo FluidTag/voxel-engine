@@ -28,6 +28,7 @@ public class PlayerCharacter {
     public void setInventorySlot(byte index, byte type, byte amount) {
         this.inventory[index] = type;
         this.inventoryAmounts[index] = amount;
+        if (inventoryAmounts[index] == 0) inventory[index] = 0;
     }
 
     public byte readInventoryType(byte index) {
@@ -182,16 +183,28 @@ public class PlayerCharacter {
                     int cx = x >> 5;
                     int cz = z >> 5;
                     ChunkColumn chunk = worldReference.getLoadedChunkAtPos(cx, cz);
+                    if (chunk == null) return;
+
                     if (button == GLFW_MOUSE_BUTTON_LEFT) {
                         engineAttachment.removeOutlineLoc();
-                        worldReference.spawnNewItemEntity(chunk.getBlockInChunk(x & 31, y, z & 31), x, y, z);
+                        byte block = chunk.getBlockInChunk(x & 31, y, z & 31);
+                        if (block == Blocks.AIR) return;
+
+                        chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
+                        worldReference.spawnNewItemEntity(block, x, y, z);
+                        chunk.dirtyCount++;
+                        chunk.setSectionDirty(y >> 4);
+
+                        worldReference.updateChunk(cx, cz);
+                    } else if (inventory[currentHotbarSlot] != 0 && inventoryAmounts[currentHotbarSlot] > 0) {
+                        chunk.setBlockInChunk(x & 31, y, z & 31, inventory[currentHotbarSlot]);
+                        inventoryAmounts[currentHotbarSlot]--;
+                        if (inventoryAmounts[currentHotbarSlot] == 0) inventory[currentHotbarSlot] = 0;
+                        chunk.dirtyCount++;
+                        chunk.setSectionDirty(y >> 4);
+
+                        worldReference.updateChunk(cx, cz);
                     }
-
-                    chunk.setBlockInChunk(x & 31, y, z & 31, button == GLFW_MOUSE_BUTTON_RIGHT ? inventory[currentHotbarSlot] : Blocks.AIR);
-                    chunk.dirtyCount++;
-                    chunk.setSectionDirty(y >> 4);
-
-                    worldReference.updateChunk(cx, cz);
                 }
             }
         });

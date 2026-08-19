@@ -63,7 +63,7 @@ public class Engine {
 
 		this.outlineShader = new OutlineShader();
 		outlineShader.start();
-		outlineShader.setColor(0.5f, 1.0f, 0.5f);
+		outlineShader.setColor(0f, 0f, 0f);
 		outlineShader.stop();
 		this.outline = new BlockOutline();
 
