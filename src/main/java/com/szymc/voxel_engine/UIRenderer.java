@@ -245,7 +245,7 @@ public class UIRenderer {
         return dst32;
     }
 
-    private static void xTextureDirectUpload(byte blockType, int slotX, int slotY, int atlasId, Texture blockTextures) {
+    private static void itemIconTextureUpload(int layerId, int slotX, int slotY, int atlasId, Texture blockTextures) {
         int xOffset = (64-32)/2;
         int yOffset = (64-32)/2;
 
@@ -254,7 +254,7 @@ public class UIRenderer {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D_ARRAY, blockTextures.getId());
 
-        ByteBuffer pixelBuffer = blockTextures.getLayer(Texture.getTextureIndex(blockType, BLOCK_FACE.NORTH)); // Any face should be sufficient for now
+        ByteBuffer pixelBuffer = blockTextures.getLayer(layerId); // Any face should be sufficient for now
         pixelBuffer = upscaleImage(pixelBuffer);
 
         pixelBuffer.rewind();
@@ -265,34 +265,6 @@ public class UIRenderer {
         STBImage.stbi_image_free(pixelBuffer);
     }
 
-    private static void uploadIcon(String path, int slotX, int slotY, int atlasId) {
-        int offsetX = (64-32)/2;
-        int offsetY = (64-32)/2;
-
-        int x = slotX*64 + offsetX;
-        int y = atlasSize-((slotY+1)*64) + offsetY;
-
-        ByteBuffer pixelBuffer;
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            IntBuffer width = stack.mallocInt(1);
-            IntBuffer height = stack.mallocInt(1);
-            IntBuffer channels = stack.mallocInt(1);
-
-            pixelBuffer = STBImage.stbi_load(path, width, height, channels, 4);
-            if (pixelBuffer == null) {
-                System.err.println("Failed to load icon: " + STBImage.stbi_failure_reason());
-                return;
-            }
-            pixelBuffer = upscaleImage(pixelBuffer);
-
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            glBindTexture(GL_TEXTURE_2D, atlasId);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer);
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-
-            STBImage.stbi_image_free(pixelBuffer);
-        }
-    }
     Matrix4f screenOrtho = null;
     public void setScreenDimensions(int windowWidth, int windowHeight) {
         screenOrtho = new Matrix4f().ortho2D(0, windowWidth, windowHeight, 0);
@@ -363,10 +335,10 @@ public class UIRenderer {
         int x = 0;
         int y = 0;
         for (int i = 0; i <= 47; i++) {
-            if (Texture.itemTexturePaths[i] != null) {
-                uploadIcon(Texture.itemTexturePaths[i], x, y, atlasId);
+            if (Texture.itemTexturePaths[i] != -1) {
+                itemIconTextureUpload(Texture.itemTexturePaths[i], x, y, atlasId, primaryBlockTextures);
             } else if (Texture.isXShapedBlock[i]) {
-                xTextureDirectUpload((byte)i, x, y, atlasId, primaryBlockTextures);
+                itemIconTextureUpload(Texture.getTextureIndex((byte)i, BLOCK_FACE.NORTH), x, y, atlasId, primaryBlockTextures);
             } else {
                 bakeBlockMesh((byte)i, x, y, primaryBlockTextures.getId());
             }

@@ -46,11 +46,11 @@ public class Texture {
 	// Used extremely hotly in meshing, rather use slightly more memory than have to unbitpack and read, instead simple array lookup
 	public static final boolean[] isXShapedBlock = new boolean[256];
 	public static final boolean[] isLeafBlock = new boolean[256];
-
-	public static final String[] itemTexturePaths = new String[256];
+	public static final int[] itemTexturePaths = new int[256];
 
 	public static void readBlockJson(String path) {
 		Gson gson = new Gson();
+		Arrays.fill(itemTexturePaths, -1);
 
 		try (InputStream is = App.class.getClassLoader().getResourceAsStream(path)) {
 			try (InputStreamReader reader = new InputStreamReader(is)) {
@@ -64,7 +64,7 @@ public class Texture {
 
 					if (subData.containsKey("xMesh")) isXShapedBlock[blockKey] = true;
 					if (subData.containsKey("isLeaves")) isLeafBlock[blockKey] = true;
-					if (subData.containsKey("icon")) itemTexturePaths[blockKey] = "src/main/resources/itemIcons/"+subData.get("icon");
+					if (subData.containsKey("icon")) itemTexturePaths[blockKey] = fileNameMap.get((String)subData.get("icon"));
 
 					textures.forEach((faceName, texPath) -> {
 						if (faceName.equals("DEFAULT")) {

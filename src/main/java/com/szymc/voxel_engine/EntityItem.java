@@ -272,7 +272,7 @@ public class EntityItem extends Entity {
         glBufferSubData(GL_ARRAY_BUFFER, offset, vertices);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        long eboByteOffset = (long) currentIndexOffset *Integer.BYTES;
+        long eboByteOffset = (long) currentIndexOffset * Integer.BYTES;
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, eboByteOffset, indices);
 
         MeshDrawCommand cmd = new MeshDrawCommand();
@@ -374,7 +374,12 @@ public class EntityItem extends Entity {
     public static void generateEaoCache() {
         setupEAOCache();
         for (byte item = 1; item <= 47; item++) {
-            if (Texture.itemTexturePaths[item] == null && !Texture.isXShapedBlock[item]) {
+            if (Texture.itemTexturePaths[item] != -1) {
+                ByteBuffer pixels = blockTextures.getLayer(Texture.itemTexturePaths[item]);
+
+                meshCache[item] = threeDimensionalFaceMesh(pixels, item);
+                MemoryUtil.memFree(pixels);
+            } else if (Texture.itemTexturePaths[item] == -1 && !Texture.isXShapedBlock[item]) {
                 meshCache[item] = buildBlockMesh(item);
             } else if (Texture.isXShapedBlock[item]) {
                 ByteBuffer pixels = blockTextures.getLayer(Texture.getTextureIndex(item, BLOCK_FACE.NORTH));
@@ -390,11 +395,11 @@ public class EntityItem extends Entity {
         this.entityId = Entity.entitiesCreated++;
         this.itemMesh = meshCache[item];
 
-        if (Texture.itemTexturePaths[item] == null && !Texture.isXShapedBlock[item]) {
+        if (Texture.itemTexturePaths[item] == -1 && !Texture.isXShapedBlock[item]) {
             isBlock = true;
             xWidth = 0.4f;
             zWidth = 0.4f;
-        } else if (Texture.isXShapedBlock[item]) {
+        } else if (Texture.isXShapedBlock[item] || Texture.itemTexturePaths[item] != -1) {
             xWidth = 1;
             zWidth = 1/16f;
         }
