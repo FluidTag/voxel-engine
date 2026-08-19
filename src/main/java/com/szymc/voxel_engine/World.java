@@ -2,6 +2,7 @@ package com.szymc.voxel_engine;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -323,12 +324,21 @@ public class World {
 		entityMap.put(item.entityId, item);
 	}
 
-	public void destroyItemEntity(int entityId) {
+	private IntArrayList pendingEntityRemovals = new IntArrayList(16);
+	public void addEntityIdToDeleteList(int entityId) { // Must be processed with processEntityDeletions
 		if (!entityMap.containsKey(entityId)) {
 			System.err.println("Error, could not delete entityId " + entityId + " as it does not exist in the worlds entity map.");
 			return;
 		}
-		entityMap.remove(entityId);
+		pendingEntityRemovals.add(entityId);
+	}
+
+	public void processEntityDeletions() {
+		for (int id : pendingEntityRemovals) {
+			entityMap.remove(id);
+		}
+
+		pendingEntityRemovals.clear();
 	}
 }
 

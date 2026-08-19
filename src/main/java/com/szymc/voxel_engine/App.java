@@ -1,5 +1,4 @@
 package com.szymc.voxel_engine;
-import org.joml.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.*;
 public class App {
@@ -89,13 +88,15 @@ public class App {
 
 							if (slot != -1) {
 								character.setInventorySlot(slot, item.item, (byte)(character.readInventoryAmount(slot)+1));
-								mainWorld.destroyItemEntity(item.entityId);
+								mainWorld.addEntityIdToDeleteList(item.entityId);
 							} else System.out.println("Inventory full");
 						}
 
 						item.position.y += item.velocity.y;
 					}
 				}
+
+				mainWorld.processEntityDeletions();
 			}
 
 			character.poll(deltaTime);
