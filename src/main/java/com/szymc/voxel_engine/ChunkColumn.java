@@ -67,6 +67,33 @@ public class ChunkColumn {
 		dirtyBits |= (1 << sectorI);
 	}
 
+	public void updateSkyLighting(int yLevel) {
+		for (int x = 0; x < 32; x++) {
+			for (int z = 0; z < 32; z++) {
+				int skyLight = 15;
+				for (int y = yLevel; y >= 0; y--) {
+					ChunkSection section = sections[y>>4];
+					if (section == null) {
+						y-=15; continue;
+					};
+					byte block = section.getLocalBlock(x, y&15, z);
+					byte[] lightArr = section.getLightingData();
+
+					if (block == Blocks.AIR || Texture.isLeafBlock[block] || Texture.isXShapedBlock[block]) {
+						lightArr[(y&15)*32*32 + z*32 + x] &= (byte) ~(0xF << 4);
+						lightArr[(y&15)*32*32 + z*32 + x] |= (byte) ((skyLight & 0xF) << 4 | (skyLight & 0xF));
+					}
+
+					if (block != Blocks.AIR && !Texture.isLeafBlock[block] && !Texture.isXShapedBlock[block]) {
+						skyLight = 0;
+					} else if (Texture.isLeafBlock[block] || Texture.isXShapedBlock[block]) {
+						skyLight--;
+					}
+				}
+			}
+		}
+	}
+
 	// Also need to set neighboring chunk segments to dirty if its on a border
 	public void setBlockInChunk(int cx, int cy, int cz, byte blockType) {
 		int sectorI = cy >> 4;
@@ -106,7 +133,8 @@ public class ChunkColumn {
 	
 	public ChunkSection initializeSection(int yIndex) {
 		if (yIndex > 15) throw new ArrayIndexOutOfBoundsException("World limit exceeded, attempting init of section index " + yIndex);
-		sections[yIndex] = new ChunkSection(new byte[32*16*32], worldReference, worldX*32, yIndex*16, worldZ*32);
+		sections[yIndex] = new ChunkSection(new byte[32*16*32], new byte[32*16*32], worldReference, worldX*32, yIndex*16, worldZ*32);
+		updateSkyLighting(yIndex*16+3);
 		return sections[yIndex];
 	}
 	

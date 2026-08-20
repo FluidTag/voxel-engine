@@ -6,7 +6,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 public class ChunkSection {
 	private PaletteContainer blockData = new PaletteContainer();
-	private byte[] lightLevels = new byte[32*16*32];
+	private byte[] lightLevels;
 	private final int worldX, worldY, worldZ;
 	private World worldReference;
 	private Mesh mesh = null;
@@ -43,7 +43,8 @@ public class ChunkSection {
 		}
 	}
 
-	public ChunkSection(byte[] data, World worldReference, int wx, int wy, int wz) {
+	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
+		lightLevels = skylightData;
 		for (int y = 0; y < 16; y++) {
 			for (int z = 0; z < 32; z++) {
 				for (int x = 0; x < 32; x++) {

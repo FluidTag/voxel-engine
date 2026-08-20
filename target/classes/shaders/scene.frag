@@ -5,6 +5,7 @@ in float lightFactor;
 out vec4 FragColor;
 
 uniform sampler2DArray textureArray;
+uniform int skylightValue;
 
 void main() {
 	int textureLayer = int(round(TexCoord.z));

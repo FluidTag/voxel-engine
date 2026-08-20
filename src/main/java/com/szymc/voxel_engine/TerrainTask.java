@@ -1,6 +1,7 @@
 package com.szymc.voxel_engine;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class TerrainTask {
 	private final World worldReference;
@@ -276,11 +277,6 @@ public class TerrainTask {
 		return Blocks.AIR;
 	}
 
-	private static final ThreadLocal<int[]> tNoiseMap = ThreadLocal.withInitial(() -> new int[32*32]);
-	private static final ThreadLocal<float[]> tTempMap = ThreadLocal.withInitial(() -> new float[32*32]);
-	private static final ThreadLocal<float[]> tMoistMap = ThreadLocal.withInitial(() -> new float[32*32]);
-	private static final ThreadLocal<Biome[]> tBiomeMap  = ThreadLocal.withInitial(() -> new Biome[32*32]);
-	private static final ThreadLocal<float[]> tSlopeMap = ThreadLocal.withInitial(() -> new float[32*32]);
 	public static byte getSurfaceBlock(int wx, int noiseHeight, int wz, Biome biome) { // Simulates generate chunk for one tile
 		float temp = getTemp(wx, wz); float moist = getMoist(wx, wz); float cont = getContinental(wx, wz); float erosion = getErosion(wx, wz); float weird = getWeirdness(wx, wz);
 		if (biome == null) biome = BiomeRegistry.get(getBiomeType(noiseHeight, temp, moist, cont, erosion, weird));
@@ -304,6 +300,13 @@ public class TerrainTask {
 		return block;
 	}
 
+	private static final ThreadLocal<int[]> tNoiseMap = ThreadLocal.withInitial(() -> new int[32*32]);
+	private static final ThreadLocal<float[]> tTempMap = ThreadLocal.withInitial(() -> new float[32*32]);
+	private static final ThreadLocal<float[]> tMoistMap = ThreadLocal.withInitial(() -> new float[32*32]);
+	private static final ThreadLocal<Biome[]> tBiomeMap  = ThreadLocal.withInitial(() -> new Biome[32*32]);
+	private static final ThreadLocal<float[]> tSlopeMap = ThreadLocal.withInitial(() -> new float[32*32]);
+	private static final ThreadLocal<byte[]> tLightMap = ThreadLocal.withInitial(() -> new byte[32*32]);
+
 	private ChunkSection[] generateChunk() {
 		ChunkSection[] sections = new ChunkSection[16];
 		int[] chunkNoise = tNoiseMap.get();
@@ -311,6 +314,7 @@ public class TerrainTask {
 		float[] chunkMoist = tMoistMap.get();
 		Biome[] chunkBiome = tBiomeMap.get();
 		float[] chunkSteep = tSlopeMap.get();
+		byte[] skyLevels = tLightMap.get();
 
 		for (int z = 0; z < 32; z++) {
 			for (int x = 0; x < 32; x++) {
@@ -324,6 +328,7 @@ public class TerrainTask {
 				chunkTemp[z*32+x] = temp;
 				chunkMoist[z*32+x] = moist;
 				chunkBiome[z*32+x] = BiomeRegistry.get(getBiomeType(height, temp, moist, cont, erosion, weirdness));
+				skyLevels[z*32+x] = (byte)15;
 			}
 		}
 
@@ -346,6 +351,7 @@ public class TerrainTask {
 
 		for (int sec = 0; sec < 16; sec++) {
 			byte[] chunkData = null;
+
 			boolean changed = false;
 			for (int z = 0; z < 32; z++) {
 				for (int x = 0; x < 32; x++) {
@@ -373,13 +379,14 @@ public class TerrainTask {
 							if (chunkData == null) chunkData = new byte[32*16*32];
 							chunkData[y*(32*32) + z*32 + x] = block;
 							changed = true;
+							skyLevels[z*32+x] = 0;
 						}
 					}
 				}
 			}
 
 			if (!changed) continue;
-			sections[sec] = new ChunkSection(chunkData, worldReference, cx*32, sec*16, cz*32);
+			sections[sec] = new ChunkSection(chunkData, new byte[32*16*32], worldReference, cx*32, sec*16, cz*32);
 		}
 
 		return sections;

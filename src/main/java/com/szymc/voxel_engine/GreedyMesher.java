@@ -184,6 +184,11 @@ public class GreedyMesher {
         }
     }
 
+    private final static byte[] fullLightData = new byte[32*32];
+    static {
+        Arrays.fill(fullLightData, (byte)(0xF << 4));
+    }
+
     private void fillPaddedArr(byte[] bArr, byte[] lArr, ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor) {
         byte[] chunk = chunkData.getChunkData(); // Using getChunkData() for the main chunk
         byte[] localLighting = chunkData.getLightingData();
@@ -539,15 +544,17 @@ public class GreedyMesher {
                     int ao_BR = (startAO >> 6) & 0x3;
 
                     int li_TL = (startLight) & 0xF;
-                    int li_TR = (startLight >> 4) & 0xF;
-                    int li_BL = (startLight >> 8) & 0xF;
+                    int li_BL = (startLight >> 4) & 0xF;
+                    int li_TR = (startLight >> 8) & 0xF;
                     int li_BR = (startLight >> 12) & 0xF;
 
                     boolean flipQuad = ((ao_BL + ao_TR) < (ao_BR + ao_TL));
 
                     byte quadAo;
+                    int lightAo = startLight;
                     if (methodAxis == 2) {
                         quadAo = (byte) ((ao_BR & 0x3) | ((ao_BL & 0x3) << 2) | ((ao_TR & 0x3) << 4) | ((ao_TL & 0x3) << 6));
+                        lightAo = ((li_BR & 0xF) | ((li_BL & 0xF) << 4) | ((li_TR & 0xF) << 8) | ((li_TL & 0xF) << 12));
                     } else {
                         quadAo = (byte) ((ao_TL & 0x3) | ((ao_BL & 0x3) << 2) | ((ao_TR & 0x3) << 4) | ((ao_BR & 0x3) << 6));
                     }
@@ -560,7 +567,7 @@ public class GreedyMesher {
                                 u, vEnd, axis,
 
                                 quadWidth, quadHeight,
-                                startBlock, false, 2, quadAo, startLight, flipQuad, false
+                                startBlock, false, 2, quadAo, lightAo, flipQuad, false
                         );
                     } else if (methodAxis == 1) {
                         addQuad(targetVBuffer, targetIBuffer,
@@ -570,7 +577,7 @@ public class GreedyMesher {
                                 uEnd, axis, vStart,
 
                                 quadHeight, quadWidth,
-                                startBlock, false, 1, quadAo, startLight, flipQuad, false
+                                startBlock, false, 1, quadAo, lightAo, flipQuad, false
                         );
                     } else if (methodAxis == 0) {
                         addQuad(targetVBuffer, targetIBuffer,
@@ -580,7 +587,7 @@ public class GreedyMesher {
                                 axis, uEnd, vStart,
 
                                 quadHeight, quadWidth,
-                                startBlock, true, 0, quadAo, startLight, flipQuad, false
+                                startBlock, true, 0, quadAo, lightAo, flipQuad, false
                         );
                     }
                 }
@@ -654,10 +661,17 @@ public class GreedyMesher {
                     int ao_BL = (startAO >> 4) & 0x3;
                     int ao_BR = (startAO >> 6) & 0x3;
 
+                    int li_TL = (startLight) & 0xF;
+                    int li_BL = (startLight >> 4) & 0xF;
+                    int li_TR = (startLight >> 8) & 0xF;
+                    int li_BR = (startLight >> 12) & 0xF;
+
                     boolean flipQuad = ((ao_BL + ao_TR) < (ao_BR + ao_TL));
                     byte quadAo;
+                    int lightAo = startLight;
                     if (methodAxis == 2) {
                         quadAo = (byte) ((ao_BR & 0x3) | ((ao_BL & 0x3) << 2) | ((ao_TR & 0x3) << 4) | ((ao_TL & 0x3) << 6));
+                        lightAo = ((li_BR & 0xF) | ((li_BL & 0xF) << 4) | ((li_TR & 0xF) << 8) | ((li_TL & 0xF) << 12));
                     } else {
                         quadAo = (byte) ((ao_TL & 0x3) | ((ao_BL & 0x3) << 2) | ((ao_TR & 0x3) << 4) | ((ao_BR & 0x3) << 6));
                     }
@@ -670,7 +684,7 @@ public class GreedyMesher {
                                 u, vEnd, axis+1,
 
                                 quadWidth, quadHeight,
-                                startBlock, true, 2, quadAo, startLight, flipQuad, false
+                                startBlock, true, 2, quadAo, lightAo, flipQuad, false
                         );
                     } else if (methodAxis == 1) {
                         addQuad(targetVBuffer, targetIBuffer,
@@ -680,7 +694,7 @@ public class GreedyMesher {
                                 uEnd, axis+1, vStart,
 
                                 quadHeight, quadWidth,
-                                startBlock, true, 1, quadAo, startLight, flipQuad, false
+                                startBlock, true, 1, quadAo, lightAo, flipQuad, false
                         );
                     } else if (methodAxis == 0) {
                         addQuad(targetVBuffer, targetIBuffer,
@@ -690,7 +704,7 @@ public class GreedyMesher {
                                 axis+1, uEnd, vStart,
 
                                 quadHeight, quadWidth,
-                                startBlock, false, 0, quadAo, startLight, flipQuad, false
+                                startBlock, false, 0, quadAo, lightAo, flipQuad, false
                         );
                     }
                 }
@@ -737,7 +751,7 @@ public class GreedyMesher {
         byte[] lightingPadded = threadLightingPadded.get();
 
         Arrays.fill(padded, (byte)0);
-        Arrays.fill(lightingPadded, (byte)0);
+        Arrays.fill(lightingPadded, (byte)(0xF << 4));
 
         fillPaddedArr(padded, lightingPadded, xMajor, xMinor, yMajor, yMinor, zMajor, zMinor);
 
