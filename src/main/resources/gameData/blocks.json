@@ -318,5 +318,13 @@
     "textures": {
       "DEFAULT": "redDirt.png"
     }
+  },
+  "48": {
+    "name": "TORCH",
+    "xMesh": true,
+    "light-level": 14,
+    "textures": {
+      "DEFAULT": "torch.png"
+    }
   }
 }

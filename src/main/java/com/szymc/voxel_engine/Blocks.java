@@ -48,4 +48,5 @@ public class Blocks {
 	public static final byte SWAMP_GRASS = 45;
 	public static final byte RED_WOOD = 46;
 	public static final byte RED_DIRT = 47;
+	public static final byte TORCH = 48;
 }

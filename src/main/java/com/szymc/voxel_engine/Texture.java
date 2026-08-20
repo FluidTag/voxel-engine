@@ -47,6 +47,7 @@ public class Texture {
 	public static final boolean[] isXShapedBlock = new boolean[256];
 	public static final boolean[] isLeafBlock = new boolean[256];
 	public static final int[] itemTexturePaths = new int[256];
+	public static final byte[] lightLevels = new byte[256];
 
 	public static void readBlockJson(String path) {
 		Gson gson = new Gson();
@@ -65,6 +66,7 @@ public class Texture {
 					if (subData.containsKey("xMesh")) isXShapedBlock[blockKey] = true;
 					if (subData.containsKey("isLeaves")) isLeafBlock[blockKey] = true;
 					if (subData.containsKey("icon")) itemTexturePaths[blockKey] = fileNameMap.get((String)subData.get("icon"));
+					if (subData.containsKey("light-level")) lightLevels[blockKey] = (byte) (double)(subData.get("light-level"));
 
 					textures.forEach((faceName, texPath) -> {
 						if (faceName.equals("DEFAULT")) {

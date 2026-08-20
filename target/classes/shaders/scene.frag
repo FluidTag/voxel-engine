@@ -1,6 +1,7 @@
 #version 330 core
 in vec3 TexCoord;
 in float vAoFactor;
+in float lightFactor;
 out vec4 FragColor;
 
 uniform sampler2DArray textureArray;
@@ -11,7 +12,6 @@ void main() {
 	
 	if (color.a < 0.1) discard;
 	
-	vec3 litColor = color.rgb * vAoFactor;
-	
+	vec3 litColor = color.rgb * vAoFactor * ((lightFactor/16.0)+0.2);
 	FragColor = vec4(litColor, color.a);
 }

@@ -2,6 +2,7 @@
 layout (location = 0) in ivec2 packedData;
 out vec3 TexCoord;
 out float vAoFactor;
+out float lightFactor;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -18,12 +19,14 @@ void main() {
 	int v = ((dat2 >> 14) & 0x3F);
 	int TexId = (dat2 & 0xFF);
 	int scaleFlag = (dat2 >> 22) & 1;
+	int light = (dat2 >> 23) & 0xF;
 	
 	int aoLevel = (dat2 >> 20) & 0x3;
 	if (aoLevel == 3) vAoFactor = 1.0;
     else if (aoLevel == 2) vAoFactor = 0.75;
     else if (aoLevel == 1) vAoFactor = 0.5;
     else vAoFactor = 0.25;
+    lightFactor = light;
 	
 	vec3 pos = vec3(float(x), float(y), float(z));
 	

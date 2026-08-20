@@ -139,6 +139,8 @@ public class PlayerCharacter {
         this.worldReference = worldReference;
         this.windowReference = windowReference;
         this.engineAttachment = engineAttachment;
+        inventory[0] = Blocks.TORCH;
+        inventoryAmounts[0] = 64;
 
         glfwSetScrollCallback(windowReference.getWindowId(), (windowHandle, xOffset, yOffset) -> {
             if (yOffset < 0) {
