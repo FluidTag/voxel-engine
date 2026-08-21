@@ -20,8 +20,19 @@ public class ChunkSection {
 		int index = cy * 32 * 32 + cz * 32 + cx;
 
 		byte block = getLocalBlock(cx, cy, cz);
-		byte currentLight = lightLevels[index];
-		if (block != 0 && !Texture.isXShapedBlock[block] && !Texture.isLeafBlock[block]) return;
+		byte currentLight = (byte) (lightLevels[index] & 0xF);
+		if (block != 0 && !Texture.isXShapedBlock[block] && !Texture.isLeafBlock[block]) {
+			int[][] directions = {
+					{-1,  0,  0}, { 1,  0,  0},
+					{ 0, -1,  0}, { 0,  1,  0},
+					{ 0,  0, -1}, { 0,  0,  1}
+			};
+
+			for (int[] d : directions) {
+				introduceLightSource(lightAmount - 2, cx + d[0], cy + d[1], cz + d[2]);
+			}
+			return;
+		};
 
 		if (visitedLight[index] && lightAmount <= currentLight) return;
 		visitedLight[index] = true;

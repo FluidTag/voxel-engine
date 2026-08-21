@@ -231,7 +231,7 @@ public class PlayerCharacter {
         keysPressed[GLFW_KEY_LEFT_CONTROL] = glfwGetKey(windowReference.getWindowId(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
         keysPressed[GLFW_KEY_PAGE_UP] = glfwGetKey(windowReference.getWindowId(), GLFW_KEY_PAGE_UP) == GLFW_PRESS;
 
-        float newCamSpeed = (!spectatorMode ? (isSprinting ? 6 : 4) : 126) * deltaTime;
+        float newCamSpeed = (!spectatorMode ? (isSprinting ? 6 : 4) : 20) * deltaTime;
         Vector3f playerMoveIntent = spectatorMode ? playerCamera.pollCreativeCameraMovements(windowReference.getWindowId(), newCamSpeed) :
                 playerCamera.pollSurvivalCameraMovements(windowReference.getWindowId(), newCamSpeed);
         boolean jumpPressed = glfwGetKey(windowReference.getWindowId(), GLFW_KEY_SPACE) == GLFW_PRESS;

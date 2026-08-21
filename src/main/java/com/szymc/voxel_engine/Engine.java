@@ -104,7 +104,7 @@ public class Engine {
 			glDisable(GL_BLEND);
 			glDepthMask(true);
 
-			//debugger.renderDebug(matrixBuffer);
+			debugger.renderDebug(matrixBuffer);
 			mainShader.start();
 			for (ChunkColumn chunk : worldScene.getRendered().values()) {
 				if (chunk == null) continue;

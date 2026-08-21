@@ -198,7 +198,7 @@ public class World {
 			}
 			
 			chunk.state = chunk.state.next();
-			chunk.updateSkyLighting(255);
+			chunk.updateSkyLighting();
 			checkStateAdvances(task.cx, task.cz);
 		}
 		
@@ -239,7 +239,7 @@ public class World {
 
 	public void updateChunk(int cx, int y, int cz) {
 		ChunkColumn chunk = getLoadedChunkAtPos(cx, cz);
-		if (chunk != null) chunk.updateSkyLighting(y);
+		if (chunk != null) chunk.updateSkyLighting();
 
 		checkStateAdvances(cx,cz);
 	}
