@@ -39,11 +39,12 @@ public class World {
 	private final long winId;
 	
 	public World(long winId) {
+		System.out.println(threads);
 		this.winId = winId;
 	}
 	
 	private final int threads = Runtime.getRuntime().availableProcessors()-1;
-	private final int terrainThreadCount = 3;
+	private final int terrainThreadCount = 4;
 	private final int meshThreadCount = Math.max(1, threads-3);
 	private final ExecutorService terrainPool = new ThreadPoolExecutor(
 			terrainThreadCount,
@@ -83,6 +84,7 @@ public class World {
 
 	ConcurrentLinkedQueue<TerrainTask> completedTerrain = new ConcurrentLinkedQueue<>();
 	ConcurrentLinkedQueue<DecorationTask> completedDecorations = new ConcurrentLinkedQueue<>();
+	ConcurrentLinkedQueue<LightingTask> completedLighting = new ConcurrentLinkedQueue<>();
 	ConcurrentLinkedQueue<MeshTask> completedMeshes = new ConcurrentLinkedQueue<>();
 	
 	public ChunkColumn getLoadedChunkAtPos(int cx, int cz) {
@@ -97,6 +99,19 @@ public class World {
 			zMin.state.isAtleast(state)
 		);		
 	}
+
+	private boolean fullNeighborsQualify(ChunkState state, ChunkColumn xMaj, ChunkColumn xMin, ChunkColumn zMaj, ChunkColumn zMin, ChunkColumn xMajZmaj, ChunkColumn xMajZmin, ChunkColumn xMinZmaj, ChunkColumn xMinZmin) {
+		return (
+				xMaj.state.isAtleast(state)
+				&& xMin.state.isAtleast(state)
+				&& zMaj.state.isAtleast(state)
+				&& zMin.state.isAtleast(state)
+				&& xMajZmaj.state.isAtleast(state)
+				&& xMajZmin.state.isAtleast(state)
+				&& xMinZmaj.state.isAtleast(state)
+				&& xMinZmin.state.isAtleast(state)
+		);
+	}
 	
 	private void checkStateAdvances(int cx, int cz) {
 		for (int x = cx-1; x <= cx+1; x++) {
@@ -104,16 +119,18 @@ public class World {
 				ChunkColumn chunk = loadedColumns.get(packKey(x, z));
 				if (chunk == null) continue;
 				
-				ChunkColumn xMaj = loadedColumns.get(packKey(x+1, z));		
+				ChunkColumn xMaj = loadedColumns.get(packKey(x+1, z));
 				ChunkColumn xMin = loadedColumns.get(packKey(x-1, z));
-
-
 				ChunkColumn zMaj = loadedColumns.get(packKey(x, z+1));
 				ChunkColumn zMin = loadedColumns.get(packKey(x, z-1));
+
+				ChunkColumn xMajZmaj = loadedColumns.get(packKey(x+1, z+1));
+				ChunkColumn xMajZmin = loadedColumns.get(packKey(x+1, z-1));
+				ChunkColumn xMinZmaj = loadedColumns.get(packKey(x-1, z+1));
+				ChunkColumn xMinZmin = loadedColumns.get(packKey(x-1, z-1));
 				
 				final int fx = x;
 				final int fz = z;
-
 
 				if (chunk.state == ChunkState.TERRAIN) {
 					if (chunk.decorationQueued.compareAndSet(false, true)) {
@@ -126,11 +143,22 @@ public class World {
 					}
 				}
 				
-				if (xMaj == null || xMin == null || zMaj == null || zMin == null) continue;
+				if (xMaj == null || xMin == null || zMaj == null || zMin == null || xMajZmaj == null || xMajZmin == null || xMinZmaj == null || xMinZmin == null) continue;
+				if (chunk.state == ChunkState.DECORATED && fullNeighborsQualify(ChunkState.DECORATED, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin)) {
+					if (chunk.lightQueued.compareAndSet(false, true)) {
+						terrainPool.execute(new PriorityGenTask(0, () -> {
+							LightingTask task = new LightingTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
+							task.updateSkyLighting();
+
+							completedLighting.add(task);
+						}));
+					}
+				}
+
 				boolean needsDirtyRemesh = (chunk.state == ChunkState.MESHED && chunk.dirtyBits > 0);
 
-				if ((chunk.state == ChunkState.DECORATED || needsDirtyRemesh) &&
-						neighborsQualify(ChunkState.DECORATED, xMaj, xMin, zMaj, zMin)) {
+				if ((chunk.state == ChunkState.LIGHT || needsDirtyRemesh) &&
+						fullNeighborsQualify(ChunkState.LIGHT, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin)) {
 					if (chunk.meshQueued.compareAndSet(false, true)) {
 						int dirtyCopy = chunk.dirtyBits;
 						if (needsDirtyRemesh) {
@@ -155,12 +183,18 @@ public class World {
 			//ChunkColumn cur = loadedColumns.get(packKey(lastX, lastZ));
 			//System.out.println(cur);
 			//System.out.println("In rendered columns?: " + renderedColumns.containsKey(packKey(lastX, lastZ)));
-			
+
 			Runtime rt = Runtime.getRuntime();
 			long usedMB = (rt.totalMemory() - rt.freeMemory()) / 1024 / 1024;
 			System.out.println("Used Memory: " + usedMB + " MB");
-			
-			
+
+			long emptyCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.EMPTY).count();
+			long terrainCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.TERRAIN).count();
+			long decCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.DECORATED).count();
+			long lightCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.LIGHT).count();
+			long meshCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.MESHED).count();
+
+			System.out.printf("E: %d | T: %d | D: %d | L: %d | M: %d%n", emptyCount, terrainCount, decCount, lightCount, meshCount);
 		}
 		
 		while (!completedTerrain.isEmpty()) {
@@ -198,7 +232,18 @@ public class World {
 			}
 			
 			chunk.state = chunk.state.next();
-			chunk.updateSkyLighting();
+			checkStateAdvances(task.cx, task.cz);
+		}
+
+		while (!completedLighting.isEmpty()) {
+			LightingTask task = completedLighting.poll();
+			long key = packKey(task.cx, task.cz);
+			ChunkColumn chunk = loadedColumns.get(key);
+
+			if (chunk == null) continue; // Deloaded
+			if (task.chunk != chunk) continue;
+
+			chunk.state = chunk.state.next();
 			checkStateAdvances(task.cx, task.cz);
 		}
 		
@@ -239,7 +284,7 @@ public class World {
 
 	public void updateChunk(int cx, int y, int cz) {
 		ChunkColumn chunk = getLoadedChunkAtPos(cx, cz);
-		if (chunk != null) chunk.updateSkyLighting();
+		//if (chunk != null) chunk.updateSkyLighting();
 
 		checkStateAdvances(cx,cz);
 	}
@@ -264,6 +309,7 @@ public class World {
 					chunk = new ChunkColumn(this, x, z);
 					chunk.state = ChunkState.EMPTY;
 					loadedColumns.put(key, chunk);
+					checkStateAdvances(x, z);
 				}
 				
 				final ChunkColumn fChunk = chunk;
@@ -283,11 +329,11 @@ public class World {
 				if (chunk.state == ChunkState.MESHED && !renderedColumns.containsKey(key)) {
 					renderedColumns.put(key, chunk);
 				}
-				
+
 				if (x == chunkX-renderDistance || x == chunkX+renderDistance) {
 					checkStateAdvances(x, z);
 				}
-				
+
 				if (z == chunkZ-renderDistance || z == chunkZ+renderDistance) {
 					checkStateAdvances(x, z);
 				}

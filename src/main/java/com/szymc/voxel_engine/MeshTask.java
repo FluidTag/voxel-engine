@@ -2,34 +2,24 @@ package com.szymc.voxel_engine;
 public class MeshTask {
 	public int cx, cz;
 	public ChunkColumn chunk;
-	private ChunkColumn xMajor, xMinor, zMajor, zMinor;
+	private ChunkColumn xMajor, xMinor, zMajor, zMinor, xMajorZmajor, xMajorZminor, xMinorZmajor, xMinorZminor;
 	public int targetedCSection = -1;
 	
 	public MeshTask(int cx, int cs, int cz,
-			ChunkColumn chunk, ChunkColumn xMajor, ChunkColumn xMinor, ChunkColumn zMajor, ChunkColumn zMinor) {
+			ChunkColumn chunk, ChunkColumn xMajor, ChunkColumn xMinor, ChunkColumn zMajor, ChunkColumn zMinor, ChunkColumn xMajorZmajor, ChunkColumn xMajorZminor, ChunkColumn xMinorZmajor, ChunkColumn xMinorZminor) {
 		this.chunk = chunk;
 		this.xMajor = xMajor;
 		this.xMinor = xMinor;
 		this.zMajor = zMajor;
 		this.zMinor = zMinor;
+		this.xMajorZmajor = xMajorZmajor;
+		this.xMajorZminor = xMajorZminor;
+		this.xMinorZmajor = xMinorZmajor;
+		this.xMinorZminor = xMinorZminor;
 		
 		this.cx = cx;
 		this.targetedCSection = cs;
 		this.cz = cz;
-	}
-	
-	public void runTargeted() {
-		ChunkSection section = chunk.getSection(targetedCSection);
-		if (section == null) return;
-		
-		ChunkSection xMajSec = xMajor.getSection(targetedCSection);
-		ChunkSection xMinSec = xMinor.getSection(targetedCSection);
-		ChunkSection yMajSec = targetedCSection < 15 ? chunk.getSection(targetedCSection+1) : null;
-		ChunkSection yMinSec = targetedCSection > 0 ? chunk.getSection(targetedCSection-1) : null;
-		ChunkSection zMajSec = zMajor.getSection(targetedCSection);
-		ChunkSection zMinSec = zMinor.getSection(targetedCSection);
-		
-		section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec);
 	}
 	
 	public MeshTask(int cx, int cz, ChunkColumn chunk, ChunkColumn xMajor, ChunkColumn xMinor, ChunkColumn zMajor, ChunkColumn zMinor) {
@@ -55,7 +45,7 @@ public class MeshTask {
 			ChunkSection zMajSec = zMajor.getSection(i);
 			ChunkSection zMinSec = zMinor.getSection(i);
 			
-			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec);
+			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec, null, null, null, null);
 		}
 	}
 
@@ -71,7 +61,7 @@ public class MeshTask {
 			ChunkSection zMinSec = zMinor.getSection(index);
 
 			ChunkSection section = chunk.getSection(index);
-			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec);
+			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec, null, null, null, null);
 
 			n &= (n - 1);
 		}

@@ -16,8 +16,8 @@ public class GreedyMesher {
         this.chunkData = Objects.requireNonNull(section, "Meshing cannot be started without a section to mesh.");
     }
 
-    public SectionMeshResult generateSectionMesh(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor) {
-        return generateMeshData(xMajor, xMinor, yMajor, yMinor, zMajor, zMinor);
+    public SectionMeshResult generateSectionMesh(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor, ChunkSection xMajorZmajor, ChunkSection xMajorZminor, ChunkSection xMinorZmajor, ChunkSection xMinorZminor) {
+        return generateMeshData(xMajor, xMinor, yMajor, yMinor, zMajor, zMinor, xMajorZmajor, xMajorZminor, xMinorZmajor, xMinorZminor);
     }
 
     public static void addGrassShrub(IntArrayList vBuffer, IntArrayList iBuffer, int x, int y, int z, byte blockType) {
@@ -726,7 +726,8 @@ public class GreedyMesher {
     private final static ThreadLocal<long[]> tWatX = ThreadLocal.withInitial(() -> new long[18*34]);
     private final static ThreadLocal<long[]> tLeaX = ThreadLocal.withInitial(() -> new long[18*34]);
 
-    private SectionMeshResult generateMeshData(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor) {
+    private SectionMeshResult generateMeshData(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor
+            ,ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor, ChunkSection xMajorZmajor, ChunkSection xMajorZminor, ChunkSection xMinorZmajor, ChunkSection xMinorZminor) {
         SectionMeshResult result = new SectionMeshResult();
         result.vertices = null;
         result.indices = null;
