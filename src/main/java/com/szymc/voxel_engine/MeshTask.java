@@ -39,29 +39,58 @@ public class MeshTask {
 			if (section == null) continue;
 			
 			ChunkSection xMajSec = xMajor.getSection(i);
+			ChunkSection xMajTop = i < 15 ? xMajor.getSection(i+1) : null;
+			ChunkSection xMajBottom = i > 0 ? xMajor.getSection(i-1) : null;
+
 			ChunkSection xMinSec = xMinor.getSection(i);
+			ChunkSection xMinTop = i < 15 ? xMinor.getSection(i+1) : null;
+			ChunkSection xMinBottom = i > 0 ? xMinor.getSection(i-1) : null;
+
 			ChunkSection yMajSec = i < 15 ? chunk.getSection(i+1) : null;
 			ChunkSection yMinSec = i > 0 ? chunk.getSection(i-1) : null;
+
 			ChunkSection zMajSec = zMajor.getSection(i);
+			ChunkSection zMajTop = i < 15 ? zMajor.getSection(i+1) : null;
+			ChunkSection zMajBottom = i > 0 ? zMajor.getSection(i-1) : null;
+
 			ChunkSection zMinSec = zMinor.getSection(i);
+			ChunkSection zMinTop = i < 15 ? zMinor.getSection(i+1) : null;
+			ChunkSection zMinBottom = i > 0 ? zMinor.getSection(i-1) : null;
 			
-			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec, null, null, null, null);
+			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec, xMinTop, xMinBottom, xMajTop, xMajBottom, zMinTop, zMinBottom, zMajTop, zMajBottom);
 		}
 	}
 
 	public void fastTargetDirty(int dirtyBits) {
 		int n = dirtyBits;
 		while (n != 0) {
-			int index = Integer.numberOfTrailingZeros(n);
-			ChunkSection xMajSec = xMajor.getSection(index);
-			ChunkSection xMinSec = xMinor.getSection(index);
-			ChunkSection yMajSec = index < 15 ? chunk.getSection(index+1) : null;
-			ChunkSection yMinSec = index > 0 ? chunk.getSection(index-1) : null;
-			ChunkSection zMajSec = zMajor.getSection(index);
-			ChunkSection zMinSec = zMinor.getSection(index);
+			int i = Integer.numberOfTrailingZeros(n);
+			ChunkSection section = chunk.getSection(i);
+			if (section == null) {
+				n &= (n - 1);
+				continue;
+			};
 
-			ChunkSection section = chunk.getSection(index);
-			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec, null, null, null, null);
+			ChunkSection xMajSec = xMajor.getSection(i);
+			ChunkSection xMajTop = i < 15 ? xMajor.getSection(i+1) : null;
+			ChunkSection xMajBottom = i > 0 ? xMajor.getSection(i-1) : null;
+
+			ChunkSection xMinSec = xMinor.getSection(i);
+			ChunkSection xMinTop = i < 15 ? xMinor.getSection(i+1) : null;
+			ChunkSection xMinBottom = i > 0 ? xMinor.getSection(i-1) : null;
+
+			ChunkSection yMajSec = i < 15 ? chunk.getSection(i+1) : null;
+			ChunkSection yMinSec = i > 0 ? chunk.getSection(i-1) : null;
+
+			ChunkSection zMajSec = zMajor.getSection(i);
+			ChunkSection zMajTop = i < 15 ? zMajor.getSection(i+1) : null;
+			ChunkSection zMajBottom = i > 0 ? zMajor.getSection(i-1) : null;
+
+			ChunkSection zMinSec = zMinor.getSection(i);
+			ChunkSection zMinTop = i < 15 ? zMinor.getSection(i+1) : null;
+			ChunkSection zMinBottom = i > 0 ? zMinor.getSection(i-1) : null;
+
+			section.meshSection(xMajSec, xMinSec, yMajSec, yMinSec, zMajSec, zMinSec, xMinTop, xMinBottom, xMajTop, xMajBottom, zMinTop, zMinBottom, zMajTop, zMajBottom);
 
 			n &= (n - 1);
 		}

@@ -109,9 +109,9 @@ public class ChunkSection {
 	}
 
 	public SectionMeshResult meshResult;
-	public void meshSection(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor, ChunkSection xMajorZmajor, ChunkSection xMajorZminor, ChunkSection xMinorZmajor, ChunkSection xMinorZminor) {
+	public void meshSection(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor, ChunkSection xMinorTop, ChunkSection xMinorBottom, ChunkSection xMajorTop, ChunkSection xMajorBottom, ChunkSection zMinorTop, ChunkSection zMinorBottom, ChunkSection zMajorTop, ChunkSection zMajorBottom) {
 		GreedyMesher mesher = new GreedyMesher(this);
-		meshResult = mesher.generateSectionMesh(xMajor, xMinor, yMajor, yMinor, zMajor, zMinor, xMajorZmajor, xMajorZminor, xMinorZmajor, xMinorZminor);
+		meshResult = mesher.generateSectionMesh(xMajor, xMinor, yMajor, yMinor, zMajor, zMinor, xMinorTop, xMinorBottom, xMajorTop, xMajorBottom, zMinorTop, zMinorBottom, zMajorTop, zMajorBottom);
 	}
 
 	public Mesh getMesh() {

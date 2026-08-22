@@ -16,8 +16,9 @@ public class GreedyMesher {
         this.chunkData = Objects.requireNonNull(section, "Meshing cannot be started without a section to mesh.");
     }
 
-    public SectionMeshResult generateSectionMesh(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor, ChunkSection xMajorZmajor, ChunkSection xMajorZminor, ChunkSection xMinorZmajor, ChunkSection xMinorZminor) {
-        return generateMeshData(xMajor, xMinor, yMajor, yMinor, zMajor, zMinor, xMajorZmajor, xMajorZminor, xMinorZmajor, xMinorZminor);
+    public SectionMeshResult generateSectionMesh(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor,
+                                                 ChunkSection xMinorTop, ChunkSection xMinorBottom, ChunkSection xMajorTop, ChunkSection xMajorBottom, ChunkSection zMinorTop, ChunkSection zMinorBottom, ChunkSection zMajorTop, ChunkSection zMajorBottom) {
+        return generateMeshData(xMajor, xMinor, yMajor, yMinor, zMajor, zMinor, xMinorTop, xMinorBottom, xMajorTop, xMajorBottom, zMinorTop, zMinorBottom, zMajorTop, zMajorBottom);
     }
 
     public static void addGrassShrub(IntArrayList vBuffer, IntArrayList iBuffer, int x, int y, int z, byte blockType) {
@@ -184,12 +185,10 @@ public class GreedyMesher {
         }
     }
 
-    private final static byte[] fullLightData = new byte[32*32];
-    static {
-        Arrays.fill(fullLightData, (byte)(0xF << 4));
-    }
-
-    private void fillPaddedArr(byte[] bArr, byte[] lArr, ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor) {
+    private void fillPaddedArr(byte[] bArr, byte[] lArr,
+                               ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor, ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor,
+                               ChunkSection xMinorTop, ChunkSection xMinorBottom, ChunkSection xMajorTop, ChunkSection xMajorBottom,
+                               ChunkSection zMinorTop, ChunkSection zMinorBottom, ChunkSection zMajorTop, ChunkSection zMajorBottom) {
         byte[] chunk = chunkData.getChunkData(); // Using getChunkData() for the main chunk
         byte[] localLighting = chunkData.getLightingData();
 
@@ -228,6 +227,32 @@ public class GreedyMesher {
             }
         }
 
+        if (xMinorTop != null) {
+            byte[] xMinTopDat = xMinorTop.getChunkData();
+            byte[] lightData = xMinorTop.getLightingData();
+
+            for (int z = 0; z < 32; z++) {
+                int srcPos = (0*32*32)+(z*32)+31;
+                int destPos = (17*34*34)+((z+1)*34)+0;
+
+                bArr[destPos] = xMinTopDat[srcPos];
+                lArr[destPos] = lightData[srcPos];
+            }
+        }
+
+        if (xMinorBottom != null) {
+            byte[] xMinBottomDat = xMinorBottom.getChunkData();
+            byte[] lightData = xMinorBottom.getLightingData();
+
+            for (int z = 0; z < 32; z++) {
+                int srcPos = (15*32*32)+(z*32)+31;
+                int destPos = (0*34*34)+((z+1)*34)+0;
+
+                bArr[destPos] = xMinBottomDat[srcPos];
+                lArr[srcPos] = lightData[srcPos];
+            }
+        }
+
         if (xMajor != null) {
             byte[] xMaxDat = xMajor.getChunkData();
             byte[] lightData = xMajor.getLightingData();
@@ -242,6 +267,32 @@ public class GreedyMesher {
                     bArr[destPos] = xMaxDat[srcPos];
                     lArr[destPos] = lightData[srcPos];
                 }
+            }
+        }
+
+        if (xMajorTop != null) {
+            byte[] xMaxTopDat = xMajorTop.getChunkData();
+            byte[] lightData = xMajorTop.getLightingData();
+
+            for (int z = 0; z < 32; z++) {
+                int srcPos = (0*32*32)+(z*32)+0;
+                int destPos = (17*34*34)+((z+1)*34)+33;
+
+                bArr[destPos] = xMaxTopDat[srcPos];
+                lArr[destPos] = lightData[srcPos];
+            }
+        }
+
+        if (xMajorBottom != null) {
+            byte[] xMaxBottomDat = xMajorBottom.getChunkData();
+            byte[] lightData = xMajorBottom.getLightingData();
+
+            for (int z = 0; z < 32; z++) {
+                int srcPos = (15*32*32)+(z*32)+0;
+                int destPos = (0*34*34)+((z+1)*34)+33;
+
+                bArr[destPos] = xMaxBottomDat[srcPos];
+                lArr[destPos] = lightData[srcPos];
             }
         }
 
@@ -261,6 +312,29 @@ public class GreedyMesher {
             }
         }
 
+        if (zMinorTop != null) {
+            byte[] zMinTopDat = zMinorTop.getChunkData();
+            byte[] lightData = zMinorTop.getLightingData();
+            // z = 31, y = 0, x = varies. Need to copy row at y=0, z=31 to get the x's
+
+            int srcPos = (0*32*32)+(31*32)+0;
+            int destPos = (17*34*34)+(0*34)+1;
+
+            System.arraycopy(zMinTopDat, srcPos, bArr, destPos, 32);
+            System.arraycopy(lightData, srcPos, lArr, destPos, 32);
+        }
+
+        if (zMinorBottom != null) {
+            byte[] zMinBottomDat = zMinorBottom.getChunkData();
+            byte[] lightData = zMinorBottom.getLightingData();
+
+            int srcPos = (15*32*32)+(31*32)+0;
+            int destPos = (0*34*34)+(0*34)+1;
+
+            System.arraycopy(zMinBottomDat, srcPos, bArr, destPos, 32);
+            System.arraycopy(lightData, srcPos, lArr, destPos, 32);
+        }
+
         if (zMajor != null) {
             byte[] zMaxDat = zMajor.getChunkData();
             byte[] lightData = zMajor.getLightingData();
@@ -274,6 +348,28 @@ public class GreedyMesher {
                 System.arraycopy(zMaxDat, srcPos, bArr, destPos, 32);
                 System.arraycopy(lightData, srcPos, lArr, destPos, 32);
             }
+        }
+
+        if (zMajorTop != null) {
+            byte[] zMaxTopDat = zMajorTop.getChunkData();
+            byte[] lightData = zMajorTop.getLightingData();
+
+            int srcPos = 0*32*32 + 0*32 + 0;
+            int destPos = 17*34*34 + 33*34 + 1;
+
+            System.arraycopy(zMaxTopDat, srcPos, bArr, destPos, 32);
+            System.arraycopy(lightData, srcPos, lArr, destPos, 32);
+        }
+
+        if (zMajorBottom != null) {
+            byte[] zMaxBottomDat = zMajorBottom.getChunkData();
+            byte[] lightData = zMajorBottom.getLightingData();
+
+            int srcPos = 15*32*32 + 0*32 + 0;
+            int destPos = 0*34*34 + 33*34 + 1;
+
+            System.arraycopy(zMaxBottomDat, srcPos, bArr, destPos, 32);
+            System.arraycopy(lightData, srcPos, lArr, destPos, 32);
         }
 
         // --- Y NEIGHBORS ---
@@ -727,7 +823,8 @@ public class GreedyMesher {
     private final static ThreadLocal<long[]> tLeaX = ThreadLocal.withInitial(() -> new long[18*34]);
 
     private SectionMeshResult generateMeshData(ChunkSection xMajor, ChunkSection xMinor, ChunkSection yMajor
-            ,ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor, ChunkSection xMajorZmajor, ChunkSection xMajorZminor, ChunkSection xMinorZmajor, ChunkSection xMinorZminor) {
+            ,ChunkSection yMinor, ChunkSection zMajor, ChunkSection zMinor, ChunkSection xMinorTop, ChunkSection xMinorBottom, ChunkSection xMajorTop, ChunkSection xMajorBottom,
+                                               ChunkSection zMinorTop, ChunkSection zMinorBottom, ChunkSection zMajorTop, ChunkSection zMajorBottom) {
         SectionMeshResult result = new SectionMeshResult();
         result.vertices = null;
         result.indices = null;
@@ -754,7 +851,7 @@ public class GreedyMesher {
         Arrays.fill(padded, (byte)0);
         Arrays.fill(lightingPadded, (byte)(0xF << 4));
 
-        fillPaddedArr(padded, lightingPadded, xMajor, xMinor, yMajor, yMinor, zMajor, zMinor);
+        fillPaddedArr(padded, lightingPadded, xMajor, xMinor, yMajor, yMinor, zMajor, zMinor, xMinorTop, xMinorBottom, xMajorTop, xMajorBottom, zMinorTop, zMinorBottom, zMajorTop, zMajorBottom);
 
         // 34 x layers, 18 y layers, each mask is 34 z bits
         // 18 y layers, 34 x layers, each mask is 34 z bits
