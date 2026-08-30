@@ -90,15 +90,6 @@ public class World {
 	public ChunkColumn getLoadedChunkAtPos(int cx, int cz) {
 		return loadedColumns.get(packKey(cx, cz));
 	}
-	
-	private boolean neighborsQualify(ChunkState state, ChunkColumn xMaj, ChunkColumn xMin, ChunkColumn zMaj, ChunkColumn zMin) {
-		return (
-			xMaj.state.isAtleast(state) &&
-			xMin.state.isAtleast(state) &&
-			zMaj.state.isAtleast(state) &&
-			zMin.state.isAtleast(state)
-		);		
-	}
 
 	private boolean fullNeighborsQualify(ChunkState state, ChunkColumn xMaj, ChunkColumn xMin, ChunkColumn zMaj, ChunkColumn zMin, ChunkColumn xMajZmaj, ChunkColumn xMajZmin, ChunkColumn xMinZmaj, ChunkColumn xMinZmin) {
 		return (
@@ -148,6 +139,7 @@ public class World {
 					if (chunk.lightQueued.compareAndSet(false, true)) {
 						terrainPool.execute(new PriorityGenTask(0, () -> {
 							LightingTask task = new LightingTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
+							//task.updateBlockLighting();
 							task.updateSkyLighting();
 
 							completedLighting.add(task);
@@ -227,8 +219,7 @@ public class World {
 				
 				if (x >= 0 && x < 32 && z >= 0 && z < 32) {
 					task.chunk.setBlockInChunk(x, y, z, block);
-					continue;
-				}
+                }
 			}
 			
 			chunk.state = chunk.state.next();
@@ -244,6 +235,7 @@ public class World {
 			if (task.chunk != chunk) continue;
 
 			chunk.state = chunk.state.next();
+			chunk.lightQueued.set(false);
 			checkStateAdvances(task.cx, task.cz);
 		}
 		
@@ -282,11 +274,31 @@ public class World {
 	int lastX = 99999999;
 	int lastZ = 99999999;
 
+	// Block Breaks, Direct Computation
 	public void updateChunk(int cx, int y, int cz) {
 		ChunkColumn chunk = getLoadedChunkAtPos(cx, cz);
-		//if (chunk != null) chunk.updateSkyLighting();
+		chunk.state = ChunkState.DECORATED;
 
-		checkStateAdvances(cx,cz);
+		ChunkColumn xMaj = loadedColumns.get(packKey(cx+1, cz));
+		ChunkColumn xMin = loadedColumns.get(packKey(cx-1, cz));
+		ChunkColumn zMaj = loadedColumns.get(packKey(cx, cz+1));
+		ChunkColumn zMin = loadedColumns.get(packKey(cx, cz-1));
+
+		ChunkColumn xMajZmaj = loadedColumns.get(packKey(cx+1, cz+1));
+		ChunkColumn xMajZmin = loadedColumns.get(packKey(cx+1, cz-1));
+		ChunkColumn xMinZmaj = loadedColumns.get(packKey(cx-1, cz+1));
+		ChunkColumn xMinZmin = loadedColumns.get(packKey(cx-1, cz-1));
+
+		if (xMaj == null || xMin == null || zMaj == null || zMin == null || xMajZmaj == null || xMajZmin == null || xMinZmaj == null || xMinZmin == null) return;
+		if (chunk.lightQueued.compareAndSet(false, true) && fullNeighborsQualify(ChunkState.DECORATED, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin)) {
+			terrainPool.execute(new PriorityGenTask(0, () -> {
+				LightingTask task = new LightingTask(cx, cz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
+
+				task.updateSkyLighting();
+				task.updateBlockLighting();
+				completedLighting.add(task);
+			}));
+		}
 	}
 
 	public void update(Vector3f playerPosition) {

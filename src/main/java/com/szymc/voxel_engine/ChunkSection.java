@@ -2,6 +2,7 @@ package com.szymc.voxel_engine;
 import java.util.Arrays;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 
 public class ChunkSection {
@@ -11,48 +12,7 @@ public class ChunkSection {
 	private World worldReference;
 	private Mesh mesh = null;
 	private Mesh waterMesh = null;
-	private final static boolean[] visitedLight = new boolean[32*16*32];
-
-	private void introduceLightSource(int lightAmount, int cx, int cy, int cz) {
-		if (lightAmount <= 0) return;
-
-		if (cx < 0 || cx > 31 || cy < 0 || cy > 15 || cz < 0 || cz > 31) return;
-		int index = cy * 32 * 32 + cz * 32 + cx;
-
-		byte block = getLocalBlock(cx, cy, cz);
-		byte currentLight = (byte) (lightLevels[index] & 0xF);
-		if (block != 0 && !Texture.isXShapedBlock[block] && !Texture.isLeafBlock[block]) {
-			int[][] directions = {
-					{-1,  0,  0}, { 1,  0,  0},
-					{ 0, -1,  0}, { 0,  1,  0},
-					{ 0,  0, -1}, { 0,  0,  1}
-			};
-
-			for (int[] d : directions) {
-				introduceLightSource(lightAmount - 2, cx + d[0], cy + d[1], cz + d[2]);
-			}
-			return;
-		};
-
-		if (visitedLight[index] && lightAmount <= currentLight) return;
-		visitedLight[index] = true;
-
-		lightLevels[index] &= ~(0xF);
-		lightLevels[index] |= (byte) (lightAmount & 0xF);
-
-		System.out.println(lightAmount + " at " + cx + ", " + cy + ", " + cz);
-
-		// 6 Cardinal Orthogonal Directions (Up, Down, North, South, East, West)
-		int[][] directions = {
-				{-1,  0,  0}, { 1,  0,  0},
-				{ 0, -1,  0}, { 0,  1,  0},
-				{ 0,  0, -1}, { 0,  0,  1}
-		};
-
-		for (int[] d : directions) {
-			introduceLightSource(lightAmount - 2, cx + d[0], cy + d[1], cz + d[2]);
-		}
-	}
+	private final IntArrayList lightBlocks = new IntArrayList();
 
 	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
 		lightLevels = skylightData;
@@ -78,8 +38,9 @@ public class ChunkSection {
 
 		blockData.writeBlock(x, y, z, block);
 		if (Texture.lightLevels[block] > 0) {
-			Arrays.fill(visitedLight, false);
-			introduceLightSource(Texture.lightLevels[block], x, y, z);
+			int data = (x & 0x1F) | (y & 0xFF) << 5 | (z & 0x1F) << 13 | (Texture.lightLevels[block] & 0xFF) << 18;
+			System.out.println("Added light source at " + x + ", " + y + ", " + z + ": " + (Texture.lightLevels[block] & 0xFF));
+			lightBlocks.add(data);
 		}
 	}
 
@@ -106,6 +67,10 @@ public class ChunkSection {
 
 	public int getWorldZ() {
 		return this.worldZ;
+	}
+
+	public IntArrayList getLightBlocks() {
+		return this.lightBlocks;
 	}
 
 	public SectionMeshResult meshResult;

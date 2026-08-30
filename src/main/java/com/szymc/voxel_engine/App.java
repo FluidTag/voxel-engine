@@ -36,7 +36,6 @@ public class App {
 		return false;
 	}
 
-
 	public static void main(String[] args) {
 		Camera camera = new Camera();
 		Window window = new Window(1600, 900, "Voxel-Engine");

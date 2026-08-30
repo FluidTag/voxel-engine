@@ -1,6 +1,7 @@
 package com.szymc.voxel_engine;
 
 
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
@@ -83,16 +84,31 @@ public class ChunkColumn {
 		return (dat[(y&15)*32*32 + cz*32 + cx] >>> 4) & 0xF;
 	}
 
-	public byte[] getRawSkylightArr(byte[] target) {
+	public void setBlockLight(int cx, int y, int cz, int amount) {
+		ChunkSection sec = sections[y>>4];
+		if (sec == null) return;
+
+		byte[] dat = sec.getLightingData();
+		dat[(y&15)*32*32 + cz*32 + cx] &= (byte) ~(0xF);
+		dat[(y&15)*32*32 + cz*32 + cx] |= (byte) ((amount & 0xF));
+	}
+
+	public int getBlockLight(int cx, int y, int cz) {
+		ChunkSection sec = sections[y>>4];
+		if (sec == null) return 15;
+		byte[] dat = sec.getLightingData();
+
+		return dat[(y&15)*32*32 + cz*32 + cx] & 0xF;
+	}
+
+	public void clearChunkLighting() {
 		for (int i = 0; i < 16; i++) {
-			ChunkSection sec = sections[i];
-			if (sec == null) continue;
+			ChunkSection sec = getSection(i);
+			if (sec == null) return;
 
-			byte[] dat = sec.getLightingData();
-			System.arraycopy(dat, 0, target, (i*16)*32*32, 16*32*32);
+			byte[] lightDat = sec.getLightingData();
+			Arrays.fill(lightDat, (byte)0);
 		}
-
-		return target;
 	}
 
 	// Also need to set neighboring chunk segments to dirty if its on a border
