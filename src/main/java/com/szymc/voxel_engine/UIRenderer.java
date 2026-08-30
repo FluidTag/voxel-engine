@@ -334,7 +334,7 @@ public class UIRenderer {
 
         int x = 0;
         int y = 0;
-        for (int i = 0; i <= 47; i++) {
+        for (int i = 0; i <= 48; i++) {
             if (Texture.itemTexturePaths[i] != -1) {
                 itemIconTextureUpload(Texture.itemTexturePaths[i], x, y, atlasId, primaryBlockTextures);
             } else if (Texture.isXShapedBlock[i]) {

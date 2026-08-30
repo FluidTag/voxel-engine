@@ -4,10 +4,10 @@ public class PaletteContainer {
     private byte[] palette = new byte[0];
     private long[] blockData = new long[256];
     private final static ThreadLocal<byte[]> threadByteBuffer = ThreadLocal.withInitial(() -> new byte[32*16*32]); // To be used as temporary read only outside of this function
+    private int bitWidth;
 
     public byte readBlock(int x, int y, int z) {
         int index = y*32*32 + z*32 + x;
-        int bitWidth = calculateBitCount(palette.length);
 
         return palette[(int)(readRawIndex(blockData, bitWidth, index))];
     }
@@ -41,7 +41,7 @@ public class PaletteContainer {
             }
         }
 
-        int bitWidth = calculateBitCount(palette.length);
+        bitWidth = calculateBitCount(palette.length);
         int index = y*32*32 + z*32 + x;
         writeRawIndex(blockData, bitWidth, index, currentPalettePos);
     }
@@ -111,13 +111,6 @@ public class PaletteContainer {
 
     private int calculateBitCount(int uniqueValues) {
         if (uniqueValues <= 1) return 1;
-        int bits = 0;
-        int capacity = 1;
-        while (capacity < uniqueValues) {
-            bits++;
-            capacity <<= 1;
-        }
-
-        return bits;
+        return 32 - Integer.numberOfLeadingZeros(uniqueValues - 1);
     }
 }

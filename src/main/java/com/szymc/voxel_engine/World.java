@@ -166,7 +166,7 @@ public class World {
 						}
 
 						meshPool.execute(new PriorityGenTask(0, () -> {
-							MeshTask task = new MeshTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin);
+							MeshTask task = new MeshTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
 							if (needsDirtyRemesh) task.fastTargetDirty(dirtyCopy); else task.runFullMeshTask();
 							
 							completedMeshes.add(task);
