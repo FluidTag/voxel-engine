@@ -67,7 +67,7 @@ public class Engine {
 		outlineShader.stop();
 		this.outline = new BlockOutline();
 
-		uiRenderer.setScreenDimensions(1600, 900);
+		uiRenderer.setScreenDimensions(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
 		uiRenderer.setFontColor(1.0f, 1.0f, 1.0f, 1.0f);
 		EntityItem.setBlockTextures(mainShader.getTexture());
 		EntityItem.generateEaoCache();
@@ -224,28 +224,28 @@ public class Engine {
 
 			mainShader.stop();
 
-			uiRenderer.beginUiRendering(1600, 900);
-			float crossX = (1600/2.0f) - 8.0f;
-			float crossY = (900/2.0f) - 8.0f;
+			uiRenderer.beginUiRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
+			float crossX = (App.WINDOW_WIDTH/2.0f) - 8.0f;
+			float crossY = (App.WINDOW_HEIGHT/2.0f) - 8.0f;
 
 			uiRenderer.drawTexture(crosshairTexture, crossX, crossY, 16, 16);
 			int slotSize = 64;
-			int offsetX = (int)((1600/2.0f)-(slotSize*4.5f));
-			uiRenderer.drawRect(offsetX-2, 820-2, slotSize*9 + 4, slotSize + 4, 0.7f, 0.7f, 0.7f, 0.8f);
+			int offsetX = (int)((App.WINDOW_WIDTH/2.0f)-(slotSize*4.5f));
+			uiRenderer.drawRect(offsetX-2, App.WINDOW_HEIGHT - 80-2, slotSize*9 + 4, slotSize + 4, 0.7f, 0.7f, 0.7f, 0.8f);
 			byte[] inventory = player.getInventory();
 
 			for (int i = 0; i < 9; i++) {
 				float color = player.currentHotbarSlot == i ? 0.45f : 0.2f;
-				uiRenderer.drawRect(offsetX + (slotSize*i) + 2, 820+2, slotSize-4, slotSize-4, color, color, color, 0.6f);
+				uiRenderer.drawRect(offsetX + (slotSize*i) + 2, App.WINDOW_HEIGHT - 80+2, slotSize-4, slotSize-4, color, color, color, 0.6f);
 				byte item = inventory[i];
-				if (item != 0) uiRenderer.drawIcon(item, offsetX + (slotSize*i), 820, slotSize, slotSize);
+				if (item != 0) uiRenderer.drawIcon(item, offsetX + (slotSize*i), App.WINDOW_HEIGHT - 80, slotSize, slotSize);
 			}
 
-			uiRenderer.beginTextRendering(1600, 900);
+			uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
 
 			for (byte i = 0; i < 9; i++) {
 				if (player.readInventoryType(i) != 0) {
-					uiRenderer.renderFont(Integer.toString(player.readInventoryAmount(i)), offsetX + (slotSize*i) + (slotSize-4), 820-4+slotSize, UIRenderer.TextAlignment.RIGHT);
+					uiRenderer.renderFont(Integer.toString(player.readInventoryAmount(i)), offsetX + (slotSize*i) + (slotSize-4), App.WINDOW_HEIGHT - 80-4+slotSize, UIRenderer.TextAlignment.RIGHT);
 				}
 			}
 

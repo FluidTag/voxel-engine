@@ -166,17 +166,6 @@ public class Texture {
 		// Keeps the pixels sharp within the level, but smoothly blends between mip levels
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		
-		float maxAnisotropy =
-			    glGetFloat(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-
-		glTexParameterf(
-		    GL_TEXTURE_2D_ARRAY,
-		    GL_TEXTURE_MAX_ANISOTROPY_EXT,
-		    maxAnisotropy
-		);
-		
-		glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
 
 		//glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_LOD_BIAS, 1f);
 		glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
@@ -235,10 +224,3 @@ public class Texture {
 		glDeleteTextures(this.id);
 	}
 }
-
-
-
-
-
-
-

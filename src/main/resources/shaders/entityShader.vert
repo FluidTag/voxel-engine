@@ -4,6 +4,7 @@ layout (location = 1) in int uvData;
 
 out vec3 TexCoord;
 out float vAoFactor;
+out float lightFactor;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -15,6 +16,7 @@ void main() {
     	int v = ((uvData >> 14) & 0x3F);
     	int TexId = (uvData & 0xFF);
 
-	TexCoord = vec3(float(u)/16.0, float(v)/16.0, int(TexId));
+	TexCoord = vec3(float(u)/16.0, float(v)/16.0, float(TexId));
 	vAoFactor = 1.0;
+	lightFactor = 16.0;
 }

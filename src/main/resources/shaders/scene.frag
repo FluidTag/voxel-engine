@@ -8,7 +8,6 @@ uniform sampler2DArray textureArray;
 uniform int skylightValue;
 
 void main() {
-	int textureLayer = int(round(TexCoord.z));
     vec4 color = texture(textureArray, TexCoord);
 	
 	if (color.a < 0.1) discard;

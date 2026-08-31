@@ -36,9 +36,12 @@ public class App {
 		return false;
 	}
 
+	public static final int WINDOW_WIDTH = 1600;
+	public static final int WINDOW_HEIGHT = 900;
+
 	public static void main(String[] args) {
 		Camera camera = new Camera();
-		Window window = new Window(1600, 900, "Voxel-Engine");
+		Window window = new Window(App.WINDOW_WIDTH, App.WINDOW_HEIGHT, "Voxel-Engine");
 
 		World mainWorld = new World(window.getWindowId());
 		TerrainTask.initNoise();
