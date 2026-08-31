@@ -36,12 +36,17 @@ public class ChunkSection {
 		if (y < 0 || y > 15) throw new IndexOutOfBoundsException();
 		if (z < 0 || z > 31) throw new IndexOutOfBoundsException();
 
-		blockData.writeBlock(x, y, z, block);
+		byte oldBlock = getLocalBlock(x, y, z);
 		if (Texture.lightLevels[block] > 0) {
-			int data = (x & 0x1F) | (y & 0xFF) << 5 | (z & 0x1F) << 13 | (Texture.lightLevels[block] & 0xFF) << 18;
-			System.out.println("Added light source at " + x + ", " + y + ", " + z + ": " + (Texture.lightLevels[block] & 0xFF));
+			int data = (x & 0x1F) | ((y & 0xFF) << 5) | ((z & 0x1F) << 13) | ((Texture.lightLevels[block] & 0xFF) << 18);
 			lightBlocks.add(data);
+		} else if (block == Blocks.AIR && Texture.lightLevels[oldBlock] > 0) {
+			int data = (x & 0x1F) | ((y & 0xFF) << 5) | ((z & 0x1F) << 13) | ((Texture.lightLevels[oldBlock] & 0xFF) << 18);
+
+			lightBlocks.removeIf(item -> item == data);
 		}
+
+		blockData.writeBlock(x, y, z, block);
 	}
 
 	public byte getLocalBlock(int x, int y, int z) {

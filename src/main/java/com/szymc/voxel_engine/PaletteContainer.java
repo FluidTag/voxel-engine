@@ -8,7 +8,7 @@ public class PaletteContainer {
 
     public byte readBlock(int x, int y, int z) {
         int index = y*32*32 + z*32 + x;
-
+        if (bitWidth == 0) return 0;
         return palette[(int)(readRawIndex(blockData, bitWidth, index))];
     }
 

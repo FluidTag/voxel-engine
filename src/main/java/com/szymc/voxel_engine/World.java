@@ -1,4 +1,6 @@
 package com.szymc.voxel_engine;
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
+import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
@@ -139,7 +141,7 @@ public class World {
 					if (chunk.lightQueued.compareAndSet(false, true)) {
 						terrainPool.execute(new PriorityGenTask(0, () -> {
 							LightingTask task = new LightingTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
-							//task.updateBlockLighting();
+							task.updateBlockLighting();
 							task.updateSkyLighting();
 
 							completedLighting.add(task);
@@ -236,6 +238,25 @@ public class World {
 
 			chunk.state = chunk.state.next();
 			chunk.lightQueued.set(false);
+
+			// Derived from block light overspill
+			// Future Note, this could be optimized. This does a lighting task then a full remesh of the column, while only a lighting task and remesh of targeted sections are necessary
+			// If lighting performance becomes a problem look here, this works for now so whatever
+			if (task.neighborsToRemesh != null) {
+				ByteIterator it = task.neighborsToRemesh.iterator();
+				while (it.hasNext()) {
+					byte dat = it.nextByte();
+					int xInd = (dat & 0x3) - 1;
+					int sectorI = (dat >>> 2) & 0xF; // Can be used for dirty target remesh later
+					int zInd = ((dat >>> 6) & 0x3) - 1;
+
+					ChunkColumn targetChunk = getLoadedChunkAtPos(task.cx + xInd, task.cz + zInd);
+					if (targetChunk != null && targetChunk.state == ChunkState.MESHED) {
+						targetChunk.state = ChunkState.DECORATED;
+					}
+				}
+			}
+
 			checkStateAdvances(task.cx, task.cz);
 		}
 		

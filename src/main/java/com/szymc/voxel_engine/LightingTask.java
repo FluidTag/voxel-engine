@@ -1,5 +1,7 @@
 package com.szymc.voxel_engine;
 
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
+import it.unimi.dsi.fastutil.bytes.ByteOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -8,6 +10,7 @@ import java.util.Arrays;
 public class LightingTask {
     public int cx, cz;
     public ChunkColumn chunk;
+    public ByteOpenHashSet neighborsToRemesh = null;
 
     private ChunkColumn xMajor, xMinor, zMajor, zMinor,   xMajorZMajor, xMajorZMinor, xMinorZMajor, xMinorZMinor;
     private byte[] scratchPad;
@@ -50,7 +53,6 @@ public class LightingTask {
 
     private void setLocalBlockLevel(int ax, int y, int az, byte light) {
         if (ax >= 16 && ax <= 47 && az >= 16 && az <= 47) {
-            System.out.println("here");
             chunk.setBlockLight(ax-16, y, az-16, light);
             return;
         }
@@ -151,6 +153,14 @@ public class LightingTask {
 
                     if ((block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block])) {
                         setLocalBlockLevel(anx, ny, anz, requestedLight);
+                        if (xInd != 1 || zInd != 1) {
+                            if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+
+                            int section = ny >> 4;
+                            byte dirtyDat = (byte) ((xInd & 0x3) | ((section & 0xF) << 2) | ((zInd & 0x3) << 6));
+                            neighborsToRemesh.add(dirtyDat);
+                        }
+
                         pendingBlockPropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight));
                     }
                 }
