@@ -13,6 +13,7 @@ public class ChunkSection {
 	private Mesh mesh = null;
 	private Mesh waterMesh = null;
 	private final IntArrayList lightBlocks = new IntArrayList();
+	private final IntArrayList lBlockRemovals = new IntArrayList();
 
 	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
 		lightLevels = skylightData;
@@ -43,6 +44,7 @@ public class ChunkSection {
 		} else if (block == Blocks.AIR && Texture.lightLevels[oldBlock] > 0) {
 			int data = (x & 0x1F) | ((y & 0xFF) << 5) | ((z & 0x1F) << 13) | ((Texture.lightLevels[oldBlock] & 0xFF) << 18);
 
+			lBlockRemovals.add(data);
 			lightBlocks.removeIf(item -> item == data);
 		}
 
@@ -77,6 +79,7 @@ public class ChunkSection {
 	public IntArrayList getLightBlocks() {
 		return this.lightBlocks;
 	}
+	public IntArrayList getLremovals() {return this.lBlockRemovals;}
 
 	public SectionMeshResult meshResult;
 	public void meshSection(GreedyMesher.SectionContext ctx) {
