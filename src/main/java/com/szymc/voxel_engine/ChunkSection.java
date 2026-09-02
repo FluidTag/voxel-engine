@@ -1,6 +1,7 @@
 package com.szymc.voxel_engine;
 import java.util.Arrays;
 
+import it.unimi.dsi.fastutil.ints.Int2ByteOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
@@ -14,6 +15,7 @@ public class ChunkSection {
 	private Mesh waterMesh = null;
 	private final IntArrayList lightBlocks = new IntArrayList();
 	private final IntArrayList lBlockRemovals = new IntArrayList();
+	private final Int2ByteOpenHashMap lBlockExtChunksEffected = new Int2ByteOpenHashMap(); // Used exclusively by LightingTask, stored in here by it
 
 	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
 		lightLevels = skylightData;
@@ -80,6 +82,7 @@ public class ChunkSection {
 		return this.lightBlocks;
 	}
 	public IntArrayList getLremovals() {return this.lBlockRemovals;}
+	public Int2ByteOpenHashMap getlBlockExtChunksEffected() {return this.lBlockExtChunksEffected;}
 
 	public SectionMeshResult meshResult;
 	public void meshSection(GreedyMesher.SectionContext ctx) {

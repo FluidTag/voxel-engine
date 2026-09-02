@@ -2,10 +2,7 @@ package com.szymc.voxel_engine;
 
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.bytes.ByteOpenHashSet;
-import it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.*;
 
 import java.util.Arrays;
 
@@ -72,8 +69,8 @@ public class LightingTask {
     }
 
     // Pack the light level (0-15) into bits 22-25
-    private static int packLightsource(int x, int y, int z, int light, boolean negativeLight, boolean fromSource) {
-        return ((x + 32) & 0x7F) | (((y & 0xFF) << 7)) | (((z + 32) & 0x7F) << 15) | ((light & 0xF) << 22) | ((negativeLight ? 1 : 0) << 26) | ((fromSource ? 1 : 0) << 27);
+    private static int packLightsource(int x, int y, int z, int light, boolean fromSource) {
+        return ((x + 32) & 0x7F) | (((y & 0xFF) << 7)) | (((z + 32) & 0x7F) << 15) | ((light & 0xF) << 22) | ((fromSource ? 1 : 0) << 26);
     }
 
     private final static int[][] directions = {
@@ -86,7 +83,9 @@ public class LightingTask {
     private final static ThreadLocal<IntArrayFIFOQueue> tPendingLightPropQueue = ThreadLocal.withInitial(() -> new IntArrayFIFOQueue(4089));
     private final static ThreadLocal<ChunkColumn[]> tTempChunkMap = ThreadLocal.withInitial(() -> new ChunkColumn[9]);
     private final static ThreadLocal<byte[]> tChunkLightPad = ThreadLocal.withInitial(() -> new byte[256*64*64]);
-    private final static ThreadLocal<Int2BooleanOpenHashMap> tNegativeVisited = ThreadLocal.withInitial(Int2BooleanOpenHashMap::new);
+    private static byte generateDirtyKey(int xInd, int sec, int zInd) {
+        return (byte) ((xInd & 0x3) | ((sec & 0xF) << 2) | ((zInd & 0x3) << 6));
+    }
 
     public void updateBlockLighting() {
         IntArrayFIFOQueue pendingBlockPropQueue = tPendingLightPropQueue.get();
@@ -96,9 +95,6 @@ public class LightingTask {
         tempChunkMap[0] = xMinorZMinor; tempChunkMap[1] = zMinor; tempChunkMap[2] = xMajorZMinor;
         tempChunkMap[3] = xMinor; tempChunkMap[4] = chunk; tempChunkMap[5] = xMajor;
         tempChunkMap[6] = xMinorZMajor; tempChunkMap[7] = zMajor; tempChunkMap[8] = xMajorZMajor;
-
-        Int2BooleanOpenHashMap negativeVisited = tNegativeVisited.get();
-        negativeVisited.clear();
 
         for (int z = 0; z < 3; z++) {
             for (int x = 0; x < 3; x++) {
@@ -121,22 +117,39 @@ public class LightingTask {
                         if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
 
                         setLocalBlockLevel(ax, sy, az, (byte) light);
-                        pendingBlockPropQueue.enqueue(packLightsource(ax-16, sy, az-16, light, false, (x == 1 && z == 1)));
+                        pendingBlockPropQueue.enqueue(packLightsource(ax-16, sy, az-16, light, (x == 1 && z == 1)));
                     }
 
                     IntArrayList removals = section.getLremovals();
                     IntIterator it = removals.listIterator();
                     while (it.hasNext()) {
                         int dat = it.nextInt();
-                        int sx = dat & 0x1F;
-                        int sy = ((dat >>> 5) & 0xFF) + (16*sectorI);
-                        int sz = (dat >>> 13) & 0x1F;
-                        int light = (dat >>> 18) & 0xFF;
+                        //int sx = dat & 0x1F;
+                        //int sy = ((dat >>> 5) & 0xFF) + (16*sectorI);
+                        //int sz = (dat >>> 13) & 0x1F;
+                        //int light = (dat >>> 18) & 0xFF;
 
-                        int ax = sx + (x*32) - 16; int az = sz + (z*32) - 16;
-                        if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
+                        Int2ByteOpenHashMap mapChunksEffected = section.getlBlockExtChunksEffected();
+                        byte extChunksEffected = mapChunksEffected.remove(dat & 0x3FFFF);
 
-                        pendingBlockPropQueue.enqueue(packLightsource(ax-16, sy, az-16, light, true, (x == 1 && z == 1)));
+                        if (extChunksEffected != 0) {
+                            if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+
+                            if ((extChunksEffected & 1) == 1) neighborsToRemesh.add(generateDirtyKey(0, sectorI, 0));
+                            if (((extChunksEffected >>> 1) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(1, sectorI, 0));
+                            if (((extChunksEffected >>> 2) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(2, sectorI, 0));
+
+                            if (((extChunksEffected >>> 3) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(0, sectorI, 1));
+                            if (((extChunksEffected >>> 4) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(2, sectorI, 1));
+
+                            if (((extChunksEffected >>> 5) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(0, sectorI, 2));
+                            if (((extChunksEffected >>> 6) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(1, sectorI, 2));
+                            if (((extChunksEffected >>> 7) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(2, sectorI, 2));
+
+                            System.out.println(String.format("%8s", Integer.toBinaryString(Byte.toUnsignedInt(extChunksEffected)))
+                                    .replace(' ', '0'));
+                        }
+
                         it.remove();
                     }
                 }
@@ -149,12 +162,7 @@ public class LightingTask {
             int y = (node >>> 7) & 0xFF;
             int z = ((node >>> 15) & 0x7F) - 32;
             int currentLight = (node >>> 22) & 0xF;
-            boolean negativeLight = ((node >>> 26) & 1) == 1;
-            boolean isSource = ((node >>> 27) & 1) == 1;
-
-            if (negativeLight && negativeVisited.containsKey(node)) {
-                continue;
-            } else if (negativeLight) negativeVisited.put(node, true);
+            boolean isSource = ((node >>> 26) & 1) == 1;
 
             int ax = x + 16, az = z + 16;
             if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
@@ -176,20 +184,37 @@ public class LightingTask {
                 byte atLight = readLocalBlockLevel(anx, ny, anz);
                 byte requestedLight = (byte) (currentLight-1);
 
-                if (((atLight > requestedLight) || negativeLight) && (xInd != 1 || zInd != 1) && ((!negativeLight && isSource) || (negativeLight && !isSource))) {
+                if (atLight > requestedLight && (xInd != 1 || zInd != 1) && isSource) {
                     if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
 
                     int section = ny >> 4;
-                    byte dirtyDat = (byte) ((xInd & 0x3) | ((section & 0xF) << 2) | ((zInd & 0x3) << 6));
-                    neighborsToRemesh.add(dirtyDat);
+                    byte dirtyDat = generateDirtyKey(xInd, section, zInd);
+                    boolean success = neighborsToRemesh.add(dirtyDat);
+
+                    if (success) {
+                        Int2ByteOpenHashMap lightToEffected = chunk.getSection(section).getlBlockExtChunksEffected(); // Source chunk
+                        int key = ((nx & 31) & 0x1F) | (((ny&15) & 0xFF) << 5) | (((nz & 31) & 0x1F) << 13); // Note to self, this is wrong, need to include local chunk position in propogation nodes. Switch to long2byte ok
+                        byte prev = lightToEffected.get(key);
+
+                        if (xInd == 0 && zInd == 0) lightToEffected.put(key, (byte) (prev | 1));
+                        if (xInd == 1 && zInd == 0) lightToEffected.put(key, (byte) (prev | (1 << 1)));
+                        if (xInd == 2 && zInd == 0) lightToEffected.put(key, (byte) (prev | (1 << 2)));
+
+                        if (xInd == 0 && zInd == 1) lightToEffected.put(key, (byte) (prev | (1 << 3)));
+                        if (xInd == 2 && zInd == 1) lightToEffected.put(key, (byte) (prev | (1 << 4)));
+
+                        if (xInd == 0 && zInd == 2) lightToEffected.put(key, (byte) (prev | (1 << 5)));
+                        if (xInd == 1 && zInd == 2) lightToEffected.put(key, (byte) (prev | (1 << 6)));
+                        if (xInd == 2 && zInd == 2) lightToEffected.put(key, (byte) (prev | (1 << 7)));
+                    }
                 }
 
-                if (negativeLight || requestedLight > atLight) {
+                if (requestedLight > atLight) {
                     byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
 
                     if ((block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block])) {
-                        if (!negativeLight) setLocalBlockLevel(anx, ny, anz, requestedLight);
-                        pendingBlockPropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, negativeLight, isSource));
+                        setLocalBlockLevel(anx, ny, anz, requestedLight);
+                        pendingBlockPropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, isSource));
                     }
                 }
             }
@@ -219,11 +244,11 @@ public class LightingTask {
                     byte block = targetChunk.getBlockInChunk(lx&31, y, lz&31);
                     if (block == Blocks.AIR) {
                         setLocalSkyLevel(ax, y, az, (byte) skyLight);
-                        if (skyLight > 0) pendingSkyPropQueue.enqueue(packLightsource(lx, y, lz, skyLight, false, (xInd == 1 && zInd == 1)));
+                        if (skyLight > 0) pendingSkyPropQueue.enqueue(packLightsource(lx, y, lz, skyLight, (xInd == 1 && zInd == 1)));
                     } else if (Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]) {
                         skyLight = Math.max(0, skyLight-1);
                         setLocalSkyLevel(ax, y, az, (byte) skyLight);
-                        if (skyLight > 0) pendingSkyPropQueue.enqueue(packLightsource(lx, y, lz, skyLight, false, (xInd == 1 && zInd == 1)));
+                        if (skyLight > 0) pendingSkyPropQueue.enqueue(packLightsource(lx, y, lz, skyLight, (xInd == 1 && zInd == 1)));
                     } else {
                         break;
                     }
@@ -263,7 +288,7 @@ public class LightingTask {
 
                     if ((block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block])) {
                         setLocalSkyLevel(anx, ny, anz, requestedLight);
-                        pendingSkyPropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, false, (xInd == 1 && zInd == 1)));
+                        pendingSkyPropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, (xInd == 1 && zInd == 1)));
                     }
                 }
             }
