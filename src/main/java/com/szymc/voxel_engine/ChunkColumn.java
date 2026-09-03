@@ -13,7 +13,8 @@ public class ChunkColumn {
 	private int worldZ = 0;
 	public ChunkState state = ChunkState.EMPTY;
 	public int dirtyBits = 0; // First 16 bits used to denote if a chunk section is dirty (Room to expand to 32 height later)
-	
+	public boolean processLightDirty = false;
+
 	public String toString() {
 		return "Chunk (" + worldX + ", " + worldZ + ")\n" + state + "\n" +
 					"Terrain Queued: " + terrainQueued.get() + "\n" +

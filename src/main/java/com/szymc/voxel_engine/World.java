@@ -149,7 +149,7 @@ public class World {
 					}
 				}
 
-				boolean needsDirtyRemesh = (chunk.state == ChunkState.MESHED && chunk.dirtyBits > 0);
+				boolean needsDirtyRemesh = ((chunk.state == ChunkState.MESHED || (chunk.processLightDirty && chunk.state == ChunkState.LIGHT)) && chunk.dirtyBits > 0);
 
 				if ((chunk.state == ChunkState.LIGHT || needsDirtyRemesh) &&
 						fullNeighborsQualify(ChunkState.LIGHT, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin)) {
@@ -252,6 +252,8 @@ public class World {
 
 					ChunkColumn targetChunk = getLoadedChunkAtPos(task.cx + xInd, task.cz + zInd);
 					if (targetChunk != null && targetChunk.state == ChunkState.MESHED) {
+						targetChunk.dirtyBits = (1 << sectorI);
+						targetChunk.processLightDirty = true;
 						targetChunk.state = ChunkState.DECORATED;
 					}
 				}
@@ -270,7 +272,8 @@ public class World {
 			
 			// Directly modifies chunk data, this is safe, 
 			// no other will read or write or access till finalized
-			
+			chunk.processLightDirty = false;
+
 			for (int i = 0; i < 16; i++) {
 				ChunkSection sec = chunk.getSection(i);
 				if (sec == null) continue;
