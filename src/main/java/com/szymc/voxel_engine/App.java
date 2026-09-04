@@ -121,7 +121,8 @@ public class App {
 				int light = -1;
 				ChunkColumn c = mainWorld.getLoadedChunkAtPos(wx>>5, wz>>5);
 				if (c != null) {
-					light = c.getSection(wy>>4).getLightingData()[(wy&15)*32*32 + (wz&31)*32 + (wx&31)];
+					ChunkSection sec = c.getSection(wy>>4);
+					if (sec != null) light = c.getSection(wy>>4).getLightingData()[(wy&15)*32*32 + (wz&31)*32 + (wx&31)];
 				}
 
 				BiomeType surfaceBiome = TerrainTask.getBiomeType(surfaceHeight, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));

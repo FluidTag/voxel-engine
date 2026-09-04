@@ -142,7 +142,7 @@ public class World {
 						terrainPool.execute(new PriorityGenTask(0, () -> {
 							LightingTask task = new LightingTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
 							task.updateBlockLighting();
-							task.updateSkyLighting();
+							task.updateSkyLighting(false);
 
 							completedLighting.add(task);
 						}));
@@ -249,11 +249,14 @@ public class World {
 					int xInd = (dat & 0x3) - 1;
 					int sectorI = (dat >>> 2) & 0xF; // Can be used for dirty target remesh later
 					int zInd = ((dat >>> 6) & 0x3) - 1;
-
+					System.out.println("Neighbor remesh at sector: " + sectorI);
 					ChunkColumn targetChunk = getLoadedChunkAtPos(task.cx + xInd, task.cz + zInd);
 					if (targetChunk != null && targetChunk.state == ChunkState.MESHED) {
-						targetChunk.dirtyBits = (1 << sectorI);
+						if (sectorI != 15) {
+							targetChunk.dirtyBits |= (1 << sectorI);
+						} else targetChunk.dirtyBits = 0;
 						targetChunk.processLightDirty = true;
+
 						targetChunk.state = ChunkState.DECORATED;
 					}
 				}
@@ -299,7 +302,7 @@ public class World {
 	int lastZ = 99999999;
 
 	// Block Breaks, Direct Computation
-	public void updateChunk(int cx, int y, int cz) {
+	public void updateChunk(int cx, int y, int cz, int bcx, int bcz) {
 		ChunkColumn chunk = getLoadedChunkAtPos(cx, cz);
 		chunk.state = ChunkState.DECORATED;
 
@@ -317,8 +320,9 @@ public class World {
 		if (chunk.lightQueued.compareAndSet(false, true) && fullNeighborsQualify(ChunkState.DECORATED, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin)) {
 			terrainPool.execute(new PriorityGenTask(0, () -> {
 				LightingTask task = new LightingTask(cx, cz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
+				task.addSkylightChunksToRemesh(bcx, y, bcz);
+				task.updateSkyLighting(true);
 
-				task.updateSkyLighting();
 				task.updateBlockLighting();
 				completedLighting.add(task);
 			}));

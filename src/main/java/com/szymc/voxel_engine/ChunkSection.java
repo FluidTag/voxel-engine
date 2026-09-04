@@ -16,6 +16,7 @@ public class ChunkSection {
 	private final IntArrayList lightBlocks = new IntArrayList();
 	private final IntArrayList lBlockRemovals = new IntArrayList();
 	private final Int2ByteOpenHashMap lBlockExtChunksEffected = new Int2ByteOpenHashMap(); // Used exclusively by LightingTask, stored in here by it
+	private final Int2ByteOpenHashMap lSkyExtChunksEffected = new Int2ByteOpenHashMap();
 
 	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
 		lightLevels = skylightData;
@@ -83,6 +84,7 @@ public class ChunkSection {
 	}
 	public IntArrayList getLremovals() {return this.lBlockRemovals;}
 	public Int2ByteOpenHashMap getlBlockExtChunksEffected() {return this.lBlockExtChunksEffected;}
+	public Int2ByteOpenHashMap getlSkyExtChunksEffected() {return this.lSkyExtChunksEffected;}
 
 	public SectionMeshResult meshResult;
 	public void meshSection(GreedyMesher.SectionContext ctx) {
