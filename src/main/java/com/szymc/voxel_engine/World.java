@@ -247,14 +247,12 @@ public class World {
 				while (it.hasNext()) {
 					byte dat = it.nextByte();
 					int xInd = (dat & 0x3) - 1;
-					int sectorI = (dat >>> 2) & 0xF; // Can be used for dirty target remesh later
+					int sectorI = (dat >>> 2) & 0xF;
 					int zInd = ((dat >>> 6) & 0x3) - 1;
-					System.out.println("Neighbor remesh at sector: " + sectorI);
+					System.out.println("Neighbor remesh at sector: " + xInd + ", " + zInd + ": " + sectorI);
 					ChunkColumn targetChunk = getLoadedChunkAtPos(task.cx + xInd, task.cz + zInd);
-					if (targetChunk != null && targetChunk.state == ChunkState.MESHED) {
-						if (sectorI != 15) {
-							targetChunk.dirtyBits |= (1 << sectorI);
-						} else targetChunk.dirtyBits = 0;
+					if (targetChunk != null) {
+						targetChunk.dirtyBits |= (1 << sectorI);
 						targetChunk.processLightDirty = true;
 
 						targetChunk.state = ChunkState.DECORATED;

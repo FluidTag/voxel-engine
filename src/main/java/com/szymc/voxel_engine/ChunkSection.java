@@ -2,6 +2,7 @@ package com.szymc.voxel_engine;
 import java.util.Arrays;
 
 import it.unimi.dsi.fastutil.ints.Int2ByteOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
@@ -15,8 +16,11 @@ public class ChunkSection {
 	private Mesh waterMesh = null;
 	private final IntArrayList lightBlocks = new IntArrayList();
 	private final IntArrayList lBlockRemovals = new IntArrayList();
-	private final Int2ByteOpenHashMap lBlockExtChunksEffected = new Int2ByteOpenHashMap(); // Used exclusively by LightingTask, stored in here by it
-	private final Int2ByteOpenHashMap lSkyExtChunksEffected = new Int2ByteOpenHashMap();
+
+	//           Neighbors Used            xz Indices              section data           57 bits total
+	// Format: [1 bit][1 bit][1 bit][4 bits][4 bits][4 bits][16 bits][16 bits][16 bits]
+	private final Int2LongOpenHashMap lBlockExtChunksEffected = new Int2LongOpenHashMap(); // Used exclusively by LightingTask, stored in here by it
+	private final Int2LongOpenHashMap lSkyExtChunksEffected = new Int2LongOpenHashMap();
 
 	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
 		lightLevels = skylightData;
@@ -83,8 +87,8 @@ public class ChunkSection {
 		return this.lightBlocks;
 	}
 	public IntArrayList getLremovals() {return this.lBlockRemovals;}
-	public Int2ByteOpenHashMap getlBlockExtChunksEffected() {return this.lBlockExtChunksEffected;}
-	public Int2ByteOpenHashMap getlSkyExtChunksEffected() {return this.lSkyExtChunksEffected;}
+	public Int2LongOpenHashMap getlBlockExtChunksEffected() {return this.lBlockExtChunksEffected;}
+	public Int2LongOpenHashMap getlSkyExtChunksEffected() {return this.lSkyExtChunksEffected;}
 
 	public SectionMeshResult meshResult;
 	public void meshSection(GreedyMesher.SectionContext ctx) {

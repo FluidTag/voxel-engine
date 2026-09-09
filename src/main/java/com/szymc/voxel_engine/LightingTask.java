@@ -4,13 +4,14 @@ import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.bytes.ByteOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.ints.*;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 
 import java.util.Arrays;
 
 public class LightingTask {
     public int cx, cz;
     public ChunkColumn chunk;
-    public ByteOpenHashSet neighborsToRemesh = null;
+    public ByteOpenHashSet neighborsToRemesh;
     
     private ChunkColumn xMajor, xMinor, zMajor, zMinor,   xMajorZMajor, xMajorZMinor, xMinorZMajor, xMinorZMinor;
     private byte[] scratchPad;
@@ -83,6 +84,36 @@ public class LightingTask {
     private final static ThreadLocal<LongArrayFIFOQueue> tPendingLightPropQueue = ThreadLocal.withInitial(() -> new LongArrayFIFOQueue(4089));
     private final static ThreadLocal<ChunkColumn[]> tTempChunkMap = ThreadLocal.withInitial(() -> new ChunkColumn[9]);
     private final static ThreadLocal<byte[]> tChunkLightPad = ThreadLocal.withInitial(() -> new byte[256*64*64]);
+
+    private static long addDirtyToDataLong(long original, int xInd, int section, int zInd) {
+        long presence = (original & 0x7L);
+        long payload = ((original >>> 3) & 0xFFFL);
+        long targetKey = (xInd & 0x3) | ((zInd & 0x3) << 2);
+        long repTarget = targetKey * 0x111L;
+        long diff = payload ^ repTarget;
+        long zeroMatches = (~diff & (diff - 0x111L)) & 0x888L;
+        long presenceMask = ((presence & 1L) << 3) | ((presence & 2L) << 6) | ((presence & 4L) << 9);
+        long validMatches = zeroMatches & presenceMask;
+
+        int targetIndex = validMatches == 0 ? -1 : (Long.numberOfTrailingZeros(validMatches) - 3) >> 2;
+
+        long data = original;
+        if (targetIndex == -1) {
+            targetIndex = Long.numberOfTrailingZeros(~(original & 0x7));
+            if (targetIndex >= 3) {
+                return original;
+            }
+
+            data = original | (1L << targetIndex);
+            data |= (long) (xInd & 0x3) << (3L + 4L*targetIndex);
+            data |= (long) (zInd & 0x3) << (3L + 4L*targetIndex + 2L);
+        }
+
+        data |= (1L << (long)(3*1 + 3*4 + 16*targetIndex + section));
+
+        return data;
+    }
+
     private static byte generateDirtyKey(int xInd, int sec, int zInd) {
         return (byte) ((xInd & 0x3) | ((sec & 0xF) << 2) | ((zInd & 0x3) << 6));
     }
@@ -141,27 +172,22 @@ public class LightingTask {
                     IntIterator it = removals.listIterator();
                     while (it.hasNext()) {
                         int dat = it.nextInt();
-                        //int sx = dat & 0x1F;
-                        //int sy = ((dat >>> 5) & 0xFF) + (16*sectorI);
-                        //int sz = (dat >>> 13) & 0x1F;
-                        //int light = (dat >>> 18) & 0xFF;
 
-                        Int2ByteOpenHashMap mapChunksEffected = section.getlBlockExtChunksEffected();
-                        byte extChunksEffected = mapChunksEffected.remove(dat & 0x3FFFF);
+                        Int2LongOpenHashMap mapChunksEffected = section.getlBlockExtChunksEffected();
+                        long extChunksEffected = mapChunksEffected.remove(dat & 0x3FFFF);
 
-                        if (extChunksEffected != 0) {
-                            if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+                        for (int i = 0; i < 3; i++) {
+                            if ((extChunksEffected >>> i & 1) == 0) continue;
+                            int xInd = Math.toIntExact(((extChunksEffected >>> (long) (3 + 4 * i)) & 0x3L));
+                            int zInd = Math.toIntExact(((extChunksEffected >>> (long) (3 + 4 * i + 2) & 0x3L)));
+                            int data = Math.toIntExact(((extChunksEffected >>> (long) (3 + 4 * 3 + 16 * i)) & 0xFFFFL));
 
-                            if ((extChunksEffected & 1) == 1) neighborsToRemesh.add(generateDirtyKey(0, sectorI, 0));
-                            if (((extChunksEffected >>> 1) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(1, sectorI, 0));
-                            if (((extChunksEffected >>> 2) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(2, sectorI, 0));
-
-                            if (((extChunksEffected >>> 3) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(0, sectorI, 1));
-                            if (((extChunksEffected >>> 4) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(2, sectorI, 1));
-
-                            if (((extChunksEffected >>> 5) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(0, sectorI, 2));
-                            if (((extChunksEffected >>> 6) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(1, sectorI, 2));
-                            if (((extChunksEffected >>> 7) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(2, sectorI, 2));
+                            while (data != 0) {
+                                int sec = Integer.numberOfTrailingZeros(data);
+                                if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+                                neighborsToRemesh.add(generateDirtyKey(xInd, sec, zInd));
+                                data &= (data-1);
+                            }
                         }
 
                         it.remove();
@@ -204,27 +230,16 @@ public class LightingTask {
                 boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
 
                 if (isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
+                    int newSection = ny >> 4;
                     if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+                    neighborsToRemesh.add(generateDirtyKey(xInd, newSection, zInd));
 
-                    int section = ny >> 4;
-                    byte dirtyDat = generateDirtyKey(xInd, section, zInd);
-                    neighborsToRemesh.add(dirtyDat);
-
-                    Int2ByteOpenHashMap lightToEffected = chunk.getSection(sourceY>>4).getlBlockExtChunksEffected(); // Source chunk
+                    Int2LongOpenHashMap lightToEffected = chunk.getSection(sourceY>>4).getlBlockExtChunksEffected(); // Source chunk
 
                     int key = ((sourceX & 31) & 0x1F) | (((sourceY&15) & 0xFF) << 5) | (((sourceZ & 31) & 0x1F) << 13);
-                    byte prev = lightToEffected.get(key);
+                    long prev = lightToEffected.get(key);
 
-                    if (xInd == 0 && zInd == 0) lightToEffected.put(key, (byte) (prev | 1));
-                    if (xInd == 1 && zInd == 0) lightToEffected.put(key, (byte) (prev | (1 << 1)));
-                    if (xInd == 2 && zInd == 0) lightToEffected.put(key, (byte) (prev | (1 << 2)));
-
-                    if (xInd == 0 && zInd == 1) lightToEffected.put(key, (byte) (prev | (1 << 3)));
-                    if (xInd == 2 && zInd == 1) lightToEffected.put(key, (byte) (prev | (1 << 4)));
-
-                    if (xInd == 0 && zInd == 2) lightToEffected.put(key, (byte) (prev | (1 << 5)));
-                    if (xInd == 1 && zInd == 2) lightToEffected.put(key, (byte) (prev | (1 << 6)));
-                    if (xInd == 2 && zInd == 2) lightToEffected.put(key, (byte) (prev | (1 << 7)));
+                    lightToEffected.put(key, addDirtyToDataLong(prev, xInd, newSection, zInd));
                 }
 
                 if (requestedLight > atLight && isTransparent) {
@@ -241,23 +256,22 @@ public class LightingTask {
         // Section 15 is normal now, signal for all. Temporary this is CORRECT having 15 remesh all to test update simply
         int sectorI = chunkY >> 4;
 
-        Int2ByteOpenHashMap mapChunksEffected = chunk.getSection(sectorI).getlSkyExtChunksEffected();
-        int dat = ((chunkX & 31) & 0x1F) | (((chunkY&15) & 0xFF) << 5) | (((chunkZ & 31) & 0x1F) << 13);
-        byte extChunksEffected = mapChunksEffected.remove(dat);
+        Int2LongOpenHashMap mapChunksEffected = chunk.getSection(sectorI).getlSkyExtChunksEffected();
+        int key = ((chunkX & 31) & 0x1F) | (((chunkY&15) & 0xFF) << 5) | (((chunkZ & 31) & 0x1F) << 13);
+        long extChunksEffected = mapChunksEffected.remove(key);
 
-        if (extChunksEffected != 0) {
-            if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+        for (int i = 0; i < 3; i++) {
+            if ((extChunksEffected >>> i & 1) == 0) continue;
+            int xInd = Math.toIntExact(((extChunksEffected >>> (long) (3 + 4 * i)) & 0x3L));
+            int zInd = Math.toIntExact(((extChunksEffected >>> (long) (3 + 4 * i + 2) & 0x3L)));
+            int data = Math.toIntExact(((extChunksEffected >>> (long) (3 + 4 * 3 + 16 * i)) & 0xFFFFL));
 
-            if ((extChunksEffected & 1) == 1) neighborsToRemesh.add(generateDirtyKey(0, sectorI, 0));
-            if (((extChunksEffected >>> 1) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(1, sectorI, 0));
-            if (((extChunksEffected >>> 2) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(2, sectorI, 0));
-
-            if (((extChunksEffected >>> 3) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(0, sectorI, 1));
-            if (((extChunksEffected >>> 4) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(2, sectorI, 1));
-
-            if (((extChunksEffected >>> 5) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(0, sectorI, 2));
-            if (((extChunksEffected >>> 6) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(1, sectorI, 2));
-            if (((extChunksEffected >>> 7) & 1) == 1) neighborsToRemesh.add(generateDirtyKey(2, sectorI, 2));
+            while (data != 0) {
+                int sec = Integer.numberOfTrailingZeros(data);
+                if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+                neighborsToRemesh.add(generateDirtyKey(xInd, sec, zInd));
+                data &= (data-1);
+            }
         }
     }
 
@@ -309,6 +323,9 @@ public class LightingTask {
 
             int ax = x + 16, az = z + 16;
             if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
+            int nodeXInd = (x < 0) ? 0 : (x < 32 ? 1 : 2);
+
+            int nodeZInd = (z < 0) ? 0 : (z < 32 ? 1 : 2);
 
             if (currentLight <= 1) continue;
             for (int[] dir : directions) {
@@ -331,25 +348,21 @@ public class LightingTask {
 
                 if (playerCaused && isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
                     if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+                    neighborsToRemesh.add(generateDirtyKey(xInd, ny >> 4, zInd));
+                }
 
-                    int section = y >> 4;
-                    byte dirtyDat = generateDirtyKey(xInd, ny>>4, zInd);
-                    neighborsToRemesh.add(dirtyDat);
+                if ((nodeXInd == 1 && nodeZInd == 1) && (xInd != 1 || zInd != 1) && isSource && requestedLight > atLight && isTransparent && playerCaused) {
+                    // 1. Get the section using sourceY instead of current node Y
+                    ChunkSection sourceSection = chunk.getSection(sourceY >> 4);
+                    if (sourceSection != null) {
+                        Int2LongOpenHashMap lightToEffected = sourceSection.getlSkyExtChunksEffected();
 
-                    Int2ByteOpenHashMap lightToEffected = chunk.getSection(section).getlSkyExtChunksEffected();
-                    int key = ((x & 31) & 0x1F) | (((y&15) & 0xFF) << 5) | (((z & 31) & 0x1F) << 13);
-                    byte prev = lightToEffected.get(key);
+                        // 2. Build the key using source coordinates (sourceX, sourceY, sourceZ)
+                        int key = (sourceX & 0x1F) | ((sourceY & 0x0F) << 5) | ((sourceZ & 0x1F) << 13);
+                        long prev = lightToEffected.get(key);
 
-                    if (xInd == 0 && zInd == 0) lightToEffected.put(key, (byte) (prev | 1));
-                    if (xInd == 1 && zInd == 0) lightToEffected.put(key, (byte) (prev | (1 << 1)));
-                    if (xInd == 2 && zInd == 0) lightToEffected.put(key, (byte) (prev | (1 << 2)));
-
-                    if (xInd == 0 && zInd == 1) lightToEffected.put(key, (byte) (prev | (1 << 3)));
-                    if (xInd == 2 && zInd == 1) lightToEffected.put(key, (byte) (prev | (1 << 4)));
-
-                    if (xInd == 0 && zInd == 2) lightToEffected.put(key, (byte) (prev | (1 << 5)));
-                    if (xInd == 1 && zInd == 2) lightToEffected.put(key, (byte) (prev | (1 << 6)));
-                    if (xInd == 2 && zInd == 2) lightToEffected.put(key, (byte) (prev | (1 << 7)));
+                        lightToEffected.put(key, addDirtyToDataLong(prev, xInd, ny >> 4, zInd));
+                    }
                 }
 
                 if (requestedLight > atLight) {
