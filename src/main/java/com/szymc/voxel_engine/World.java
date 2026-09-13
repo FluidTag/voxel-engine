@@ -36,7 +36,7 @@ public class World {
 	private final Long2ObjectMap<ChunkColumn> loadedColumns = new Long2ObjectOpenHashMap<>();
 	private final Int2ObjectMap<Entity> entityMap = new Int2ObjectOpenHashMap<>();
 
-	private final int renderDistance = 4;
+	private final int renderDistance = 15;
 	private final long winId;
 	
 	public World(long winId) {
@@ -142,7 +142,7 @@ public class World {
 							LightingTask task = new LightingTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
 							task.clearChunkLighting();
 							task.updateBlockLighting();
-							task.updateSkyLighting(false);
+							task.updateSkyLighting();
 
 							completedLighting.add(task);
 						}));

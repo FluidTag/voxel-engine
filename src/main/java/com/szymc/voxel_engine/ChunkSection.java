@@ -17,10 +17,6 @@ public class ChunkSection {
 	private final IntArrayList lightBlocks = new IntArrayList();
 	private final IntArrayList lBlockRemovals = new IntArrayList();
 
-	//           Neighbors Used            xz Indices              section data           57 bits total
-	// Format: [1 bit][1 bit][1 bit][4 bits][4 bits][4 bits][16 bits][16 bits][16 bits]
-	private final Int2LongOpenHashMap lBlockExtChunksEffected = new Int2LongOpenHashMap(); // Used exclusively by LightingTask, stored in here by it
-
 	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
 		lightLevels = skylightData;
 		for (int y = 0; y < 16; y++) {
@@ -86,7 +82,6 @@ public class ChunkSection {
 		return this.lightBlocks;
 	}
 	public IntArrayList getLremovals() {return this.lBlockRemovals;}
-	public Int2LongOpenHashMap getlBlockExtChunksEffected() {return this.lBlockExtChunksEffected;}
 
 	public SectionMeshResult meshResult;
 	public void meshSection(GreedyMesher.SectionContext ctx) {

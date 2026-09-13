@@ -11,8 +11,9 @@ public class LightingTask {
     public ChunkColumn chunk;
     public ByteOpenHashSet neighborsToRemesh;
 
-    private ChunkColumn xMajor, xMinor, zMajor, zMinor,   xMajorZMajor, xMajorZMinor, xMinorZMajor, xMinorZMinor;
+    private final ChunkColumn xMajor, xMinor, zMajor, zMinor,   xMajorZMajor, xMajorZMinor, xMinorZMajor, xMinorZMinor;
     private byte[] scratchPad;
+    private ChunkColumn[] tempChunkMap;
     public LightingTask(int cx, int cz,
                         ChunkColumn chunk, ChunkColumn xMajor, ChunkColumn xMinor, ChunkColumn zMajor, ChunkColumn zMinor,
                         ChunkColumn xMajorZMajor, ChunkColumn xMajorZMinor, ChunkColumn xMinorZMajor, ChunkColumn xMinorZMinor) {
@@ -29,6 +30,11 @@ public class LightingTask {
 
         this.scratchPad = tChunkLightPad.get();
         Arrays.fill(scratchPad, (byte)0);
+
+        tempChunkMap = tTempChunkMap.get();
+        tempChunkMap[0] = xMinorZMinor; tempChunkMap[1] = zMinor; tempChunkMap[2] = xMajorZMinor;
+        tempChunkMap[3] = xMinor; tempChunkMap[4] = chunk; tempChunkMap[5] = xMajor;
+        tempChunkMap[6] = xMinorZMajor; tempChunkMap[7] = zMajor; tempChunkMap[8] = xMajorZMajor;
     }
 
     public void clearChunkLighting() {
@@ -87,47 +93,109 @@ public class LightingTask {
     private final static ThreadLocal<ChunkColumn[]> tTempChunkMap = ThreadLocal.withInitial(() -> new ChunkColumn[9]);
     private final static ThreadLocal<byte[]> tChunkLightPad = ThreadLocal.withInitial(() -> new byte[256*64*64]);
 
-    private static long addDirtyToDataLong(long original, int xInd, int section, int zInd) {
-        long presence = (original & 0x7L);
-        long payload = ((original >>> 3) & 0xFFFL);
-        long targetKey = (xInd & 0x3) | ((zInd & 0x3) << 2);
-        long repTarget = targetKey * 0x111L;
-        long diff = payload ^ repTarget;
-        long zeroMatches = (~diff & (diff - 0x111L)) & 0x888L;
-        long presenceMask = ((presence & 1L) << 3) | ((presence & 2L) << 6) | ((presence & 4L) << 9);
-        long validMatches = zeroMatches & presenceMask;
-
-        int targetIndex = validMatches == 0 ? -1 : (Long.numberOfTrailingZeros(validMatches) - 3) >> 2;
-
-        long data = original;
-        if (targetIndex == -1) {
-            targetIndex = Long.numberOfTrailingZeros(~(original & 0x7));
-            if (targetIndex >= 3) {
-                return original;
-            }
-
-            data = original | (1L << targetIndex);
-            data |= (long) (xInd & 0x3) << (3L + 4L*targetIndex);
-            data |= (long) (zInd & 0x3) << (3L + 4L*targetIndex + 2L);
-        }
-
-        data |= (1L << (long)(3*1 + 3*4 + 16*targetIndex + section));
-
-        return data;
-    }
-
     private static byte generateDirtyKey(int xInd, int sec, int zInd) {
         return (byte) ((xInd & 0x3) | ((sec & 0xF) << 2) | ((zInd & 0x3) << 6));
     }
 
+    private void processSkylightProp(LongArrayFIFOQueue pendingSkylightPropQueue, ChunkColumn[] tempChunkMap, boolean remeshAndDirect) {
+        while (!pendingSkylightPropQueue.isEmpty()) {
+            long node = pendingSkylightPropQueue.dequeueLong();
+            int x = (int) ((node & 0x7FL) - 32);
+            int y = (int) ((node >>> 7L) & 0xFFL);
+            int z = (int) (((node >>> 15L) & 0x7FL) - 32);
+            int currentLight = (int) ((node >>> 22L) & 0xF);
+            boolean isSource = ((node >>> 26L) & 1L) == 1;
+            int sourceX = (int) ((node >>> 27L) & 0x1FL);
+            int sourceY = (int) ((node >>> 32L) & 0xFFL);
+            int sourceZ = (int) ((node >>> 40L) & 0x1FL);
+
+            int ax = x + 16, az = z + 16;
+            if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
+
+            if (currentLight <= 1) continue;
+            for (int[] dir : directions) {
+                int nx = x + dir[0];
+                int ny = y + dir[1];
+                int nz = z + dir[2];
+                int anx = nx + 16, anz = nz + 16;
+
+                if (anx < 0 || anx >= 64 || anz < 0 || anz >= 64 || ny < 0 || ny > 255) continue;
+
+                int xInd = (nx < 0) ? 0 : (nx < 32 ? 1 : 2);
+                int zInd = (nz < 0) ? 0 : (nz < 32 ? 1 : 2);
+                ChunkColumn targetChunk = tempChunkMap[zInd*3 + xInd];
+                if (targetChunk == null) continue;
+
+                byte atLight = remeshAndDirect ? targetChunk.getSkylight(nx&31, ny, nz&31) : readLocalSkyLevel(anx, ny, anz);
+                byte requestedLight = (byte) (currentLight-1);
+                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
+                boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
+
+                if (remeshAndDirect && isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
+                    int newSection = ny >> 4;
+                    if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+                    neighborsToRemesh.add(generateDirtyKey(xInd, newSection, zInd));
+                }
+
+                if (requestedLight > atLight && isTransparent) {
+                    if (remeshAndDirect) targetChunk.setSkylight(nx&31, ny, nz&31, requestedLight); else setLocalSkyLevel(anx, ny, anz, requestedLight);
+                    pendingSkylightPropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, isSource, sourceX, sourceY, sourceZ));
+                }
+            }
+        }
+    }
+
+    private void processBlockProp(LongArrayFIFOQueue pendingBlockPropQueue, ChunkColumn[] tempChunkMap, boolean remeshAndDirect) {
+        while (!pendingBlockPropQueue.isEmpty()) {
+            long node = pendingBlockPropQueue.dequeueLong();
+            int x = (int) ((node & 0x7FL) - 32);
+            int y = (int) ((node >>> 7L) & 0xFFL);
+            int z = (int) (((node >>> 15L) & 0x7FL) - 32);
+            int currentLight = (int) ((node >>> 22L) & 0xF);
+            boolean isSource = ((node >>> 26L) & 1L) == 1;
+            int sourceX = (int) ((node >>> 27L) & 0x1FL);
+            int sourceY = (int) ((node >>> 32L) & 0xFFL);
+            int sourceZ = (int) ((node >>> 40L) & 0x1FL);
+
+            int ax = x + 16, az = z + 16;
+            if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
+
+            if (currentLight <= 1) continue;
+            for (int[] dir : directions) {
+                int nx = x + dir[0];
+                int ny = y + dir[1];
+                int nz = z + dir[2];
+                int anx = nx + 16, anz = nz + 16;
+
+                if (anx < 0 || anx >= 64 || anz < 0 || anz >= 64 || ny < 0 || ny > 255) continue;
+
+                int xInd = (nx < 0) ? 0 : (nx < 32 ? 1 : 2);
+                int zInd = (nz < 0) ? 0 : (nz < 32 ? 1 : 2);
+                ChunkColumn targetChunk = tempChunkMap[zInd*3 + xInd];
+                if (targetChunk == null) continue;
+
+                byte atLight = remeshAndDirect ? targetChunk.getBlockLight(nx&31, ny, nz&31) : readLocalBlockLevel(anx, ny, anz);
+                byte requestedLight = (byte) (currentLight-1);
+                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
+                boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
+
+                if (remeshAndDirect && isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
+                    int newSection = ny >> 4;
+                    if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
+                    neighborsToRemesh.add(generateDirtyKey(xInd, newSection, zInd));
+                }
+
+                if (requestedLight > atLight && isTransparent) {
+                    if (remeshAndDirect) targetChunk.setBlockLight(nx&31, ny, nz&31, requestedLight); else setLocalBlockLevel(anx, ny, anz, requestedLight);
+                    pendingBlockPropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, isSource, sourceX, sourceY, sourceZ));
+                }
+            }
+        }
+    }
+
     public void updateBlockLighting() {
         LongArrayFIFOQueue pendingBlockPropQueue = tPendingLightPropQueue.get();
-        ChunkColumn[] tempChunkMap = tTempChunkMap.get();
         pendingBlockPropQueue.clear();
-
-        tempChunkMap[0] = xMinorZMinor; tempChunkMap[1] = zMinor; tempChunkMap[2] = xMajorZMinor;
-        tempChunkMap[3] = xMinor; tempChunkMap[4] = chunk; tempChunkMap[5] = xMajor;
-        tempChunkMap[6] = xMinorZMajor; tempChunkMap[7] = zMajor; tempChunkMap[8] = xMajorZMajor;
 
         for (int z = 0; z < 3; z++) {
             for (int x = 0; x < 3; x++) {
@@ -173,58 +241,7 @@ public class LightingTask {
             }
         }
 
-        while (!pendingBlockPropQueue.isEmpty()) {
-            long node = pendingBlockPropQueue.dequeueLong();
-            int x = (int) ((node & 0x7FL) - 32);
-            int y = (int) ((node >>> 7L) & 0xFFL);
-            int z = (int) (((node >>> 15L) & 0x7FL) - 32);
-            int currentLight = (int) ((node >>> 22L) & 0xF);
-            boolean isSource = ((node >>> 26L) & 1L) == 1;
-            int sourceX = (int) ((node >>> 27L) & 0x1FL);
-            int sourceY = (int) ((node >>> 32L) & 0xFFL);
-            int sourceZ = (int) ((node >>> 40L) & 0x1FL);
-
-            int ax = x + 16, az = z + 16;
-            if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
-
-            if (currentLight <= 1) continue;
-            for (int[] dir : directions) {
-                int nx = x + dir[0];
-                int ny = y + dir[1];
-                int nz = z + dir[2];
-                int anx = nx + 16, anz = nz + 16;
-
-                if (anx < 0 || anx >= 64 || anz < 0 || anz >= 64 || ny < 0 || ny > 255) continue;
-
-                int xInd = (nx < 0) ? 0 : (nx < 32 ? 1 : 2);
-                int zInd = (nz < 0) ? 0 : (nz < 32 ? 1 : 2);
-                ChunkColumn targetChunk = tempChunkMap[zInd*3 + xInd];
-                if (targetChunk == null) continue;
-
-                byte atLight = readLocalBlockLevel(anx, ny, anz);
-                byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
-                boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
-
-                if (isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
-                    int newSection = ny >> 4;
-                    if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
-                    neighborsToRemesh.add(generateDirtyKey(xInd, newSection, zInd));
-
-                    Int2LongOpenHashMap lightToEffected = chunk.getSection(sourceY>>4).getlBlockExtChunksEffected(); // Source chunk
-
-                    int key = ((sourceX & 31) & 0x1F) | (((sourceY&15) & 0xFF) << 5) | (((sourceZ & 31) & 0x1F) << 13);
-                    long prev = lightToEffected.get(key);
-
-                    lightToEffected.put(key, addDirtyToDataLong(prev, xInd, newSection, zInd));
-                }
-
-                if (requestedLight > atLight && isTransparent) {
-                    setLocalBlockLevel(anx, ny, anz, requestedLight);
-                    pendingBlockPropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, isSource, sourceX, sourceY, sourceZ));
-                }
-            }
-        }
+        processBlockProp(pendingBlockPropQueue, tempChunkMap, false);
     }
 
     // Removing blocks
@@ -232,13 +249,8 @@ public class LightingTask {
         LongArrayFIFOQueue pendingSkyAdditionQueue = tPendingLightPropQueue.get();
         LongArrayFIFOQueue pendingLightRepropQueue = tPendingSecondPropQueue.get();
 
-        ChunkColumn[] tempChunkMap = tTempChunkMap.get();
         pendingSkyAdditionQueue.clear();
         pendingLightRepropQueue.clear();
-
-        tempChunkMap[0] = xMinorZMinor; tempChunkMap[1] = zMinor; tempChunkMap[2] = xMajorZMinor;
-        tempChunkMap[3] = xMinor; tempChunkMap[4] = chunk; tempChunkMap[5] = xMajor;
-        tempChunkMap[6] = xMinorZMajor; tempChunkMap[7] = zMajor; tempChunkMap[8] = xMajorZMajor;
 
         if (readLocalSkyLevel(chunkX+16, chunkY+1, chunkZ+16) == 15) {
             for (int y = chunkY; y >= 0; y--) {
@@ -263,52 +275,8 @@ public class LightingTask {
             }
         }
 
-        while (!pendingSkyAdditionQueue.isEmpty()) {
-            long node = pendingSkyAdditionQueue.dequeueLong();
-            int x = (int) ((node & 0x7FL) - 32);
-            int y = (int) ((node >>> 7L) & 0xFFL);
-            int z = (int) (((node >>> 15L) & 0x7FL) - 32);
-            int currentLight = (int) ((node >>> 22L) & 0xF);
-            boolean isSource = ((node >>> 26L) & 1L) == 1;
-            int sourceX = (int) ((node >>> 27L) & 0x1FL);
-            int sourceY = (int) ((node >>> 32L) & 0xFFL);
-            int sourceZ = (int) ((node >>> 40L) & 0x1FL);
-
-            int ax = x + 16, az = z + 16;
-            if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
-
-            if (currentLight <= 1) continue;
-            for (int[] dir : directions) {
-                int nx = x + dir[0];
-                int ny = y + dir[1];
-                int nz = z + dir[2];
-                int anx = nx + 16, anz = nz + 16;
-
-                if (anx < 0 || anx >= 64 || anz < 0 || anz >= 64 || ny < 0 || ny > 255) continue;
-
-                int xInd = (nx < 0) ? 0 : (nx < 32 ? 1 : 2);
-                int zInd = (nz < 0) ? 0 : (nz < 32 ? 1 : 2);
-                ChunkColumn targetChunk = tempChunkMap[zInd*3 + xInd];
-                if (targetChunk == null) continue;
-
-                byte atLight = targetChunk.getSkylight(nx&31, ny, nz&31);
-                byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
-                boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
-
-                if (isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
-                    int newSection = ny >> 4;
-                    if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
-                    neighborsToRemesh.add(generateDirtyKey(xInd, newSection, zInd));
-                }
-
-                if (requestedLight > atLight && isTransparent) {
-                    targetChunk.setSkylight(nx&31, ny, nz&31, requestedLight);
-                    pendingSkyAdditionQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, isSource, sourceX, sourceY, sourceZ));
-                }
-            }
-        }
-
+        // Skylight
+        processSkylightProp(pendingSkyAdditionQueue, tempChunkMap, true);
 
         // Block Lighting
         for (int i = 0; i < 16; i++) {
@@ -376,51 +344,7 @@ public class LightingTask {
             }
         }
 
-        while (!pendingLightRepropQueue.isEmpty()) {
-            long node = pendingLightRepropQueue.dequeueLong();
-            int x = (int) ((node & 0x7FL) - 32);
-            int y = (int) ((node >>> 7L) & 0xFFL);
-            int z = (int) (((node >>> 15L) & 0x7FL) - 32);
-            int currentLight = (int) ((node >>> 22L) & 0xF);
-            boolean isSource = ((node >>> 26L) & 1L) == 1;
-            int sourceX = (int) ((node >>> 27L) & 0x1FL);
-            int sourceY = (int) ((node >>> 32L) & 0xFFL);
-            int sourceZ = (int) ((node >>> 40L) & 0x1FL);
-
-            int ax = x + 16, az = z + 16;
-            if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
-
-            if (currentLight <= 1) continue;
-            for (int[] dir : directions) {
-                int nx = x + dir[0];
-                int ny = y + dir[1];
-                int nz = z + dir[2];
-                int anx = nx + 16, anz = nz + 16;
-
-                if (anx < 0 || anx >= 64 || anz < 0 || anz >= 64 || ny < 0 || ny > 255) continue;
-
-                int xInd = (nx < 0) ? 0 : (nx < 32 ? 1 : 2);
-                int zInd = (nz < 0) ? 0 : (nz < 32 ? 1 : 2);
-                ChunkColumn targetChunk = tempChunkMap[zInd*3 + xInd];
-                if (targetChunk == null) continue;
-
-                byte atLight = targetChunk.getBlockLight(nx&31, ny, nz&31);
-                byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
-                boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
-
-                if (isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
-                    int newSection = ny >> 4;
-                    if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
-                    neighborsToRemesh.add(generateDirtyKey(xInd, newSection, zInd));
-                }
-
-                if (requestedLight > atLight && isTransparent) {
-                    targetChunk.setBlockLight(nx&31, ny, nz&31, requestedLight);
-                    pendingLightRepropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, isSource, sourceX, sourceY, sourceZ));
-                }
-            }
-        }
+        processBlockProp(pendingLightRepropQueue, tempChunkMap, true);
     }
 
     // Placing blocks
@@ -428,13 +352,8 @@ public class LightingTask {
         LongArrayFIFOQueue pendingSkyRemovalQueue = tPendingLightPropQueue.get();
         LongArrayFIFOQueue pendingSkyRebackQueue = tPendingSecondPropQueue.get();
 
-        ChunkColumn[] tempChunkMap = tTempChunkMap.get();
         pendingSkyRemovalQueue.clear();
         pendingSkyRebackQueue.clear();
-
-        tempChunkMap[0] = xMinorZMinor; tempChunkMap[1] = zMinor; tempChunkMap[2] = xMajorZMinor;
-        tempChunkMap[3] = xMinor; tempChunkMap[4] = chunk; tempChunkMap[5] = xMajor;
-        tempChunkMap[6] = xMinorZMajor; tempChunkMap[7] = zMajor; tempChunkMap[8] = xMajorZMajor;
 
         byte currentSkylevel = readLocalSkyLevel(chunkX+16, chunkY, chunkZ+16);
         if (currentSkylevel > 0) {
@@ -506,111 +425,19 @@ public class LightingTask {
             }
         }
 
-        while (!pendingSkyRebackQueue.isEmpty()) {
-            long node = pendingSkyRebackQueue.dequeueLong();
-            int x = (int) ((node & 0x7FL) - 32);
-            int y = (int) ((node >>> 7L) & 0xFFL);
-            int z = (int) (((node >>> 15L) & 0x7FL) - 32);
-            int currentLight = (int) ((node >>> 22L) & 0xF);
-            boolean isSource = ((node >>> 26L) & 1L) == 1;
-            int sourceX = (int) ((node >>> 27L) & 0x1FL);
-            int sourceY = (int) ((node >>> 32L) & 0xFFL);
-            int sourceZ = (int) ((node >>> 40L) & 0x1FL);
-
-            int ax = x + 16, az = z + 16;
-            if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
-
-            if (currentLight <= 1) continue;
-            for (int[] dir : directions) {
-                int nx = x + dir[0];
-                int ny = y + dir[1];
-                int nz = z + dir[2];
-                int anx = nx + 16, anz = nz + 16;
-
-                if (anx < 0 || anx >= 64 || anz < 0 || anz >= 64 || ny < 0 || ny > 255) continue;
-
-                int xInd = (nx < 0) ? 0 : (nx < 32 ? 1 : 2);
-                int zInd = (nz < 0) ? 0 : (nz < 32 ? 1 : 2);
-                ChunkColumn targetChunk = tempChunkMap[zInd*3 + xInd];
-                if (targetChunk == null) continue;
-
-                byte atLight = targetChunk.getSkylight(nx&31, ny, nz&31);
-                byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
-                boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
-
-                if (isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
-                    int newSection = ny >> 4;
-                    if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
-                    neighborsToRemesh.add(generateDirtyKey(xInd, newSection, zInd));
-                }
-
-                if (requestedLight > atLight && isTransparent) {
-                    targetChunk.setSkylight(nx&31, ny, nz&31, requestedLight);
-                    pendingSkyRebackQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, isSource, sourceX, sourceY, sourceZ));
-                }
-            }
-        }
+        processSkylightProp(pendingSkyRebackQueue, tempChunkMap, true);
 
         if (Texture.lightLevels[placedBlock] == 0) return;
         setLocalBlockLevel(chunkX+16, chunkY, chunkZ+16, Texture.lightLevels[placedBlock]);
         pendingSkyRebackQueue.enqueue(packLightsource(chunkX, chunkY, chunkZ, Texture.lightLevels[placedBlock], true, chunkX, chunkY, chunkZ));
 
-        while (!pendingSkyRebackQueue.isEmpty()) {
-            long node = pendingSkyRebackQueue.dequeueLong();
-            int x = (int) ((node & 0x7FL) - 32);
-            int y = (int) ((node >>> 7L) & 0xFFL);
-            int z = (int) (((node >>> 15L) & 0x7FL) - 32);
-            int currentLight = (int) ((node >>> 22L) & 0xF);
-            boolean isSource = ((node >>> 26L) & 1L) == 1;
-            int sourceX = (int) ((node >>> 27L) & 0x1FL);
-            int sourceY = (int) ((node >>> 32L) & 0xFFL);
-            int sourceZ = (int) ((node >>> 40L) & 0x1FL);
-
-            int ax = x + 16, az = z + 16;
-            if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
-
-            if (currentLight <= 1) continue;
-            for (int[] dir : directions) {
-                int nx = x + dir[0];
-                int ny = y + dir[1];
-                int nz = z + dir[2];
-                int anx = nx + 16, anz = nz + 16;
-
-                if (anx < 0 || anx >= 64 || anz < 0 || anz >= 64 || ny < 0 || ny > 255) continue;
-
-                int xInd = (nx < 0) ? 0 : (nx < 32 ? 1 : 2);
-                int zInd = (nz < 0) ? 0 : (nz < 32 ? 1 : 2);
-                ChunkColumn targetChunk = tempChunkMap[zInd*3 + xInd];
-                if (targetChunk == null) continue;
-
-                byte atLight = readLocalBlockLevel(anx, ny, anz);
-                byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
-                boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
-
-                if (isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
-                    int newSection = ny >> 4;
-                    if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
-                    neighborsToRemesh.add(generateDirtyKey(xInd, newSection, zInd));
-                }
-
-                if (requestedLight > atLight && isTransparent) {
-                    setLocalBlockLevel(anx, ny, anz, requestedLight);
-                    pendingSkyRebackQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, isSource, sourceX, sourceY, sourceZ));
-                }
-            }
-        }
+        // Blocklight Propogation
+        processBlockProp(pendingSkyRebackQueue, tempChunkMap, true);
     }
 
-    public void updateSkyLighting(boolean playerCaused) {
+    public void updateSkyLighting() {
         LongArrayFIFOQueue pendingSkyPropQueue = tPendingLightPropQueue.get();
-        ChunkColumn[] tempChunkMap = tTempChunkMap.get();
         pendingSkyPropQueue.clear();
-
-        tempChunkMap[0] = xMinorZMinor; tempChunkMap[1] = zMinor; tempChunkMap[2] = xMajorZMinor;
-        tempChunkMap[3] = xMinor; tempChunkMap[4] = chunk; tempChunkMap[5] = xMajor;
-        tempChunkMap[6] = xMinorZMajor; tempChunkMap[7] = zMajor; tempChunkMap[8] = xMajorZMajor;
 
         for (int ax = 0; ax < 64; ax++) {
             for (int az = 0; az < 64; az++) {
@@ -638,50 +465,6 @@ public class LightingTask {
             }
         }
 
-        while (!pendingSkyPropQueue.isEmpty()) {
-            long node = pendingSkyPropQueue.dequeueLong();
-            int x = (int) ((node & 0x7FL) - 32);
-            int y = (int) ((node >>> 7L) & 0xFFL);
-            int z = (int) (((node >>> 15L) & 0x7FL) - 32);
-            int currentLight = (int) ((node >>> 22L) & 0xF);
-            boolean isSource = ((node >>> 26L) & 1L) == 1;
-            int sourceX = (int) ((node >>> 27L) & 0x1FL);
-            int sourceY = (int) ((node >>> 32L) & 0xFFL);
-            int sourceZ = (int) ((node >>> 40L) & 0x1FL);
-
-            int ax = x + 16, az = z + 16;
-            if (ax < 0 || ax >= 64 || az < 0 || az >= 64) continue;
-
-            if (currentLight <= 1) continue;
-            for (int[] dir : directions) {
-                int nx = x + dir[0];
-                int ny = y + dir[1];
-                int nz = z + dir[2];
-                int anx = nx + 16, anz = nz + 16;
-
-                if (anx < 0 || anx >= 64 || anz < 0 || anz >= 64 || ny < 0 || ny > 255) continue;
-
-                int xInd = (nx < 0) ? 0 : (nx < 32 ? 1 : 2);
-                int zInd = (nz < 0) ? 0 : (nz < 32 ? 1 : 2);
-                ChunkColumn targetChunk = tempChunkMap[zInd*3 + xInd];
-                if (targetChunk == null) continue;
-
-                byte atLight = readLocalSkyLevel(anx, ny, anz);
-                byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
-                boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
-
-                if (playerCaused && isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
-                    int newSection = ny >> 4;
-                    if (neighborsToRemesh == null) neighborsToRemesh = new ByteOpenHashSet(8);
-                    neighborsToRemesh.add(generateDirtyKey(xInd, newSection, zInd));
-                }
-
-                if (requestedLight > atLight && isTransparent) {
-                    setLocalSkyLevel(anx, ny, anz, requestedLight);
-                    pendingSkyPropQueue.enqueue(packLightsource(nx, ny, nz, requestedLight, isSource, sourceX, sourceY, sourceZ));
-                }
-            }
-        }
+        processSkylightProp(pendingSkyPropQueue, tempChunkMap, false);
     }
 }
