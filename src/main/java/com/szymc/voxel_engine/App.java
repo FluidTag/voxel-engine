@@ -84,7 +84,8 @@ public class App {
 							byte slot = -1;
 							for (byte i = 0; i < 36; i++) {
 								byte inventoryType = character.readInventoryType(i);
-								if (inventoryType == 0 || (inventoryType == item.item && character.readInventoryAmount(i) <= 63)) {
+								if (inventoryType == 0 && slot == -1) slot = i;
+								if (inventoryType == item.item) {
 									slot = i;
 									break;
 								}

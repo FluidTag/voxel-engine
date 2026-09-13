@@ -38,6 +38,26 @@ public class Engine {
 	private UIRenderer uiRenderer;
 	private int crosshairTexture;
 
+	public record InventoryActiveItem(byte item, byte itemAmount, int ogSlotX, int ogSlotY, int inventoryIndex) {}
+	private InventoryActiveItem activeInventoryDrag = null;
+	public void setActiveInventoryDrag(InventoryActiveItem itemData) {
+		if (itemData != null && activeInventoryDrag != null) {
+			player.setInventorySlot((byte) activeInventoryDrag.inventoryIndex, itemData.item, player.readInventoryAmount((byte) itemData.inventoryIndex));
+			player.setInventorySlot((byte) itemData.inventoryIndex, activeInventoryDrag.item, activeInventoryDrag.itemAmount);
+
+			activeInventoryDrag = null;
+			return;
+		}
+
+		if (itemData != null && itemData.item != 0) this.activeInventoryDrag = itemData;
+	}
+
+	private int mouseX, mouseY;
+	public void setMousePosition(int x, int y) {
+		this.mouseX = x;
+		this.mouseY = y;
+	}
+
 	public void removeOutlineLoc() {
 		this.outlineLoc = null;
 	}
@@ -239,6 +259,27 @@ public class Engine {
 				uiRenderer.drawRect(offsetX + (slotSize*i) + 2, App.WINDOW_HEIGHT - 80+2, slotSize-4, slotSize-4, color, color, color, 0.6f);
 				byte item = inventory[i];
 				if (item != 0) uiRenderer.drawIcon(item, offsetX + (slotSize*i), App.WINDOW_HEIGHT - 80, slotSize, slotSize);
+			}
+
+			if (player.getPlayerGuiInventoryActive()) {
+				float invPosY = (float) App.WINDOW_HEIGHT / 2 - (float) slotSize * 4 / 2 - 2;
+				int hotbarGap = 12;
+
+				uiRenderer.drawRect(0, 0, App.WINDOW_WIDTH, App.WINDOW_HEIGHT, 0f, 0f, 0f, 0.5f);
+				uiRenderer.drawRect(offsetX - 2, invPosY - 2, slotSize * 9 + 4, slotSize * 4 + 4 + hotbarGap, 0.7f, 0.7f, 0.7f, 1.0f);
+
+				for (int iy = 0; iy < 4; iy++) {
+					for (int ix = 0; ix < 9; ix++) {
+						uiRenderer.drawRect(offsetX + (slotSize * ix) + 2, invPosY + (slotSize * iy) + 2 + (iy == 3 ? hotbarGap : 0), slotSize - 4, slotSize - 4, 0.5f, 0.5f, 0.5f, 1.0f);
+						int localInvIndex = (3-iy)*9 + ix;
+						byte item = inventory[localInvIndex];
+						if (item != 0 && !(activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == localInvIndex)) uiRenderer.drawIcon(item, offsetX + (slotSize*ix) + 2, invPosY + (slotSize * iy) + 2 + (iy ==3 ? hotbarGap : 0), slotSize-4, slotSize-4);
+					}
+				}
+			}
+
+			if (activeInventoryDrag != null) {
+				uiRenderer.drawIcon(activeInventoryDrag.item, mouseX, mouseY, slotSize-4, slotSize-4);
 			}
 
 			uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);

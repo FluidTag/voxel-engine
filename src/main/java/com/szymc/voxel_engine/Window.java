@@ -15,8 +15,6 @@ import org.joml.Vector3f;
 
 public class Window {
 	private long windowId;
-	private float lastX, lastY;
-	private boolean firstMouse = true;
 	private Camera cameraAttachment;
 	private int width;
 	private int height;
@@ -26,9 +24,6 @@ public class Window {
 	}
 	
 	public Window(int width, int height, String title) {
-		this.lastX = width/2;
-		this.lastY = height/2;
-		
 		// 1. Initialize GLFW
         if (!glfwInit()) {
             throw new IllegalStateException("Unable to initialize GLFW");
@@ -77,21 +72,6 @@ public class Window {
         // 5. Show the window
         glfwShowWindow(window);
         this.windowId = window;
-
-        glfwSetCursorPosCallback(window, (windowHandle, xPos, yPos) -> {
-    		if (firstMouse) {
-    			lastX = (float) xPos;
-    			lastY = (float) yPos;
-    			firstMouse = false;
-    		}
-    		
-    		float xOffset = (float) xPos - lastX;
-    		float yOffset = lastY - (float) yPos;
-    		lastX = (float) xPos;
-    		lastY = (float) yPos;
-    		
-    		cameraAttachment.recieveMouseOffset(xOffset, yOffset);
-    	});
 	}
 	
 	public long getWindowId() {

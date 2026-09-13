@@ -13,6 +13,10 @@ public class PlayerCharacter {
     private Window windowReference;
     private Engine engineAttachment;
 
+    private float lastX = (float) App.WINDOW_WIDTH / 2;
+    private float lastY = (float) App.WINDOW_HEIGHT / 2;
+    private boolean firstMouse = true;
+
     private double velocityY = 0;
     private boolean isGrounded = false;
     private static final float PLAYER_HEIGHT = 1.8f;
@@ -21,6 +25,7 @@ public class PlayerCharacter {
     private final boolean[] keysPressed = new boolean[GLFW_KEY_LAST + 1];
 
     private boolean spectatorMode = true;
+    private boolean guiInventoryActive = false;
 
     private byte[] inventoryAmounts = new byte[36];
     private byte[] inventory = new byte[36];
@@ -38,6 +43,8 @@ public class PlayerCharacter {
     public byte readInventoryAmount(byte index) {
         return this.inventoryAmounts[index];
     }
+
+    public boolean getPlayerGuiInventoryActive() {return this.guiInventoryActive;}
 
     public int currentHotbarSlot = 0;
     private static boolean blockAt(World world, int x, int y, int z) {
@@ -157,9 +164,45 @@ public class PlayerCharacter {
             if (key >= GLFW_KEY_1 && key <= GLFW_KEY_9) {
                 currentHotbarSlot = key - GLFW_KEY_0 - 1;
             }
+
+            if (key == GLFW_KEY_E && action == GLFW_PRESS) {
+                guiInventoryActive = !guiInventoryActive;
+                if (guiInventoryActive) {
+                    glfwSetInputMode(windowReference.getWindowId(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                    glfwSetCursorPos(windowReference.getWindowId(), (double) App.WINDOW_WIDTH /2, (double) App.WINDOW_HEIGHT /2);
+                } else {
+                    glfwSetInputMode(windowReference.getWindowId(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                    engineAttachment.setActiveInventoryDrag(null);
+                    firstMouse = true;
+                }
+            }
         });
 
         glfwSetMouseButtonCallback(windowReference.getWindowId(), (windowHandle, button, action, mods) -> {
+            if (guiInventoryActive && button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+                int slotSize = 64;
+                int offsetX = (int)((App.WINDOW_WIDTH/2.0f)-(slotSize*4.5f));
+                float invPosY = (float) App.WINDOW_HEIGHT / 2 - (float) slotSize * 4 / 2 - 2;
+                int hotbarGap = 12;
+                double[] mxPos = new double[1]; double[] myPos = new double[1];
+
+                glfwGetCursorPos(windowReference.getWindowId(), mxPos, myPos);
+                int xSlot = (int) ((mxPos[0] - offsetX + slotSize - 2) / slotSize);
+
+                if (xSlot < 1 || xSlot > 9) return;
+
+                if ((myPos[0] > invPosY + slotSize*3) && (myPos[0] < invPosY + slotSize*3 + hotbarGap)) return;
+                if (myPos[0] > invPosY + slotSize*3) myPos[0] -= hotbarGap;
+
+                int ySlot = (int) ((myPos[0] - invPosY - 2) / slotSize);
+                if (ySlot < 1 || ySlot > 3) return;
+
+                int invIndex = (3-ySlot)*9 + (xSlot-1);
+                engineAttachment.setActiveInventoryDrag(new Engine.InventoryActiveItem(inventory[invIndex], inventoryAmounts[invIndex], xSlot-1, ySlot-1, invIndex));
+                return;
+            }
+
+            if (guiInventoryActive) return;
             if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
                 if (button == GLFW_MOUSE_BUTTON_RIGHT && inventory[currentHotbarSlot] == 0) return;
 
@@ -208,6 +251,24 @@ public class PlayerCharacter {
                 }
             }
         });
+
+        glfwSetCursorPosCallback(windowReference.getWindowId(), (windowHandle, xPos, yPos) -> {
+            engineAttachment.setMousePosition((int) xPos, (int) yPos);
+            if (guiInventoryActive) return;
+
+            if (firstMouse) {
+                lastX = (float) xPos;
+                lastY = (float) yPos;
+                firstMouse = false;
+            }
+
+            float xOffset = (float) xPos - lastX;
+            float yOffset = lastY - (float) yPos;
+            lastX = (float) xPos;
+            lastY = (float) yPos;
+
+            playerCamera.recieveMouseOffset(xOffset, yOffset);
+        });
     }
 
     public byte[] getInventory() {
@@ -216,7 +277,7 @@ public class PlayerCharacter {
 
     public void poll(float deltaTime) {
         RaycastResult result = getRaycastResult(worldReference, playerCamera);
-        if (result != null) {
+        if (result != null && !guiInventoryActive) {
             engineAttachment.setOutlineLoc(result.x(), result.y(), result.z());
         } else {
             engineAttachment.removeOutlineLoc();
