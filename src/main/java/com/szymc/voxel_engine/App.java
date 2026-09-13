@@ -119,17 +119,20 @@ public class App {
 				float erosion = TerrainTask.getErosion(wx, wz);
 
 				int light = -1;
+				byte block = -1;
 				ChunkColumn c = mainWorld.getLoadedChunkAtPos(wx>>5, wz>>5);
 				if (c != null) {
 					ChunkSection sec = c.getSection(wy>>4);
 					if (sec != null) light = c.getSection(wy>>4).getLightingData()[(wy&15)*32*32 + (wz&31)*32 + (wx&31)];
+					if (sec != null) block = c.getBlockInChunk((wx&31), wy, (wz&31));
 				}
 
 				BiomeType surfaceBiome = TerrainTask.getBiomeType(surfaceHeight, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));
 				//BiomeType biome = TerrainTask.getBiomeType(wy, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));
-
-				System.out.println(wx + ", " + wy + ", " + wz + " | Surface Biome ("+surfaceHeight+"): " + surfaceBiome + " [T "+Math.round(temp*100f)/100f+", M "+Math.round(moist*100f)/100f+", E "+Math.round(erosion*100f)/100f + "]");
-				System.out.println("Sky: " + ((light >> 4) & 0xF) + ", Block: " + (light&0xF));
+				System.out.println("____Log_________");
+				System.out.println("CameraAt: ("+camera.cameraPos.x + ", " + camera.cameraPos.y + ", " + camera.cameraPos.z + ")");
+				System.out.println(wx + ", " + wy + ", " + wz + " CC ("+(wx&31)+", " + (wy&15) + ", " + (wz&31) + ") | Surface Biome (@y-"+surfaceHeight+"): " + surfaceBiome + " [T "+Math.round(temp*100f)/100f+", M "+Math.round(moist*100f)/100f+", E "+Math.round(erosion*100f)/100f + "]");
+				System.out.println("Light | Sky: " + ((light >> 4) & 0xF) + ", Block: " + (light&0xF) + " | BlockId@ = " + block);
 			}
 
 			window.swapBuffers();

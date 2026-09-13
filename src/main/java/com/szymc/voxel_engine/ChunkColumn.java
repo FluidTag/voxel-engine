@@ -8,7 +8,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ChunkColumn {
 	private World worldReference;
 	private ChunkSection[] sections = new ChunkSection[16];
-	
+	private int[] heightMap;
+
 	private int worldX = 0;
 	private int worldZ = 0;
 	public ChunkState state = ChunkState.EMPTY;
@@ -52,7 +53,15 @@ public class ChunkColumn {
 	public void applyTerrain(ChunkSection[] sections) {
 		this.sections = sections;
 	}
-	
+	public void applyHeightmap(int[] heightMap) {this.heightMap = heightMap;}
+	public int readTerrainHeight(int x, int z) {
+		return heightMap[z * 32 + x];
+	}
+
+	public void updateTerrainHeight(int x, int z, int newValue) {
+		heightMap[z * 32 + x] = newValue;
+	}
+
 	// Returns 0 if null sector
 	public byte getBlockInChunk(int cx, int cy, int cz) {
 		int sectorI = cy >> 4;
@@ -77,12 +86,12 @@ public class ChunkColumn {
 		dat[(y&15)*32*32 + cz*32 + cx] |= (byte) ((amount & 0xF) << 4);
 	}
 
-	public int getSkylight(int cx, int y, int cz) {
+	public byte getSkylight(int cx, int y, int cz) {
 		ChunkSection sec = sections[y>>4];
 		if (sec == null) return 15;
 		byte[] dat = sec.getLightingData();
 
-		return (dat[(y&15)*32*32 + cz*32 + cx] >>> 4) & 0xF;
+		return (byte) ((dat[(y&15)*32*32 + cz*32 + cx] >>> 4) & 0xF);
 	}
 
 	public void setBlockLight(int cx, int y, int cz, int amount) {
@@ -94,18 +103,18 @@ public class ChunkColumn {
 		dat[(y&15)*32*32 + cz*32 + cx] |= (byte) ((amount & 0xF));
 	}
 
-	public int getBlockLight(int cx, int y, int cz) {
+	public byte getBlockLight(int cx, int y, int cz) {
 		ChunkSection sec = sections[y>>4];
 		if (sec == null) return 15;
 		byte[] dat = sec.getLightingData();
 
-		return dat[(y&15)*32*32 + cz*32 + cx] & 0xF;
+		return (byte) (dat[(y&15)*32*32 + cz*32 + cx] & 0xF);
 	}
 
 	public void clearChunkLighting() {
 		for (int i = 0; i < 16; i++) {
 			ChunkSection sec = getSection(i);
-			if (sec == null) return;
+			if (sec == null) continue;
 
 			byte[] lightDat = sec.getLightingData();
 			Arrays.fill(lightDat, (byte)0);

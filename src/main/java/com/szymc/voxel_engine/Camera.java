@@ -29,15 +29,15 @@ public class Camera {
 	}
 
 	public int getWorldX() {
-		return (int)cameraPos.x;
+		return (int) Math.floor(cameraPos.x);
 	}
 
 	public int getWorldY() {
-		return (int)cameraPos.y;
+		return (int) Math.floor(cameraPos.y);
 	}
 
 	public int getWorldZ() {
-		return (int)cameraPos.z;
+		return (int) Math.floor(cameraPos.z);
 	}
 
 	public Matrix4f getProjectionMatrix() {

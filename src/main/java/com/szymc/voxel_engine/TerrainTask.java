@@ -389,10 +389,13 @@ public class TerrainTask {
 			sections[sec] = new ChunkSection(chunkData, new byte[32*16*32], worldReference, cx*32, sec*16, cz*32);
 		}
 
+		this.heightMapGenerated = new int[32*32];
+		System.arraycopy(chunkNoise, 0, heightMapGenerated, 0, 32*32);
 		return sections;
 	}
 
 	public ChunkSection[] terrainGenerated;
+	public int[] heightMapGenerated;
 	public final int cx, cz;
 
 	public void runTask() {

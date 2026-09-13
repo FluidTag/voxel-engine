@@ -1,5 +1,4 @@
 package com.szymc.voxel_engine;
-import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -37,7 +36,7 @@ public class World {
 	private final Long2ObjectMap<ChunkColumn> loadedColumns = new Long2ObjectOpenHashMap<>();
 	private final Int2ObjectMap<Entity> entityMap = new Int2ObjectOpenHashMap<>();
 
-	private final int renderDistance = 15;
+	private final int renderDistance = 4;
 	private final long winId;
 	
 	public World(long winId) {
@@ -141,6 +140,7 @@ public class World {
 					if (chunk.lightQueued.compareAndSet(false, true)) {
 						terrainPool.execute(new PriorityGenTask(0, () -> {
 							LightingTask task = new LightingTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
+							task.clearChunkLighting();
 							task.updateBlockLighting();
 							task.updateSkyLighting(false);
 
@@ -200,6 +200,7 @@ public class World {
 			if (task.chunkReference != chunk) continue; // Reloaded and restarted
 			
 			chunk.applyTerrain(task.terrainGenerated);
+			chunk.applyHeightmap(task.heightMapGenerated);
 			chunk.state = chunk.state.next();
 			
 			checkStateAdvances(task.cx, task.cz);
@@ -240,8 +241,6 @@ public class World {
 			chunk.lightQueued.set(false);
 
 			// Derived from block light overspill
-			// Future Note, this could be optimized. This does a lighting task then a full remesh of the column, while only a lighting task and remesh of targeted sections are necessary
-			// If lighting performance becomes a problem look here, this works for now so whatever
 			if (task.neighborsToRemesh != null) {
 				ByteIterator it = task.neighborsToRemesh.iterator();
 				while (it.hasNext()) {
@@ -300,10 +299,10 @@ public class World {
 	int lastZ = 99999999;
 
 	// Block Breaks, Direct Computation
-	public void updateChunk(int cx, int y, int cz, int bcx, int bcz) {
+	public void updateChunk(int cx, int y, int cz, int bcx, int bcz, boolean isBlockPlace, byte block) {
 		ChunkColumn chunk = getLoadedChunkAtPos(cx, cz);
 		chunk.state = ChunkState.DECORATED;
-
+		System.out.println("Block Update at " + bcx + ", " + y + ", " + bcz);
 		ChunkColumn xMaj = loadedColumns.get(packKey(cx+1, cz));
 		ChunkColumn xMin = loadedColumns.get(packKey(cx-1, cz));
 		ChunkColumn zMaj = loadedColumns.get(packKey(cx, cz+1));
@@ -314,15 +313,21 @@ public class World {
 		ChunkColumn xMinZmaj = loadedColumns.get(packKey(cx-1, cz+1));
 		ChunkColumn xMinZmin = loadedColumns.get(packKey(cx-1, cz-1));
 
+		// Current time to beat: 32ms
+
 		if (xMaj == null || xMin == null || zMaj == null || zMin == null || xMajZmaj == null || xMajZmin == null || xMinZmaj == null || xMinZmin == null) return;
 		if (chunk.lightQueued.compareAndSet(false, true) && fullNeighborsQualify(ChunkState.DECORATED, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin)) {
 			terrainPool.execute(new PriorityGenTask(0, () -> {
+				long startTime = System.nanoTime();
 				LightingTask task = new LightingTask(cx, cz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
-				task.addSkylightChunksToRemesh(bcx, y, bcz);
-				task.updateSkyLighting(true);
+				if (isBlockPlace) task.updateChunkLightingPlacement(bcx, y, bcz, block); else task.updateChunkLightingRemoval(bcx, y, bcz);
 
-				task.updateBlockLighting();
 				completedLighting.add(task);
+				long endTime = System.nanoTime();
+				long durationNano = endTime - startTime;
+				double durationMs = durationNano / 1_000_000.0;
+
+				System.out.println("Time taken: " + durationMs + " ms");
 			}));
 		}
 	}

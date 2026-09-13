@@ -196,14 +196,14 @@ public class PlayerCharacter {
                         worldReference.spawnNewItemEntity(block, x, y, z);
                         chunk.setSectionDirty(y >> 4);
 
-                        worldReference.updateChunk(cx, y, cz, x&31, z&31);
+                        worldReference.updateChunk(cx, y, cz, x&31, z&31, false, block);
                     } else if (inventory[currentHotbarSlot] != 0 && inventoryAmounts[currentHotbarSlot] > 0) {
                         chunk.setBlockInChunk(x & 31, y, z & 31, inventory[currentHotbarSlot]);
                         inventoryAmounts[currentHotbarSlot]--;
                         if (inventoryAmounts[currentHotbarSlot] == 0) inventory[currentHotbarSlot] = 0;
                         chunk.setSectionDirty(y >> 4);
 
-                        worldReference.updateChunk(cx, y, cz, x&31, z&31);
+                        worldReference.updateChunk(cx, y, cz, x&31, z&31, true, inventory[currentHotbarSlot]);
                     }
                 }
             }
