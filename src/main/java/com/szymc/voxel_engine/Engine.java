@@ -261,7 +261,17 @@ public class Engine {
 				if (item != 0) uiRenderer.drawIcon(item, offsetX + (slotSize*i), App.WINDOW_HEIGHT - 80, slotSize, slotSize);
 			}
 
+			uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
+			for (byte i = 0; i < 9; i++) {
+				if (player.readInventoryType(i) != 0) {
+					uiRenderer.renderFont(Integer.toString(player.readInventoryAmount(i)), offsetX + (slotSize*i) + (slotSize-4), App.WINDOW_HEIGHT - 80-4+slotSize, UIRenderer.TextAlignment.RIGHT);
+				}
+			}
+
+			//////////
+
 			if (player.getPlayerGuiInventoryActive()) {
+				uiRenderer.beginUiRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
 				float invPosY = (float) App.WINDOW_HEIGHT / 2 - (float) slotSize * 4 / 2 - 2;
 				int hotbarGap = 12;
 
@@ -276,18 +286,28 @@ public class Engine {
 						if (item != 0 && !(activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == localInvIndex)) uiRenderer.drawIcon(item, offsetX + (slotSize*ix) + 2, invPosY + (slotSize * iy) + 2 + (iy ==3 ? hotbarGap : 0), slotSize-4, slotSize-4);
 					}
 				}
+
+				uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
+				for (int iy = 0; iy < 4; iy++) {
+					for (int ix = 0; ix < 9; ix++) {
+						int localInvIndex = (3-iy)*9 + ix;
+						byte amount = player.readInventoryAmount((byte) localInvIndex);
+
+						if (amount != 0 && !(activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == localInvIndex)) {
+							uiRenderer.renderFont(Integer.toString(amount), offsetX + (slotSize*ix) + (slotSize-4), (int) (invPosY + (slotSize * iy) + (slotSize-4) + (iy ==3 ? hotbarGap : 0)), UIRenderer.TextAlignment.RIGHT);
+						};
+					}
+				}
 			}
 
 			if (activeInventoryDrag != null) {
-				uiRenderer.drawIcon(activeInventoryDrag.item, mouseX, mouseY, slotSize-4, slotSize-4);
-			}
+				int adjMouseX = (int) (mouseX - (float)(slotSize-4)/2);
+				int adjMouseY = (int) (mouseY - (float)(slotSize-4)/2);
 
-			uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
-
-			for (byte i = 0; i < 9; i++) {
-				if (player.readInventoryType(i) != 0) {
-					uiRenderer.renderFont(Integer.toString(player.readInventoryAmount(i)), offsetX + (slotSize*i) + (slotSize-4), App.WINDOW_HEIGHT - 80-4+slotSize, UIRenderer.TextAlignment.RIGHT);
-				}
+				uiRenderer.beginUiRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
+				uiRenderer.drawIcon(activeInventoryDrag.item, adjMouseX, adjMouseY, slotSize-4, slotSize-4);
+				uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
+				uiRenderer.renderFont(Integer.toString(activeInventoryDrag.itemAmount), adjMouseX + (slotSize-4), adjMouseY + (slotSize-4), UIRenderer.TextAlignment.RIGHT);
 			}
 
 			//uiRenderer.renderFont("Hello World, Text rendering has been added successfully! 1234567890", 100, 100);

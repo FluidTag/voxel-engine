@@ -194,10 +194,11 @@ public class PlayerCharacter {
                 if ((myPos[0] > invPosY + slotSize*3) && (myPos[0] < invPosY + slotSize*3 + hotbarGap)) return;
                 if (myPos[0] > invPosY + slotSize*3) myPos[0] -= hotbarGap;
 
-                int ySlot = (int) ((myPos[0] - invPosY - 2) / slotSize);
-                if (ySlot < 1 || ySlot > 3) return;
+                int ySlot = (int) ((myPos[0] - invPosY + slotSize - 2) / slotSize);
+                System.out.println(ySlot);
+                if (ySlot < 1 || ySlot > 4) return;
 
-                int invIndex = (3-ySlot)*9 + (xSlot-1);
+                int invIndex = (4-ySlot)*9 + (xSlot-1);
                 engineAttachment.setActiveInventoryDrag(new Engine.InventoryActiveItem(inventory[invIndex], inventoryAmounts[invIndex], xSlot-1, ySlot-1, invIndex));
                 return;
             }
