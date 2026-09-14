@@ -150,6 +150,7 @@ public class PlayerCharacter {
         inventoryAmounts[0] = 64;
 
         glfwSetScrollCallback(windowReference.getWindowId(), (windowHandle, xOffset, yOffset) -> {
+            if (guiInventoryActive) return;
             if (yOffset < 0) {
                 currentHotbarSlot++;
             } else {
@@ -161,7 +162,7 @@ public class PlayerCharacter {
         });
 
         glfwSetKeyCallback(windowReference.getWindowId(), (windowHandle, key, scancode, action, mods) -> {
-            if (key >= GLFW_KEY_1 && key <= GLFW_KEY_9) {
+            if (key >= GLFW_KEY_1 && key <= GLFW_KEY_9 && !guiInventoryActive) {
                 currentHotbarSlot = key - GLFW_KEY_0 - 1;
             }
 
@@ -182,7 +183,9 @@ public class PlayerCharacter {
             if (guiInventoryActive && button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
                 int slotSize = 64;
                 int offsetX = (int)((App.WINDOW_WIDTH/2.0f)-(slotSize*4.5f));
-                float invPosY = (float) App.WINDOW_HEIGHT / 2 - (float) slotSize * 4 / 2 - 2;
+                int topAreaSize = 270;
+                float invPosY = (float) App.WINDOW_HEIGHT / 2 - (float) (slotSize * 4 + 2 + topAreaSize)/2 + topAreaSize;
+
                 int hotbarGap = 12;
                 double[] mxPos = new double[1]; double[] myPos = new double[1];
 
@@ -195,8 +198,9 @@ public class PlayerCharacter {
                 if (myPos[0] > invPosY + slotSize*3) myPos[0] -= hotbarGap;
 
                 int ySlot = (int) ((myPos[0] - invPosY + slotSize - 2) / slotSize);
-                System.out.println(ySlot);
                 if (ySlot < 1 || ySlot > 4) return;
+
+                //System.out.println(xSlot + ", " + ySlot);
 
                 int invIndex = (4-ySlot)*9 + (xSlot-1);
                 engineAttachment.setActiveInventoryDrag(new Engine.InventoryActiveItem(inventory[invIndex], inventoryAmounts[invIndex], xSlot-1, ySlot-1, invIndex));

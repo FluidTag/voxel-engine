@@ -124,7 +124,7 @@ public class Engine {
 			glDisable(GL_BLEND);
 			glDepthMask(true);
 
-			debugger.renderDebug(matrixBuffer);
+			//debugger.renderDebug(matrixBuffer);
 			mainShader.start();
 			for (ChunkColumn chunk : worldScene.getRendered().values()) {
 				if (chunk == null) continue;
@@ -272,20 +272,23 @@ public class Engine {
 
 			if (player.getPlayerGuiInventoryActive()) {
 				uiRenderer.beginUiRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
-				float invPosY = (float) App.WINDOW_HEIGHT / 2 - (float) slotSize * 4 / 2 - 2;
+				int topAreaSize = 270;
+				float invPosY = (float) App.WINDOW_HEIGHT / 2 - (float) (slotSize * 4 + 2 + topAreaSize)/2;
 				int hotbarGap = 12;
 
 				uiRenderer.drawRect(0, 0, App.WINDOW_WIDTH, App.WINDOW_HEIGHT, 0f, 0f, 0f, 0.5f);
-				uiRenderer.drawRect(offsetX - 2, invPosY - 2, slotSize * 9 + 4, slotSize * 4 + 4 + hotbarGap, 0.7f, 0.7f, 0.7f, 1.0f);
+				uiRenderer.drawRect(offsetX - 2, invPosY - 2, slotSize * 9 + 4, slotSize * 4 + 4 + hotbarGap + topAreaSize, 0.7f, 0.7f, 0.7f, 1.0f);
 
 				for (int iy = 0; iy < 4; iy++) {
 					for (int ix = 0; ix < 9; ix++) {
-						uiRenderer.drawRect(offsetX + (slotSize * ix) + 2, invPosY + (slotSize * iy) + 2 + (iy == 3 ? hotbarGap : 0), slotSize - 4, slotSize - 4, 0.5f, 0.5f, 0.5f, 1.0f);
+						uiRenderer.drawRect(offsetX + (slotSize * ix) + 2, invPosY + (slotSize * iy) + 2 + topAreaSize + (iy == 3 ? hotbarGap : 0), slotSize - 4, slotSize - 4, 0.5f, 0.5f, 0.5f, 1.0f);
 						int localInvIndex = (3-iy)*9 + ix;
 						byte item = inventory[localInvIndex];
-						if (item != 0 && !(activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == localInvIndex)) uiRenderer.drawIcon(item, offsetX + (slotSize*ix) + 2, invPosY + (slotSize * iy) + 2 + (iy ==3 ? hotbarGap : 0), slotSize-4, slotSize-4);
+						if (item != 0 && !(activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == localInvIndex)) uiRenderer.drawIcon(item, offsetX + (slotSize*ix) + 2, invPosY + (slotSize * iy) + 2 + topAreaSize + (iy ==3 ? hotbarGap : 0), slotSize-4, slotSize-4);
 					}
 				}
+
+
 
 				uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
 				for (int iy = 0; iy < 4; iy++) {
@@ -294,7 +297,7 @@ public class Engine {
 						byte amount = player.readInventoryAmount((byte) localInvIndex);
 
 						if (amount != 0 && !(activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == localInvIndex)) {
-							uiRenderer.renderFont(Integer.toString(amount), offsetX + (slotSize*ix) + (slotSize-4), (int) (invPosY + (slotSize * iy) + (slotSize-4) + (iy ==3 ? hotbarGap : 0)), UIRenderer.TextAlignment.RIGHT);
+							uiRenderer.renderFont(Integer.toString(amount), offsetX + (slotSize*ix) + (slotSize-4), (int) (invPosY + (slotSize * iy) + (slotSize-4) + topAreaSize + (iy ==3 ? hotbarGap : 0)), UIRenderer.TextAlignment.RIGHT);
 						};
 					}
 				}
