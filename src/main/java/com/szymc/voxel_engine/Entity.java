@@ -7,7 +7,8 @@ public abstract class Entity {
 
     public int createdAtTick;
     public Vector3f position = new Vector3f();
-    public Vector3f tickedPosition = new Vector3f();
+    public Vector3f renderPosition = new Vector3f();
+    public Vector3f previousPosition = new Vector3f();
     public Vector3f velocity = new Vector3f();
     public int entityId;
     public boolean onGround = false;

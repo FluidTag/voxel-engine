@@ -1,6 +1,6 @@
 package com.szymc.voxel_engine;
 
-import java.sql.SQLOutput;
+import org.joml.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.*;
 public class App {
@@ -59,7 +59,15 @@ public class App {
 			double currentFrameTime = window.getFrameTime();
 			float deltaTime = (float)(currentFrameTime - lastFrameTime);
 			lastFrameTime = currentFrameTime;
+
 			tIncrement += 1*deltaTime;
+			float currentInterp = (float) (tIncrement/0.05f);
+			for (Entity entity : mainWorld.getEntities().values()) {
+				if (entity.getClass() == EntityItem.class) {
+					EntityItem item = (EntityItem) entity;
+					item.previousPosition.lerp(item.position, currentInterp, item.renderPosition);
+				}
+			}
 
 			if (tIncrement >= 0.05f) {
 				mainWorld.incrementTick();
@@ -69,6 +77,7 @@ public class App {
 				for (Entity entity : mainWorld.getEntities().values()) {
 					if (entity.getClass() == EntityItem.class) {
 						EntityItem item = (EntityItem) entity;
+						item.previousPosition.set(item.position);
 						item.velocity.y += -0.05f;
 						if (isCubeColliding(mainWorld, item.position.x, item.position.y + item.velocity.y, item.position.z, 0.3f)) {
 							item.velocity.y = 0;
@@ -81,7 +90,7 @@ public class App {
 											+ (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f) * (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f)
 											+ (item.position.z - character.getPlayerCamera().cameraPos.z) * (item.position.z - character.getPlayerCamera().cameraPos.z);
 
-						if (distance <= 2.3 && (mainWorld.getTick()-item.createdAtTick) > 10) {
+						if (distance <= 2.3 && (mainWorld.getTick()-item.createdAtTick) > 5) {
 							// Locate empty inventory slot
 							byte slot = -1;
 							for (byte i = 0; i < 36; i++) {

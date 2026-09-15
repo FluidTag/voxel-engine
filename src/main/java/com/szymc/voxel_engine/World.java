@@ -424,6 +424,7 @@ public class World {
 		float xOffset = (1-item.xWidth)/2;
 		float zOffset = (1-item.zWidth)/2;
 		item.position.set(wx+xOffset, wy+0.5f, wz+zOffset);
+		item.previousPosition.set(item.position);
 
 		entityMap.put(item.entityId, item);
 	}

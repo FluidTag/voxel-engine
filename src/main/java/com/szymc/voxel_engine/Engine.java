@@ -214,7 +214,7 @@ public class Engine {
 
 			glBindVertexArray(EntityItem.getVao());
 			for (Entity entity : worldScene.getEntities().values()) {
-				tempModel.set(entity.position.x, entity.position.y, entity.position.z);
+				tempModel.set(entity.renderPosition.x, entity.renderPosition.y, entity.renderPosition.z);
 				modelVec.translation(tempModel);
 				entityShader.setModel(modelVec, matrixBuffer);
 
