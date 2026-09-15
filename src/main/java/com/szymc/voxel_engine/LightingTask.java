@@ -277,8 +277,20 @@ public class LightingTask {
 
         // Skylight
         processSkylightProp(pendingSkyAdditionQueue, tempChunkMap, true);
+        pendingSkyAdditionQueue.clear();
 
-        // Block Lighting
+        // Standard Blocklight (Needs better remesh support or other section border lighting fixes) (likely meshing issue)
+        for (int[] dir : directions) {
+            int nx = chunkX+dir[0]; int ny = chunkY+dir[1]; int nz = chunkZ+dir[2];
+            int xInd = (nx < 0 ? 0 : (nx < 32 ? 1 : 2)); int zInd = (nz < 0 ? 0 : (nz < 32 ? 1 : 2));
+            ChunkColumn target = tempChunkMap[zInd*3+xInd];
+            byte blockLight = target.getBlockLight(nx&31, ny, nz&31);
+            if (blockLight > 1) pendingSkyAdditionQueue.enqueue(packLightsource(nx, ny, nz, blockLight, true, nx, ny, nz));
+        }
+        processBlockProp(pendingSkyAdditionQueue, tempChunkMap, true);
+        pendingSkyAdditionQueue.clear();
+
+        // Block Lighting (Add Negative)
         for (int i = 0; i < 16; i++) {
             ChunkSection section = chunk.getSection(i);
             if (section == null) continue;
@@ -295,7 +307,7 @@ public class LightingTask {
             }
         }
 
-        // Block Lighting
+        // Block Lighting (Depropogate)
         while (!pendingSkyAdditionQueue.isEmpty()) {
             long node = pendingSkyAdditionQueue.dequeueLong();
             int x = (int) ((node & 0x7FL) - 32);
@@ -344,6 +356,7 @@ public class LightingTask {
             }
         }
 
+        // Reback block lighting
         processBlockProp(pendingLightRepropQueue, tempChunkMap, true);
     }
 
