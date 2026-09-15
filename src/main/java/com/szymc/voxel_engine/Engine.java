@@ -40,16 +40,62 @@ public class Engine {
 
 	public record InventoryActiveItem(byte item, byte itemAmount, int ogSlotX, int ogSlotY, int inventoryIndex) {}
 	private InventoryActiveItem activeInventoryDrag = null;
-	public void setActiveInventoryDrag(InventoryActiveItem itemData) {
-		if (itemData != null && activeInventoryDrag != null) {
-			player.setInventorySlot((byte) activeInventoryDrag.inventoryIndex, itemData.item, player.readInventoryAmount((byte) itemData.inventoryIndex));
-			player.setInventorySlot((byte) itemData.inventoryIndex, activeInventoryDrag.item, activeInventoryDrag.itemAmount);
+	private InventoryActiveItem tempExtInvStorage = null;
+	public void requestDropOfItem() {
+		if (activeInventoryDrag == null) return;
+		byte inventoryIndex = (byte) activeInventoryDrag.inventoryIndex;
+		byte current = activeInventoryDrag.itemAmount;
+		byte item = activeInventoryDrag.item;
+		player.setInventorySlot(inventoryIndex, (byte)0, (byte)0);
+		activeInventoryDrag = null;
 
+		for (int i = 0; i < current; i++) {
+			worldScene.spawnNewItemEntity(item, player.getPlayerCamera().getWorldX()+2, player.getPlayerCamera().getWorldY(), player.getPlayerCamera().getWorldZ());
+		}
+	}
+
+	public void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick) {
+		if (itemData == null) {
 			activeInventoryDrag = null;
 			return;
 		}
 
-		if (itemData != null && itemData.item != 0) this.activeInventoryDrag = itemData;
+		if (activeInventoryDrag == null && !isLeftClick && itemData.item != 0) {
+			activeInventoryDrag = new InventoryActiveItem(itemData.item, (byte) (itemData.itemAmount/2), itemData.ogSlotX, itemData.ogSlotY, -1);
+
+			player.setInventorySlot((byte) itemData.inventoryIndex, itemData.item, (byte) (itemData.itemAmount/2));
+			return;
+		}
+
+		if (activeInventoryDrag != null && isLeftClick) {
+			if (itemData.inventoryIndex == activeInventoryDrag.inventoryIndex) {
+				activeInventoryDrag = null;
+				return;
+			}
+
+			if (itemData.item == 0 || activeInventoryDrag.item == itemData.item) {
+				byte currentInvAmount = player.readInventoryAmount((byte)itemData.inventoryIndex);
+				int maxAmount = 64-currentInvAmount;
+				int beingApplied = Math.min(activeInventoryDrag.itemAmount, maxAmount);
+				int leftOver = activeInventoryDrag.itemAmount-beingApplied;
+
+				if (activeInventoryDrag.inventoryIndex != -1) player.setInventorySlot((byte) activeInventoryDrag.inventoryIndex, (byte)0, (byte)0);
+				player.setInventorySlot((byte) itemData.inventoryIndex, activeInventoryDrag.item, (byte) (currentInvAmount+beingApplied));
+
+				if (leftOver > 0) {
+					activeInventoryDrag = new InventoryActiveItem(activeInventoryDrag.item, (byte)leftOver, activeInventoryDrag.ogSlotX, activeInventoryDrag.ogSlotY, activeInventoryDrag.inventoryIndex);
+				} else activeInventoryDrag = null;
+			} else if (activeInventoryDrag.item != itemData.item) {
+				if (activeInventoryDrag.inventoryIndex != -1) player.setInventorySlot((byte) activeInventoryDrag.inventoryIndex, itemData.item, itemData.itemAmount);
+				player.setInventorySlot((byte) itemData.inventoryIndex, activeInventoryDrag.item, activeInventoryDrag.itemAmount);
+
+				activeInventoryDrag = new InventoryActiveItem(itemData.item, itemData.itemAmount, activeInventoryDrag.ogSlotX, activeInventoryDrag.ogSlotY, activeInventoryDrag.inventoryIndex);
+			}
+
+			return;
+		}
+
+		if (itemData != null && itemData.item != 0 && isLeftClick) this.activeInventoryDrag = itemData;
 	}
 
 	private int mouseX, mouseY;

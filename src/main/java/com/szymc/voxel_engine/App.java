@@ -55,37 +55,39 @@ public class App {
 
 		double lastFrameTime = 0.0;
 		double tIncrement = 0;
-		int ticks = 0;
 		while (!window.shouldClose()) {
 			double currentFrameTime = window.getFrameTime();
 			float deltaTime = (float)(currentFrameTime - lastFrameTime);
 			lastFrameTime = currentFrameTime;
 			tIncrement += 1*deltaTime;
-			if (tIncrement >= 0.02f) {
-				ticks++;
-				tIncrement = 0;
+
+			if (tIncrement >= 0.05f) {
+				mainWorld.incrementTick();
+				tIncrement -= 0.05f;
 
 				// Physics Update
 				for (Entity entity : mainWorld.getEntities().values()) {
 					if (entity.getClass() == EntityItem.class) {
 						EntityItem item = (EntityItem) entity;
-						item.velocity.y += -0.02f;
+						item.velocity.y += -0.05f;
 						if (isCubeColliding(mainWorld, item.position.x, item.position.y + item.velocity.y, item.position.z, 0.3f)) {
 							item.velocity.y = 0;
 							item.onGround = true;
 						}
 
+						item.position.y += item.velocity.y;
+
 						float distance = (item.position.x - character.getPlayerCamera().cameraPos.x) * (item.position.x - character.getPlayerCamera().cameraPos.x)
 											+ (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f) * (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f)
 											+ (item.position.z - character.getPlayerCamera().cameraPos.z) * (item.position.z - character.getPlayerCamera().cameraPos.z);
 
-						if (distance <= 2.3) {
+						if (distance <= 2.3 && (mainWorld.getTick()-item.createdAtTick) > 10) {
 							// Locate empty inventory slot
 							byte slot = -1;
 							for (byte i = 0; i < 36; i++) {
 								byte inventoryType = character.readInventoryType(i);
 								if (inventoryType == 0 && slot == -1) slot = i;
-								if (inventoryType == item.item) {
+								if (inventoryType == item.item && character.readInventoryAmount(i) < 64) {
 									slot = i;
 									break;
 								}
@@ -96,8 +98,6 @@ public class App {
 								mainWorld.addEntityIdToDeleteList(item.entityId);
 							} else System.out.println("Inventory full");
 						}
-
-						item.position.y += item.velocity.y;
 					}
 				}
 

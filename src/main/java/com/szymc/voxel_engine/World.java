@@ -189,6 +189,8 @@ public class World {
 			long meshCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.MESHED).count();
 
 			System.out.printf("E: %d | T: %d | D: %d | L: %d | M: %d%n", emptyCount, terrainCount, decCount, lightCount, meshCount);
+			System.out.println("Entity Count: " + entityMap.size());
+			System.out.println("_______________");
 		}
 		
 		while (!completedTerrain.isEmpty()) {
@@ -295,8 +297,17 @@ public class World {
 		}
 	}
 	
-	int lastX = 99999999;
-	int lastZ = 99999999;
+	private int lastX = 99999999;
+	private int lastZ = 99999999;
+
+	private int tick = 0;
+	public void incrementTick() {
+		tick++;
+	}
+
+	public int getTick() {
+		return this.tick;
+	}
 
 	// Block Breaks, Direct Computation
 	public void updateChunk(int cx, int y, int cz, int bcx, int bcz, boolean isBlockPlace, byte block) {
@@ -409,7 +420,7 @@ public class World {
 
 	public Int2ObjectMap<Entity> getEntities() {return this.entityMap;}
 	public void spawnNewItemEntity(byte block, int wx, int wy, int wz) {
-		EntityItem item = new EntityItem(block);
+		EntityItem item = new EntityItem(block, tick);
 		float xOffset = (1-item.xWidth)/2;
 		float zOffset = (1-item.zWidth)/2;
 		item.position.set(wx+xOffset, wy+0.5f, wz+zOffset);

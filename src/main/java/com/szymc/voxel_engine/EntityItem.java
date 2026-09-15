@@ -390,7 +390,8 @@ public class EntityItem extends Entity {
         }
     }
 
-    public EntityItem(byte item) {
+    public EntityItem(byte item, int currentTick) {
+        super(currentTick);
         this.item = item;
         this.entityId = Entity.entitiesCreated++;
         this.itemMesh = meshCache[item];
