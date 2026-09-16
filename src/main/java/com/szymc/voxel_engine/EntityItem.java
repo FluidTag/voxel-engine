@@ -373,7 +373,7 @@ public class EntityItem extends Entity {
 
     public static void generateEaoCache() {
         setupEAOCache();
-        for (byte item = 1; item <= 48; item++) {
+        for (byte item = 1; item <= 49; item++) {
             if (Texture.itemTexturePaths[item] != -1) {
                 ByteBuffer pixels = blockTextures.getLayer(Texture.itemTexturePaths[item]);
 

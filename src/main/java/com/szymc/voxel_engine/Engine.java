@@ -251,7 +251,7 @@ public class Engine {
 			}
 
 			glEnable(GL_BLEND);
-			glDepthMask(false);
+			//glDepthMask(false);
 			for (ChunkColumn chunk : worldScene.getRendered().values()) {
 				if (chunk == null) continue;
 

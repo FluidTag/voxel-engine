@@ -326,5 +326,11 @@
     "textures": {
       "DEFAULT": "torch.png"
     }
+  },
+  "49": {
+    "name": "CLAY",
+    "textures": {
+      "DEFAULT": "clayTex.png"
+    }
   }
 }

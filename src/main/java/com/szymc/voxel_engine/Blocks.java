@@ -49,4 +49,5 @@ public class Blocks {
 	public static final byte RED_WOOD = 46;
 	public static final byte RED_DIRT = 47;
 	public static final byte TORCH = 48;
+	public static final byte CLAY = 49;
 }
