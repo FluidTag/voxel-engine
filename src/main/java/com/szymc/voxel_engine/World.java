@@ -419,14 +419,15 @@ public class World {
 	}
 
 	public Int2ObjectMap<Entity> getEntities() {return this.entityMap;}
-	public void spawnNewItemEntity(byte block, int wx, int wy, int wz) {
-		EntityItem item = new EntityItem(block, tick);
+	public EntityItem spawnNewItemEntity(byte block, int wx, int wy, int wz, boolean playerDropped) {
+		EntityItem item = new EntityItem(block, tick, playerDropped);
 		float xOffset = (1-item.xWidth)/2;
 		float zOffset = (1-item.zWidth)/2;
 		item.position.set(wx+xOffset, wy+0.5f, wz+zOffset);
 		item.previousPosition.set(item.position);
 
 		entityMap.put(item.entityId, item);
+		return item;
 	}
 
 	private IntArrayList pendingEntityRemovals = new IntArrayList(16);

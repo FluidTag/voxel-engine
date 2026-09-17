@@ -27,6 +27,7 @@ public class Camera {
 	public Vector3f getLookUnitNormal() {
 		return new Vector3f(cameraFront).normalize();
 	}
+	public Vector3f getCameraUp() {return new Vector3f(cameraUp).normalize();}
 
 	public int getWorldX() {
 		return (int) Math.floor(cameraPos.x);

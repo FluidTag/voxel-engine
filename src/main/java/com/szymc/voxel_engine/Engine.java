@@ -14,9 +14,6 @@ import com.szymc.localShaders.WorldShader;
 import static org.lwjgl.system.MemoryStack.*;
 
 
-import static org.lwjgl.opengl.GL30.*; // VAO functions (glGenVertexArrays)
-
-
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
@@ -41,17 +38,31 @@ public class Engine {
 	public record InventoryActiveItem(byte item, byte itemAmount, int ogSlotX, int ogSlotY, int inventoryIndex) {}
 	private InventoryActiveItem activeInventoryDrag = null;
 	private InventoryActiveItem tempExtInvStorage = null;
-	public void requestDropOfItem() {
+
+	public void requestDropInvIndex(byte invIndex, int decrementAmount) {
+		byte type = player.readInventoryType(invIndex);
+		byte amount = player.readInventoryAmount(invIndex);
+		int clampedNewAmount = Math.max(0, amount - decrementAmount);
+		if (type == 0) return;
+
+		player.setInventorySlot(invIndex, (amount-decrementAmount > 0 ? type : (byte)0), (byte) clampedNewAmount);
+
+		Camera cam = player.getPlayerCamera();
+		Vector3f lookDir = cam.getLookUnitNormal().normalize();
+
+		for (int i = 0; i < decrementAmount; i++) {
+			EntityItem createdEntity = worldScene.spawnNewItemEntity(type, 0, 0, 0, true);
+
+			createdEntity.position.set(cam.cameraPos.x + lookDir.x*2, cam.cameraPos.y + lookDir.y*2, cam.cameraPos.z + lookDir.z*2 );
+		}
+	}
+
+	public void requestDropOfGuiDraggedItem() {
 		if (activeInventoryDrag == null) return;
 		byte inventoryIndex = (byte) activeInventoryDrag.inventoryIndex;
-		byte current = activeInventoryDrag.itemAmount;
-		byte item = activeInventoryDrag.item;
-		player.setInventorySlot(inventoryIndex, (byte)0, (byte)0);
-		activeInventoryDrag = null;
+		requestDropInvIndex(inventoryIndex, activeInventoryDrag.itemAmount);
 
-		for (int i = 0; i < current; i++) {
-			worldScene.spawnNewItemEntity(item, player.getPlayerCamera().getWorldX()+2, player.getPlayerCamera().getWorldY(), player.getPlayerCamera().getWorldZ());
-		}
+		activeInventoryDrag = null;
 	}
 
 	public void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick) {
@@ -69,11 +80,12 @@ public class Engine {
 
 		if (activeInventoryDrag != null && isLeftClick) {
 			if (itemData.inventoryIndex == activeInventoryDrag.inventoryIndex) {
+				player.setInventorySlot((byte)activeInventoryDrag.inventoryIndex, activeInventoryDrag.item, activeInventoryDrag.itemAmount);
 				activeInventoryDrag = null;
 				return;
 			}
 
-			if (itemData.item == 0 || activeInventoryDrag.item == itemData.item) {
+			if (itemData.item == 0 || (activeInventoryDrag.item == itemData.item && itemData.itemAmount < 64)) {
 				byte currentInvAmount = player.readInventoryAmount((byte)itemData.inventoryIndex);
 				int maxAmount = 64-currentInvAmount;
 				int beingApplied = Math.min(activeInventoryDrag.itemAmount, maxAmount);
@@ -85,7 +97,7 @@ public class Engine {
 				if (leftOver > 0) {
 					activeInventoryDrag = new InventoryActiveItem(activeInventoryDrag.item, (byte)leftOver, activeInventoryDrag.ogSlotX, activeInventoryDrag.ogSlotY, activeInventoryDrag.inventoryIndex);
 				} else activeInventoryDrag = null;
-			} else if (activeInventoryDrag.item != itemData.item) {
+			} else if (activeInventoryDrag.item != itemData.item || itemData.itemAmount == 64) {
 				if (activeInventoryDrag.inventoryIndex != -1) player.setInventorySlot((byte) activeInventoryDrag.inventoryIndex, itemData.item, itemData.itemAmount);
 				player.setInventorySlot((byte) itemData.inventoryIndex, activeInventoryDrag.item, activeInventoryDrag.itemAmount);
 

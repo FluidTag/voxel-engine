@@ -14,7 +14,7 @@ public abstract class Entity {
     public boolean onGround = false;
 
     public Entity(int currentTick) {
-        System.out.println("Entity made at tick " + currentTick);
+        //System.out.println("Entity made at tick " + currentTick);
         this.createdAtTick = currentTick;
     }
 }

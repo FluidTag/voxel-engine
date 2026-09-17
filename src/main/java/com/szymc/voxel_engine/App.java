@@ -90,7 +90,7 @@ public class App {
 											+ (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f) * (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f)
 											+ (item.position.z - character.getPlayerCamera().cameraPos.z) * (item.position.z - character.getPlayerCamera().cameraPos.z);
 
-						if (distance <= 2.3 && (mainWorld.getTick()-item.createdAtTick) > 5) {
+						if (distance <= 2.3 && (mainWorld.getTick()-item.createdAtTick > (item.playerDropped ? 30 : 5))) {
 							// Locate empty inventory slot
 							byte slot = -1;
 							for (byte i = 0; i < 36; i++) {

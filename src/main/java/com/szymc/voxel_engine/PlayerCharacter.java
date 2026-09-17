@@ -149,6 +149,9 @@ public class PlayerCharacter {
         inventory[0] = Blocks.TORCH;
         inventoryAmounts[0] = 64;
 
+        inventory[1] = Blocks.STONE;
+        inventoryAmounts[1] = 64;
+
         glfwSetScrollCallback(windowReference.getWindowId(), (windowHandle, xOffset, yOffset) -> {
             if (guiInventoryActive) return;
             if (yOffset < 0) {
@@ -173,9 +176,14 @@ public class PlayerCharacter {
                     glfwSetCursorPos(windowReference.getWindowId(), (double) App.WINDOW_WIDTH /2, (double) App.WINDOW_HEIGHT /2);
                 } else {
                     glfwSetInputMode(windowReference.getWindowId(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                    engineAttachment.requestDropOfGuiDraggedItem();
                     engineAttachment.setActiveInventoryDrag(null, true);
                     firstMouse = true;
                 }
+            }
+
+            if (key == GLFW_KEY_Q && action == GLFW_PRESS && !guiInventoryActive) {
+                engineAttachment.requestDropInvIndex((byte) currentHotbarSlot, ((mods & GLFW_MOD_CONTROL) != 0 ? inventoryAmounts[currentHotbarSlot] : 1));
             }
         });
 
@@ -192,13 +200,13 @@ public class PlayerCharacter {
                 glfwGetCursorPos(windowReference.getWindowId(), mxPos, myPos);
                 int xSlot = (int) ((mxPos[0] - offsetX + slotSize - 2) / slotSize);
 
-                if (xSlot < 1 || xSlot > 9) {engineAttachment.requestDropOfItem(); return;}
+                if (xSlot < 1 || xSlot > 9) {engineAttachment.requestDropOfGuiDraggedItem(); return;}
 
                 if ((myPos[0] > invPosY + slotSize*3) && (myPos[0] < invPosY + slotSize*3 + hotbarGap)) return;
                 if (myPos[0] > invPosY + slotSize*3) myPos[0] -= hotbarGap;
 
                 int ySlot = (int) ((myPos[0] - invPosY + slotSize - 2) / slotSize);
-                if (ySlot < 1 || ySlot > 4) {engineAttachment.requestDropOfItem(); return;}
+                if (ySlot < 1 || ySlot > 4) {engineAttachment.requestDropOfGuiDraggedItem(); return;}
 
                 //System.out.println(xSlot + ", " + ySlot);
 
@@ -241,7 +249,7 @@ public class PlayerCharacter {
                         if (block == Blocks.AIR) return;
 
                         chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
-                        worldReference.spawnNewItemEntity(block, x, y, z);
+                        worldReference.spawnNewItemEntity(block, x, y, z, false);
                         chunk.setSectionDirty(y >> 4);
 
                         worldReference.updateChunk(cx, y, cz, x&31, z&31, false, block);

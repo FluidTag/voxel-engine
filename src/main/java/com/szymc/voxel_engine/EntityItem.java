@@ -390,11 +390,13 @@ public class EntityItem extends Entity {
         }
     }
 
-    public EntityItem(byte item, int currentTick) {
+    public boolean playerDropped = false;
+    public EntityItem(byte item, int currentTick, boolean playerDropped) {
         super(currentTick);
         this.item = item;
         this.entityId = Entity.entitiesCreated++;
         this.itemMesh = meshCache[item];
+        this.playerDropped = playerDropped;
 
         if (Texture.itemTexturePaths[item] == -1 && !Texture.isXShapedBlock[item]) {
             isBlock = true;
