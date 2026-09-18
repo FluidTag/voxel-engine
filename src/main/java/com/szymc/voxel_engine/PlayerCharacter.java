@@ -188,6 +188,10 @@ public class PlayerCharacter {
         });
 
         glfwSetMouseButtonCallback(windowReference.getWindowId(), (windowHandle, button, action, mods) -> {
+            if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+                engineAttachment.mouseReleased();
+            }
+
             if (guiInventoryActive && (button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
                 int slotSize = 64;
                 int offsetX = (int)((App.WINDOW_WIDTH/2.0f)-(slotSize*4.5f));
@@ -248,11 +252,12 @@ public class PlayerCharacter {
                         byte block = chunk.getBlockInChunk(x & 31, y, z & 31);
                         if (block == Blocks.AIR) return;
 
-                        chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
-                        worldReference.spawnNewItemEntity(block, x, y, z, false);
-                        chunk.setSectionDirty(y >> 4);
-
-                        worldReference.updateChunk(cx, y, cz, x&31, z&31, false, block);
+                        engineAttachment.startMining(x, y, z);
+//                        chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
+//                        worldReference.spawnNewItemEntity(block, x, y, z, false);
+//                        chunk.setSectionDirty(y >> 4);
+//
+//                        worldReference.updateChunk(cx, y, cz, x&31, z&31, false, block);
                     } else if (inventory[currentHotbarSlot] != 0 && inventoryAmounts[currentHotbarSlot] > 0) {
                         chunk.setBlockInChunk(x & 31, y, z & 31, inventory[currentHotbarSlot]);
                         inventoryAmounts[currentHotbarSlot]--;

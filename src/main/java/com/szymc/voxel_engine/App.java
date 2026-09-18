@@ -73,6 +73,10 @@ public class App {
 				mainWorld.incrementTick();
 				tIncrement -= 0.05f;
 
+				if (glfwGetMouseButton(window.getWindowId(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+					engine.leftMouseHeldTick();
+				}
+
 				// Physics Update
 				for (Entity entity : mainWorld.getEntities().values()) {
 					if (entity.getClass() == EntityItem.class) {

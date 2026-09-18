@@ -21,7 +21,6 @@ public class OutlineShader extends Shader {
 
         this.start();
         glUniform1i(glGetUniformLocation(this.programId, "textureArray"), 0);
-        setLocal_breakTexId(9);
         this.stop();
     }
 

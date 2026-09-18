@@ -16,6 +16,7 @@ import static org.lwjgl.system.MemoryStack.*;
 
 import java.io.IOException;
 import java.nio.FloatBuffer;
+import java.util.Objects;
 
 
 import org.joml.Matrix4f;
@@ -122,12 +123,55 @@ public class Engine {
 
 	public void setOutlineLoc(int x, int y, int z) {
 		this.outlineLoc = new Matrix4f().translation(x, y, z);
+		if (currentlyMiningState != null && (currentlyMiningState.wx != x || currentlyMiningState.wy != y || currentlyMiningState.wz != z)) currentlyMiningState = null;
 	}
 
 	public void setPlayer(PlayerCharacter player) {
 		this.player = player;
 	}
 	public static boolean wireframeMode = false;
+    public static final class BlockMineState {
+        public int wx; public int wy; public int wz;
+		public float health; public float maxHealth;
+
+        public BlockMineState(int wx, int wy, int wz, int health, int maxHealth) {
+            this.wx = wx;
+            this.wy = wy;
+            this.wz = wz;
+            this.health = health;
+            this.maxHealth = maxHealth;
+        }
+    }
+
+	private BlockMineState currentlyMiningState = null;
+	public void startMining(int wx, int wy, int wz) {
+		currentlyMiningState = new BlockMineState(wx, wy, wz, 100, 100);
+	}
+
+	public void leftMouseHeldTick() {
+
+		if (currentlyMiningState != null) {
+			currentlyMiningState.health -= 4f;
+			System.out.println(currentlyMiningState.health);
+			if (currentlyMiningState.health < 0) {
+				ChunkColumn chunk = worldScene.getLoadedChunkAtPos(currentlyMiningState.wx>>5, currentlyMiningState.wz>>5);
+				int x = currentlyMiningState.wx; int y = currentlyMiningState.wy; int z = currentlyMiningState.wz;
+				byte block = chunk.getBlockInChunk(x&31, y, z&31);
+				chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
+				worldScene.spawnNewItemEntity(block, x, y, z, false);
+				chunk.setSectionDirty(y >> 4);
+
+				worldScene.updateChunk(currentlyMiningState.wx>>5, y, currentlyMiningState.wz>>5, x&31, z&31, false, block);
+
+				currentlyMiningState = null;
+			}
+		}
+	}
+
+	public void mouseReleased() {
+		currentlyMiningState = null;
+	}
+
 	public Engine(World world, Camera camera) {
 		this.worldScene = world;
 		this.camera = camera;
@@ -285,12 +329,19 @@ public class Engine {
 				outlineShader.setIsRenderingFace(false);
 				glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0L);
 
-				outlineShader.setIsRenderingFace(true);
-				glActiveTexture(GL_TEXTURE0);
-				glBindVertexArray(outline.getTriangleVao());
-				glDepthMask(false);
-				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0L);
-				glDepthMask(true);
+				if (currentlyMiningState != null) {
+					int texId = Texture.breakStages[(int) (7 - (currentlyMiningState.health/currentlyMiningState.maxHealth)*7)];
+
+					outlineShader.setLocal_breakTexId(texId);
+					outlineShader.setIsRenderingFace(true);
+
+					glActiveTexture(GL_TEXTURE0);
+					glBindVertexArray(outline.getTriangleVao());
+					glDepthMask(false);
+					glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0L);
+					glDepthMask(true);
+				}
+
 				// Clean up states
 				glDepthFunc(GL_LESS);
 				// ------------------------------
