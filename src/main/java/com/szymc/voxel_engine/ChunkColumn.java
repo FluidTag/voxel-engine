@@ -161,6 +161,10 @@ public class ChunkColumn {
 	public ChunkSection initializeSection(int yIndex) {
 		if (yIndex > 15) throw new ArrayIndexOutOfBoundsException("World limit exceeded, attempting init of section index " + yIndex);
 		sections[yIndex] = new ChunkSection(new byte[32*16*32], new byte[32*16*32], worldReference, worldX*32, yIndex*16, worldZ*32);
+
+		byte[] lightingData = sections[yIndex].getLightingData();
+		Arrays.fill(lightingData, (byte)(0xF << 4));
+
 		return sections[yIndex];
 	}
 	

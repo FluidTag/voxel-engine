@@ -36,9 +36,10 @@ public class Engine {
 	private UIRenderer uiRenderer;
 	private int crosshairTexture;
 
+	// Engine is begging for a refactor bro, fix ts, maybe consider moving the ui to another class
+
 	public record InventoryActiveItem(byte item, byte itemAmount, int ogSlotX, int ogSlotY, int inventoryIndex) {}
 	private InventoryActiveItem activeInventoryDrag = null;
-	private InventoryActiveItem tempExtInvStorage = null;
 
 	public void requestDropInvIndex(byte invIndex, int decrementAmount) {
 		byte type = player.readInventoryType(invIndex);
@@ -119,12 +120,17 @@ public class Engine {
 
 	public void removeOutlineLoc() {
 		this.outlineLoc = null;
+		this.currentlyMiningState = null;
 	}
 
 	public void setOutlineLoc(int x, int y, int z) {
 		this.outlineLoc = new Matrix4f().translation(x, y, z);
-		if (currentlyMiningState != null && (currentlyMiningState.wx != x || currentlyMiningState.wy != y || currentlyMiningState.wz != z)) currentlyMiningState = null;
-	}
+		byte blockAt = worldScene.getLoadedChunkAtPos(x>>5, z>>5).getBlockInChunk(x&31, y, z&31);
+		boolean isNewBlock = currentlyMiningState != null && (x != currentlyMiningState.wx || y != currentlyMiningState.wy || z != currentlyMiningState.wz);
+		if (isNewBlock || (currentlyMiningState == null && isLeftMouseHeld)) {
+			currentlyMiningState = new BlockMineState(x, y, z, Texture.hardnessLevels[blockAt], Texture.hardnessLevels[blockAt]);
+		}
+    }
 
 	public void setPlayer(PlayerCharacter player) {
 		this.player = player;
@@ -134,7 +140,7 @@ public class Engine {
         public int wx; public int wy; public int wz;
 		public float health; public float maxHealth;
 
-        public BlockMineState(int wx, int wy, int wz, int health, int maxHealth) {
+        public BlockMineState(int wx, int wy, int wz, float health, float maxHealth) {
             this.wx = wx;
             this.wy = wy;
             this.wz = wz;
@@ -144,15 +150,17 @@ public class Engine {
     }
 
 	private BlockMineState currentlyMiningState = null;
+	private boolean isLeftMouseHeld = false;
 	public void startMining(int wx, int wy, int wz) {
-		currentlyMiningState = new BlockMineState(wx, wy, wz, 100, 100);
+		byte blockAt = worldScene.getLoadedChunkAtPos(wx>>5, wz>>5).getBlockInChunk(wx&31, wy, wz&31);
+		currentlyMiningState = new BlockMineState(wx, wy, wz, Texture.hardnessLevels[blockAt], Texture.hardnessLevels[blockAt]);
+		isLeftMouseHeld = true;
 	}
 
 	public void leftMouseHeldTick() {
-
 		if (currentlyMiningState != null) {
-			currentlyMiningState.health -= 4f;
-			System.out.println(currentlyMiningState.health);
+			currentlyMiningState.health -= 0.085f;
+
 			if (currentlyMiningState.health < 0) {
 				ChunkColumn chunk = worldScene.getLoadedChunkAtPos(currentlyMiningState.wx>>5, currentlyMiningState.wz>>5);
 				int x = currentlyMiningState.wx; int y = currentlyMiningState.wy; int z = currentlyMiningState.wz;
@@ -162,7 +170,6 @@ public class Engine {
 				chunk.setSectionDirty(y >> 4);
 
 				worldScene.updateChunk(currentlyMiningState.wx>>5, y, currentlyMiningState.wz>>5, x&31, z&31, false, block);
-
 				currentlyMiningState = null;
 			}
 		}
@@ -170,6 +177,7 @@ public class Engine {
 
 	public void mouseReleased() {
 		currentlyMiningState = null;
+		isLeftMouseHeld = false;
 	}
 
 	public Engine(World world, Camera camera) {

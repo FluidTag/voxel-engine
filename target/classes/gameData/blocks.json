@@ -1,6 +1,7 @@
 {
   "1": {
     "name": "GRASS",
+    "hardness": 1.0,
     "textures": {
       "DEFAULT": "grassSide2Tex.png",
       "TOP": "grassTopTex4.png",
@@ -9,18 +10,21 @@
   },
   "2": {
     "name": "DIRT",
+    "hardness": 1.0,
     "textures": {
       "DEFAULT": "dirtTex.png"
     }
   },
   "3": {
     "name": "OAK_WOOD",
+    "hardness": 2.5,
     "textures": {
       "DEFAULT": "logTex.png"
     }
   },
   "4": {
     "name": "OAK_LEAVES",
+    "hardness": 0.7,
     "isLeaves": true,
     "textures": {
       "DEFAULT": "leafsTex4.png"
@@ -28,6 +32,7 @@
   },
   "5": {
     "name": "STONE",
+    "hardness": 4.0,
     "icon": "stoneIconTest.png",
     "textures": {
       "DEFAULT": "stoneTex.png"
@@ -35,42 +40,49 @@
   },
   "6": {
     "name": "WATER",
+    "hardness": -1.0,
     "textures": {
       "DEFAULT": "waterTex3.png"
     }
   },
   "7": {
     "name": "SAND",
+    "hardness": 0.8,
     "textures": {
       "DEFAULT": "sandTex.png"
     }
   },
   "8": {
     "name": "GRAVEL",
+    "hardness": 1.0,
     "textures": {
       "DEFAULT": "gravelTex.png"
     }
   },
   "9": {
     "name": "BEDROCK",
+    "hardness": -1.0,
     "textures": {
       "DEFAULT": "bedrockTex.png"
     }
   },
   "10": {
     "name": "LAVA",
+    "hardness": -1.0,
     "textures": {
       "DEFAULT": "lavaTex.png"
     }
   },
   "11": {
     "name": "BIRCH_WOOD",
+    "hardness": 2.5,
     "textures": {
       "DEFAULT": "birchLogTex.png"
     }
   },
   "12": {
     "name": "BIRCH_LEAVES",
+    "hardness": 0.7,
     "isLeaves": true,
     "textures": {
       "DEFAULT": "birchLeavesTex.png"
@@ -78,12 +90,14 @@
   },
   "13": {
     "name": "SNOW",
+    "hardness": 0.8,
     "textures": {
       "DEFAULT": "snowTex.png"
     }
   },
   "14": {
     "name": "SAVANNA_GRASS",
+    "hardness": 1.0,
     "textures": {
       "DEFAULT": "savannaGrassSide.png",
       "TOP": "savannaGrass.png",
@@ -92,6 +106,7 @@
   },
   "15": {
     "name": "JUNGLE_GRASS",
+    "hardness": 1.0,
     "textures": {
       "DEFAULT": "jungleGrassSideTex.png",
       "TOP": "jungleGrassTex.png",
@@ -100,6 +115,7 @@
   },
   "16": {
     "name": "TAIGA_GRASS",
+    "hardness": 1.0,
     "textures": {
       "DEFAULT": "taigaGrassSideTex.png",
       "TOP": "taigaGrassTex.png",
@@ -108,6 +124,7 @@
   },
   "17": {
     "name": "TUNDRA_GRASS",
+    "hardness": 1.4,
     "textures": {
       "DEFAULT": "tundraGrassSideTex.png",
       "TOP": "tundraGrassTex.png",
@@ -116,12 +133,14 @@
   },
   "18": {
     "name": "ICE",
+    "hardness": 1.2,
     "textures": {
       "DEFAULT": "iceTex.png"
     }
   },
   "19": {
     "name": "GRASS_DECORATION",
+    "hardness": 0.25,
     "xMesh": true,
     "textures": {
       "DEFAULT": "zGrass6.png"
@@ -129,6 +148,7 @@
   },
   "20": {
     "name": "FOREST_GRASS",
+    "hardness": 1.0,
     "textures": {
       "DEFAULT": "forestGrassSideTex.png",
       "TOP": "forestGrassTex.png",
@@ -137,6 +157,7 @@
   },
   "21": {
     "name": "BIRCH_GRASS",
+    "hardness": 1.0,
     "textures": {
       "DEFAULT": "birchGrassSideTex.png",
       "TOP": "birchGrassTex.png",
@@ -145,12 +166,14 @@
   },
   "22": {
     "name": "SPRUCE_LOG",
+    "hardness": 2.5,
     "textures": {
       "DEFAULT": "spruceLogTex.png"
     }
   },
   "23": {
     "name": "SPRUCE_LEAVES",
+    "hardness": 0.7,
     "isLeaves": true,
     "textures": {
       "DEFAULT": "spruceLeaveTex.png"
@@ -158,12 +181,14 @@
   },
   "24": {
     "name": "ACACIA_LOG",
+    "hardness": 2.5,
     "textures": {
       "DEFAULT": "acaciaLog.png"
     }
   },
   "25": {
     "name": "ACACIA_LEAVES",
+    "hardness": 0.7,
     "isLeaves": true,
     "textures": {
       "DEFAULT": "acaciaLeaves.png"
@@ -171,6 +196,7 @@
   },
   "26": {
     "name": "SNOWY_SPRUCE_LEAVES",
+    "hardness": 0.7,
     "isLeaves": true,
     "textures": {
       "DEFAULT": "snowySpruceLeaves.png"
@@ -178,6 +204,7 @@
   },
   "27": {
     "name": "RED_MUSHROOM_SMALL",
+    "hardness": 0.25,
     "xMesh": true,
     "textures": {
       "DEFAULT": "redMushroom.png"
@@ -185,6 +212,7 @@
   },
   "28": {
     "name": "BROWN_MUSHROOM_SMALL",
+    "hardness": 0.25,
     "xMesh": true,
     "textures": {
       "DEFAULT": "brownMushroom.png"
@@ -192,6 +220,7 @@
   },
   "29": {
     "name": "RED_FLOWER",
+    "hardness": 0.25,
     "xMesh": true,
     "textures": {
       "DEFAULT": "redFlower.png"
@@ -199,6 +228,7 @@
   },
   "30": {
     "name": "JUNGLE_LOG",
+    "hardness": 2.5,
     "textures": {
       "DEFAULT": "jungleLogSide.png",
       "TOP": "jungleLogTop.png",
@@ -207,6 +237,7 @@
   },
   "31": {
     "name": "DEAD_SHRUB",
+    "hardness": 0.3,
     "xMesh": true,
     "textures": {
       "DEFAULT": "deadShrub.png"
@@ -214,6 +245,7 @@
   },
   "32": {
     "name": "YELLOW_FLOWER",
+    "hardness": 0.25,
     "xMesh": true,
     "textures": {
       "DEFAULT": "yellowFlower.png"
@@ -221,6 +253,7 @@
   },
   "33": {
     "name": "CACTUS",
+    "hardness": 0.67,
     "textures": {
       "TOP": "cactusTop.png",
       "BOTTOM": "cactusTop.png",
@@ -229,6 +262,7 @@
   },
   "34": {
     "name": "DARK_OAK_LOG",
+    "hardness": 2.5,
     "textures": {
       "TOP": "darkOakLogTop.png",
       "BOTTOM": "darkOakLogTop.png",
@@ -237,6 +271,7 @@
   },
   "35": {
     "name": "DARK_OAK_LEAVES",
+    "hardness": 0.7,
     "isLeaves": true,
     "textures": {
       "DEFAULT": "darkOakLeaves.png"
@@ -244,42 +279,49 @@
   },
   "36": {
     "name": "HARDENED_STONE",
+    "hardness": 6.0,
     "textures": {
       "DEFAULT": "hardenedStone.png"
     }
   },
   "37": {
     "name": "SANDSTONE",
+    "hardness": 4.5,
     "textures": {
       "DEFAULT": "sandstone.png"
     }
   },
   "38": {
     "name": "RED_TERRACOTTA",
+    "hardness": 2.0,
     "textures": {
       "DEFAULT": "redTerracotta.png"
     }
   },
   "39": {
     "name": "ORANGE_TERRACOTTA",
+    "hardness": 2.0,
     "textures": {
       "DEFAULT": "orangeTerracotta.png"
     }
   },
   "40": {
     "name": "YELLOW_TERRACOTTA",
+    "hardness": 2.0,
     "textures": {
       "DEFAULT": "yellowTerracotta.png"
     }
   },
   "41": {
     "name": "RED_SAND",
+    "hardness": 1.0,
     "textures": {
       "DEFAULT": "redSand.png"
     }
   },
   "42": {
     "name": "FERN",
+    "hardness": 0.25,
     "xMesh": true,
     "textures": {
       "DEFAULT": "fern.png"
@@ -287,6 +329,7 @@
   },
   "43": {
     "name": "SNOWY_FERN",
+    "hardness": 0.25,
     "xMesh": true,
     "textures": {
       "DEFAULT": "snowyFern.png"
@@ -294,12 +337,14 @@
   },
   "44": {
     "name": "COARSE_DIRT",
+    "hardness": 1.2,
     "textures": {
       "DEFAULT": "coarseDirt.png"
     }
   },
   "45": {
     "name": "SWAMP_GRASS",
+    "hardness": 1.0,
     "textures": {
       "TOP": "swampGrassTop.png",
       "DEFAULT": "swampGrassSide.png"
@@ -307,6 +352,7 @@
   },
   "46": {
     "name": "RED_WOOD",
+    "hardness": 2.5,
     "textures": {
       "TOP": "redwoodTop.png",
       "BOTTOM": "redwoodTop.png",
@@ -315,12 +361,14 @@
   },
   "47": {
     "name": "RED_DIRT",
+    "hardness": 1.12,
     "textures": {
       "DEFAULT": "redDirt.png"
     }
   },
   "48": {
     "name": "TORCH",
+    "hardness": 0.25,
     "xMesh": true,
     "light-level": 14,
     "textures": {
@@ -329,6 +377,7 @@
   },
   "49": {
     "name": "CLAY",
+    "hardness": 0.83,
     "textures": {
       "DEFAULT": "clayTex.png"
     }

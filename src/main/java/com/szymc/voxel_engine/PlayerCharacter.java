@@ -240,6 +240,31 @@ public class PlayerCharacter {
                             case "NORTH": z -= 1; break;
                             case "SOUTH": z += 1; break;
                         }
+
+                        int minX = (int)Math.floor(playerCamera.cameraPos.x-PLAYER_RADIUS);
+                        int maxX = (int)Math.floor(playerCamera.cameraPos.x+PLAYER_RADIUS);
+
+                        int minY = (int)Math.floor(playerCamera.cameraPos.y-PLAYER_HEIGHT);
+                        int maxY = (int)Math.floor(playerCamera.cameraPos.y);
+
+                        int minZ = (int)Math.floor(playerCamera.cameraPos.z-PLAYER_RADIUS);
+                        int maxZ = (int)Math.floor(playerCamera.cameraPos.z+PLAYER_RADIUS);
+
+                        boolean placeFailure = false;
+                        for (int cx = minX; cx<=maxX; cx++) {
+                            if (placeFailure) break;
+                            for (int cy = minY; cy<=maxY; cy++) {
+                                if (placeFailure) break;
+                                for (int cz = minZ; cz<=maxZ; cz++) {
+                                    if (cx == x && cy == y && cz == z) {
+                                        placeFailure = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (placeFailure) return;
                     }
 
                     int cx = x >> 5;
@@ -253,11 +278,6 @@ public class PlayerCharacter {
                         if (block == Blocks.AIR) return;
 
                         engineAttachment.startMining(x, y, z);
-//                        chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
-//                        worldReference.spawnNewItemEntity(block, x, y, z, false);
-//                        chunk.setSectionDirty(y >> 4);
-//
-//                        worldReference.updateChunk(cx, y, cz, x&31, z&31, false, block);
                     } else if (inventory[currentHotbarSlot] != 0 && inventoryAmounts[currentHotbarSlot] > 0) {
                         chunk.setBlockInChunk(x & 31, y, z & 31, inventory[currentHotbarSlot]);
                         inventoryAmounts[currentHotbarSlot]--;
