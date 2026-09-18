@@ -1,13 +1,13 @@
 package com.szymc.localShaders;
 
-import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 import java.nio.FloatBuffer;
 
 import org.joml.Matrix4f;
-import static org.lwjgl.opengl.GL20.glUniform3f;
+
+import static org.lwjgl.opengl.GL20.*;
 
 public class OutlineShader extends Shader {
-    private int local_projection, local_view, local_model, local_color;
+    private int local_projection, local_view, local_model, local_color, local_renderMode, local_breakTexId;
 
     public OutlineShader() {
         super("/shaders/outline.vert", "/shaders/outline.frag");
@@ -16,6 +16,13 @@ public class OutlineShader extends Shader {
         this.local_view = glGetUniformLocation(this.programId, "view");
         this.local_model = glGetUniformLocation(this.programId, "model");
         this.local_color = glGetUniformLocation(this.programId, "outlineColor");
+        this.local_renderMode = glGetUniformLocation(this.programId, "drawFace");
+        this.local_breakTexId = glGetUniformLocation(this.programId, "textureId");
+
+        this.start();
+        glUniform1i(glGetUniformLocation(this.programId, "textureArray"), 0);
+        setLocal_breakTexId(9);
+        this.stop();
     }
 
     public void setColor(float r, float g, float b) {
@@ -29,5 +36,13 @@ public class OutlineShader extends Shader {
 
     public void setModel(Matrix4f model, FloatBuffer buffer) {
         this.setMatrix(local_model, model, buffer);
+    }
+
+    public void setIsRenderingFace(boolean state) {
+        glUniform1i(local_renderMode, state ? 1 : 0);
+    }
+
+    public void setLocal_breakTexId(int id) {
+        glUniform1i(local_breakTexId, id);
     }
 }

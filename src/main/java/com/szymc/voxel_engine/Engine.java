@@ -239,31 +239,8 @@ public class Engine {
 			entityShader.stop();
 			mainShader.start();
 
-			if (outlineLoc != null) {
-				outlineShader.start();
-				outlineShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
-				outlineShader.setModel(this.outlineLoc, matrixBuffer);
-
-				glBindVertexArray(outline.getVao());
-				glDepthFunc(GL_LEQUAL);
-
-				glLineWidth(4f);
-				glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0L);
-
-				// Clean up states
-				glDepthFunc(GL_LESS);
-				// ------------------------------
-
-				outlineShader.stop();
-				glBindVertexArray(0);
-
-				// Reactivate main shader for the upcoming water rendering loop
-				mainShader.start();
-				mainShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
-			}
-
 			glEnable(GL_BLEND);
-			//glDepthMask(false);
+			glDepthMask(true);
 			for (ChunkColumn chunk : worldScene.getRendered().values()) {
 				if (chunk == null) continue;
 
@@ -288,16 +265,42 @@ public class Engine {
 						continue;
 					}
 
-					float worldX = minX;
-					float worldY = minY;
-					float worldZ = minZ;
-
-					tempModel.set(worldX, worldY, worldZ);
+                    tempModel.set((float) minX, (float) minY, (float) minZ);
 					modelVec.translation(tempModel);
 					mainShader.setModel(modelVec, matrixBuffer);
 
 					section.getWaterMesh().render();
 				}
+			}
+
+			if (outlineLoc != null) {
+				outlineShader.start();
+				outlineShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
+				outlineShader.setModel(this.outlineLoc, matrixBuffer);
+
+				glBindVertexArray(outline.getLineVao());
+				glDepthFunc(GL_LEQUAL);
+
+				glLineWidth(4f);
+				outlineShader.setIsRenderingFace(false);
+				glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0L);
+
+				outlineShader.setIsRenderingFace(true);
+				glActiveTexture(GL_TEXTURE0);
+				glBindVertexArray(outline.getTriangleVao());
+				glDepthMask(false);
+				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0L);
+				glDepthMask(true);
+				// Clean up states
+				glDepthFunc(GL_LESS);
+				// ------------------------------
+
+				outlineShader.stop();
+				glBindVertexArray(0);
+
+				// Reactivate main shader for the upcoming water rendering loop
+				mainShader.start();
+				mainShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
 			}
 
 			mainShader.stop();
@@ -346,8 +349,6 @@ public class Engine {
 					}
 				}
 
-
-
 				uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
 				for (int iy = 0; iy < 4; iy++) {
 					for (int ix = 0; ix < 9; ix++) {
@@ -371,7 +372,6 @@ public class Engine {
 				uiRenderer.renderFont(Integer.toString(activeInventoryDrag.itemAmount), adjMouseX + (slotSize-4), adjMouseY + (slotSize-4), UIRenderer.TextAlignment.RIGHT);
 			}
 
-			//uiRenderer.renderFont("Hello World, Text rendering has been added successfully! 1234567890", 100, 100);
 			uiRenderer.end();
 
 			glDepthMask(true);

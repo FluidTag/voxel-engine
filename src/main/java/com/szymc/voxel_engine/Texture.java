@@ -48,10 +48,16 @@ public class Texture {
 	public static final boolean[] isLeafBlock = new boolean[256];
 	public static final int[] itemTexturePaths = new int[256];
 	public static final byte[] lightLevels = new byte[256];
+	public static final int[] breakStages = new int[8];
 
 	public static void readBlockJson(String path) {
 		Gson gson = new Gson();
 		Arrays.fill(itemTexturePaths, -1);
+
+		for (int i = 1; i <= 8; i++) {
+			int loc = fileNameMap.get("breakStage"+i+".png");
+			breakStages[i-1] = loc;
+		}
 
 		try (InputStream is = App.class.getClassLoader().getResourceAsStream(path)) {
 			try (InputStreamReader reader = new InputStreamReader(is)) {
