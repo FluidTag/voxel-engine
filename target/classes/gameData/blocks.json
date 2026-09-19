@@ -391,5 +391,12 @@
     "textures": {
       "DEFAULT": "cornFlower2.png"
     }
+  },
+  "51": {
+    "name": "OAK_PLANKS",
+    "hardness": 1.4,
+    "textures": {
+      "DEFAULT": "oakPlanks.png"
+    }
   }
 }

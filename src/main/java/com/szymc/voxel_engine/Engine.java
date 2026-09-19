@@ -42,6 +42,8 @@ public class Engine {
 
 	public void requestDropInvIndex(byte invIndex, int decrementAmount) {
 		byte type = player.readInventoryType(invIndex);
+		if (activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == 40) type = activeInventoryDrag.item; // Crafting Result Override
+
 		byte amount = player.readInventoryAmount(invIndex);
 		int clampedNewAmount = Math.max(0, amount - decrementAmount);
 		if (type == 0) return;
@@ -61,19 +63,39 @@ public class Engine {
 	public void requestDropOfGuiDraggedItem() {
 		if (activeInventoryDrag == null) return;
 		byte inventoryIndex = (byte) activeInventoryDrag.inventoryIndex;
+		System.out.println(activeInventoryDrag);
 		requestDropInvIndex(inventoryIndex, activeInventoryDrag.itemAmount);
 
 		activeInventoryDrag = null;
 	}
 
-	public void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick) {
+	public void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick, boolean isShiftClick) {
 		if (itemData == null) {
 			activeInventoryDrag = null;
 			return;
+		} else if (activeInventoryDrag != null && itemData.inventoryIndex == 40) {
+			if (activeInventoryDrag.item == itemData.item) {
+				int availableToBeCrafted = -1;
+				for (byte i = 36; i < 40; i++) {
+					availableToBeCrafted = Math.max(player.readInventoryAmount(i), availableToBeCrafted);
+				}
+
+				if (availableToBeCrafted == 1 || isShiftClick) player.setInventorySlot((byte)40, (byte)0, (byte)0);
+				availableToBeCrafted = Math.min(availableToBeCrafted, isShiftClick ? 64 : 1); // clamp
+
+				for (byte i = 36; i < 40; i++) {
+					player.setInventorySlot(i, player.readInventoryType(i), (byte) (player.readInventoryAmount(i)-availableToBeCrafted));
+					if (player.readInventoryAmount(i) <= 0) player.setInventorySlot(i, (byte)0, (byte)0);
+				}
+				this.activeInventoryDrag = new InventoryActiveItem(itemData.item, (byte) (activeInventoryDrag.itemAmount + itemData.itemAmount*availableToBeCrafted), itemData.ogSlotX, itemData.ogSlotY, itemData.inventoryIndex);
+				return;
+			}
+			return;
 		}
 
-		if (activeInventoryDrag == null && !isLeftClick && itemData.item != 0) {
-			activeInventoryDrag = new InventoryActiveItem(itemData.item, (byte) (itemData.itemAmount/2), itemData.ogSlotX, itemData.ogSlotY, -1);
+		if (activeInventoryDrag == null && !isLeftClick && itemData.item != 0 && itemData.inventoryIndex != 40) {
+			if (itemData.itemAmount <= 1) return;
+			activeInventoryDrag = new InventoryActiveItem(itemData.item, (byte) Math.max(1, (itemData.itemAmount/2)), itemData.ogSlotX, itemData.ogSlotY, -1);
 
 			player.setInventorySlot((byte) itemData.inventoryIndex, itemData.item, (byte) (itemData.itemAmount/2));
 			return;
@@ -98,6 +120,22 @@ public class Engine {
 				if (leftOver > 0) {
 					activeInventoryDrag = new InventoryActiveItem(activeInventoryDrag.item, (byte)leftOver, activeInventoryDrag.ogSlotX, activeInventoryDrag.ogSlotY, activeInventoryDrag.inventoryIndex);
 				} else activeInventoryDrag = null;
+				String tableInput = extractCraftInput();
+				if (tableInput == null) {
+					player.setInventorySlot((byte)40, (byte)0, (byte)0);
+					return;
+				};
+				tableInput = tableInput.trim();
+
+				short result = Texture.craftingRecipes.getShort(tableInput);
+				byte blockIdMade = (byte) (result & 0xFF);
+				byte amount = (byte) ((result >>> 8) & 0xFF);
+
+				if (result != 0) {
+					player.setInventorySlot((byte)40, blockIdMade, amount);
+				} else {
+					player.setInventorySlot((byte)40, (byte)0, (byte)0);
+				}
 			} else if (activeInventoryDrag.item != itemData.item || itemData.itemAmount == 64) {
 				if (activeInventoryDrag.inventoryIndex != -1) player.setInventorySlot((byte) activeInventoryDrag.inventoryIndex, itemData.item, itemData.itemAmount);
 				player.setInventorySlot((byte) itemData.inventoryIndex, activeInventoryDrag.item, activeInventoryDrag.itemAmount);
@@ -108,7 +146,64 @@ public class Engine {
 			return;
 		}
 
-		if (itemData != null && itemData.item != 0 && isLeftClick) this.activeInventoryDrag = itemData;
+		if (itemData != null && itemData.item != 0 && isLeftClick) {
+			if (itemData.inventoryIndex == 40) {
+				int availableToBeCrafted = -1;
+				for (byte i = 36; i < 40; i++) {
+					availableToBeCrafted = Math.max(player.readInventoryAmount(i), availableToBeCrafted);
+				}
+
+				if (availableToBeCrafted == 1 || isShiftClick) player.setInventorySlot((byte)40, (byte)0, (byte)0);
+				availableToBeCrafted = Math.min(availableToBeCrafted, isShiftClick ? 64 : 1); // clamp
+
+				for (byte i = 36; i < 40; i++) {
+					player.setInventorySlot(i, player.readInventoryType(i), (byte) (player.readInventoryAmount(i)-availableToBeCrafted));
+					if (player.readInventoryAmount(i) <= 0) player.setInventorySlot(i, (byte)0, (byte)0);
+				}
+				this.activeInventoryDrag = new InventoryActiveItem(itemData.item, (byte) (itemData.itemAmount*availableToBeCrafted), itemData.ogSlotX, itemData.ogSlotY, itemData.inventoryIndex);
+				return;
+			}
+			this.activeInventoryDrag = itemData;
+		};
+	}
+
+	public String extractCraftInput() {
+		StringBuilder result = new StringBuilder();
+		int minX = 999; int maxX = -999;
+		int minY = 999; int maxY = -999;
+		boolean isEmpty = true;
+
+		for (int y = 1; y >= 0; y--) {
+			for (int x = 0; x < 2; x++) {
+				byte ind = (byte) (36 + x*2+y);
+				byte itemType = player.readInventoryType(ind);
+				if (itemType != 0) {
+					isEmpty = false;
+					minX = Math.min(x, minX);
+					maxX = Math.max(x, maxX);
+					minY = Math.min(y, minY);
+					maxY = Math.max(y, maxY);
+				}
+			}
+		}
+
+		if (isEmpty) return null;
+
+		for (int y = maxY; y >= minY; y--) {
+			for (int x = minX; x < maxX+1; x++) {
+				byte ind = (byte) (36 + x*2+y);
+				byte itemType = player.readInventoryType(ind);
+
+				result.append(itemType);
+				result.append('.');
+			}
+			result.append('/');
+		}
+
+		System.out.printf("xMin: %d, xMax: %d, yMin: %d, yMax: %d\n", minX, maxX, minY, maxY);
+		System.out.println(result);
+
+		return result.toString();
 	}
 
 	private int mouseX, mouseY;
@@ -187,6 +282,7 @@ public class Engine {
 		this.mainShader = new WorldShader();
 		this.entityShader = new EntityShader(mainShader.getTexture());
 		Texture.readBlockJson("gameData/blocks.json");
+		Texture.readInCraftingJson("gameData/craftingRecipes.json");
 		this.uiRenderer = new UIRenderer(mainShader.getTexture());
 		this.crosshairTexture = Texture.loadTexturePath("src/main/resources/ui/crosshair.png");
 
@@ -434,7 +530,10 @@ public class Engine {
 
 				uiRenderer.beginUiRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
 				uiRenderer.drawRect(craftXpos, craftYpos, 2*slotSize+4, 2*slotSize, 0.6f, 0.6f, 0.6f, 1.0f);
-				uiRenderer.drawRect(craftXpos+2*slotSize+75, craftYpos + slotSize/2f, slotSize, slotSize, 0.5f, 0.5f, 0.5f, 1.0f);
+				int resultSlotX = craftXpos+2*slotSize+75;
+				int resultSlotY = (int) (craftYpos + slotSize / 2f);
+
+				uiRenderer.drawRect(resultSlotX, resultSlotY, slotSize, slotSize, 0.5f, 0.5f, 0.5f, 1.0f);
 
 				for (int x = 0; x <= 1; x++) {
 					for (int y = 0; y <= 1; y++) {
@@ -450,6 +549,10 @@ public class Engine {
 					}
 				}
 
+				if (player.readInventoryType((byte)40) != 0) {
+					uiRenderer.drawIcon(player.readInventoryType((byte)40), resultSlotX+2, resultSlotY+2, slotSize-4, slotSize-4);
+				}
+
 				uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
 				for (int x = 0; x <= 1; x++) {
 					for (int y = 0; y <= 1; y++) {
@@ -462,6 +565,10 @@ public class Engine {
 							uiRenderer.renderFont(Integer.toString(player.readInventoryAmount(index)), subSlotPosX+slotSize-4, subSlotPosY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
 						}
 					}
+				}
+
+				if (player.readInventoryType((byte)40) != 0) {
+					uiRenderer.renderFont(Integer.toString(player.readInventoryAmount((byte)40)), resultSlotX+slotSize-4, resultSlotY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
 				}
 			}
 

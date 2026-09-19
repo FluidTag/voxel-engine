@@ -27,8 +27,8 @@ public class PlayerCharacter {
     private boolean spectatorMode = true;
     private boolean guiInventoryActive = false;
 
-    private byte[] inventoryAmounts = new byte[36+4];
-    private byte[] inventory = new byte[36+4];
+    private byte[] inventoryAmounts = new byte[36+5];
+    private byte[] inventory = new byte[36+5];
 
     public void setInventorySlot(byte index, byte type, byte amount) {
         this.inventory[index] = type;
@@ -177,7 +177,7 @@ public class PlayerCharacter {
                 } else {
                     glfwSetInputMode(windowReference.getWindowId(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
                     engineAttachment.requestDropOfGuiDraggedItem();
-                    engineAttachment.setActiveInventoryDrag(null, true);
+                    engineAttachment.setActiveInventoryDrag(null, true, true);
                     firstMouse = true;
                 }
             }
@@ -201,7 +201,21 @@ public class PlayerCharacter {
                 int hotbarGap = 12;
                 double[] mxPos = new double[1]; double[] myPos = new double[1];
 
+                int craftXpos = offsetX-2 + (slotSize * 9 + 4) - 2*slotSize - 155;
+                int craftYpos = (int) (invPosY + 65);
+                int resultSlotX = craftXpos+2*slotSize+75;
+                int resultSlotY = (int) (craftYpos + slotSize / 2f - topAreaSize);
+
                 glfwGetCursorPos(windowReference.getWindowId(), mxPos, myPos);
+
+                if (mxPos[0] > resultSlotX && mxPos[0] < resultSlotX+slotSize && myPos[0] > resultSlotY && myPos[0] < resultSlotY+slotSize) {
+                    engineAttachment.setActiveInventoryDrag(
+                            new Engine.InventoryActiveItem(readInventoryType((byte)40), readInventoryAmount((byte)40), 0, 0, 40),
+                            button == GLFW_MOUSE_BUTTON_LEFT, (mods & GLFW_MOD_SHIFT) != 0
+                    );
+                    return;
+                }
+
                 int xSlot = (int) ((mxPos[0] - offsetX + slotSize - 2) / slotSize);
 
                 if (xSlot < 1 || xSlot > 9) {engineAttachment.requestDropOfGuiDraggedItem(); return;}
@@ -211,24 +225,30 @@ public class PlayerCharacter {
 
                 int ySlot = (int) ((myPos[0] - invPosY + slotSize - 2) / slotSize);
                 if (ySlot < 1 || ySlot > 4) {
-                    int craftXpos = offsetX-2 + (slotSize * 9 + 4) - 2*slotSize - 155;
-                    int craftYpos = (int) (invPosY + 65);
                     int checkCx = (int) ((mxPos[0] - craftXpos + slotSize) / slotSize)-1;
                     int checkCy = (int) ((craftYpos - myPos[0] - slotSize) / slotSize)-1;
                     if (checkCx < 0 || checkCx > 1 || checkCy < 0 || checkCy > 1) {
                         engineAttachment.requestDropOfGuiDraggedItem();
                         return;
                     };
-                    System.out.println(checkCx + ", " + checkCy);
+                    //System.out.println(checkCx + ", " + checkCy);
                     int adjIndex = 36 + (checkCx)*2 + checkCy;
-                    engineAttachment.setActiveInventoryDrag(new Engine.InventoryActiveItem(inventory[adjIndex], inventoryAmounts[adjIndex], xSlot-1, ySlot-1, adjIndex), button == GLFW_MOUSE_BUTTON_LEFT);
+                    engineAttachment.setActiveInventoryDrag(
+                            new Engine.InventoryActiveItem(inventory[adjIndex], inventoryAmounts[adjIndex], xSlot-1, ySlot-1, adjIndex),
+                            button == GLFW_MOUSE_BUTTON_LEFT,
+                            (mods & GLFW_MOD_SHIFT) != 0
+                    );
                     return;
                 }
 
                 //System.out.println(xSlot + ", " + ySlot);
 
                 int invIndex = (4-ySlot)*9 + (xSlot-1);
-                engineAttachment.setActiveInventoryDrag(new Engine.InventoryActiveItem(inventory[invIndex], inventoryAmounts[invIndex], xSlot-1, ySlot-1, invIndex), button == GLFW_MOUSE_BUTTON_LEFT);
+                engineAttachment.setActiveInventoryDrag(
+                        new Engine.InventoryActiveItem(inventory[invIndex], inventoryAmounts[invIndex], xSlot-1, ySlot-1, invIndex),
+                        button == GLFW_MOUSE_BUTTON_LEFT,
+                        (mods & GLFW_MOD_SHIFT) != 0
+                );
                 return;
             }
 

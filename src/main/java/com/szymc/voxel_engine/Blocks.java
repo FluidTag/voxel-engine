@@ -51,4 +51,5 @@ public class Blocks {
 	public static final byte TORCH = 48;
 	public static final byte CLAY = 49;
 	public static final byte CORNFLOWER = 50;
+	public static final byte OAK_PLANKS = 51;
 }

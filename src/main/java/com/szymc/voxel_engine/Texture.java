@@ -2,6 +2,9 @@ package com.szymc.voxel_engine;
 import static org.lwjgl.opengl.GL11.*;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import it.unimi.dsi.fastutil.objects.Object2ByteOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ShortOpenHashMap;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
@@ -16,6 +19,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -51,6 +55,71 @@ public class Texture {
 
 	public static final int[] breakStages = new int[8];
 	public static final float[] hardnessLevels = new float[256];
+
+	public static final Object2ShortOpenHashMap<String> craftingRecipes = new Object2ShortOpenHashMap<>();
+
+	public static void readInCraftingJson(String path) {
+		Gson gson = new Gson();
+
+		try (InputStream is = App.class.getClassLoader().getResourceAsStream(path)) {
+			try (InputStreamReader reader = new InputStreamReader(is)) {
+				Type mapType = new TypeToken<Map<String, Map<String, ?>>>() {}.getType();
+				Map<String, Map<String, ?>> data = gson.fromJson(reader, mapType);
+				StringBuilder resultBuilder = new StringBuilder();
+
+				data.forEach((key, subData) -> {
+					ArrayList<Object> listRecipe = (ArrayList<Object>)subData.get("recipe");
+					int[] recipe = new int[9];
+					for (int i = 0; i < listRecipe.size(); i++) {
+						recipe[i] = ((Number) listRecipe.get(i)).intValue();
+					}
+
+					int amount = ((Number) subData.get("amount")).intValue();
+
+					int blockKey = Integer.parseInt(key);
+
+					int minX = 999; int maxX = -999;
+					int minY = 999; int maxY = -999;
+					boolean isEmpty = true;
+
+					for (int y = 2; y >= 0; y--) {
+						for (int x = 0; x < 3; x++) {
+							int dat = recipe[y*3+x];
+							if (dat != 0) {
+								isEmpty = false;
+								minX = Math.min(x, minX);
+								maxX = Math.max(x, maxX);
+								minY = Math.min(y, minY);
+								maxY = Math.max(y, maxY);
+							}
+						}
+					}
+
+					if (isEmpty) {
+						System.err.println("Error, crafting recipe for blockId=" + blockKey + " is empty.");
+						return;
+					}
+
+					resultBuilder.setLength(0);
+					for (int y = maxY; y >= minY; y--) {
+						for (int x = minX; x < maxX+1; x++) {
+							int dat = recipe[y*3+x];
+							if (dat != 0) {
+								resultBuilder.append(dat);
+								resultBuilder.append('.');
+							}
+						}
+						resultBuilder.append('/');
+					}
+
+					System.out.println(resultBuilder + " recipe read in");
+					craftingRecipes.put(resultBuilder.toString().trim(), (short) ((blockKey & 0xFF) | (amount & 0xFF) << 8));
+				});
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
 	public static void readBlockJson(String path) {
 		Gson gson = new Gson();
