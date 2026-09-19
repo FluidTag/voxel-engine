@@ -380,6 +380,7 @@ public class UIRenderer {
         glUseProgram(fontShader.getProgramID());
         glUniform1i(fontShader.fontTex_loc, 5);
         glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, fontAtlasId);
 
         matrixBuffer.clear();
         glUniformMatrix4fv(fontShader.proj_loc, false, screenOrtho.get(matrixBuffer));
@@ -546,6 +547,8 @@ public class UIRenderer {
     }
 
     public void renderFont(String text, int x, int y, TextAlignment alignment) {
+        if (text == null || text.isEmpty()) return;
+
         int totalWidth = 0;
         int xOffset = 0;
         if (alignment != TextAlignment.LEFT) {
@@ -592,6 +595,7 @@ public class UIRenderer {
             charsAdded++;
         }
 
+        if (charsAdded == 0) return;
         glBindVertexArray(fontVao);
         glBindBuffer(GL_ARRAY_BUFFER, fontVbo);
 

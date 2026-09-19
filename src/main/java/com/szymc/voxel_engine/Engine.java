@@ -16,7 +16,6 @@ import static org.lwjgl.system.MemoryStack.*;
 
 import java.io.IOException;
 import java.nio.FloatBuffer;
-import java.util.Objects;
 
 
 import org.joml.Matrix4f;
@@ -427,6 +426,41 @@ public class Engine {
 						if (amount != 0 && !(activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == localInvIndex)) {
 							uiRenderer.renderFont(Integer.toString(amount), offsetX + (slotSize*ix) + (slotSize-4), (int) (invPosY + (slotSize * iy) + (slotSize-4) + topAreaSize + (iy ==3 ? hotbarGap : 0)), UIRenderer.TextAlignment.RIGHT);
 						};
+					}
+				}
+
+				int craftXpos = offsetX-2 + (slotSize * 9 + 4) - 2*slotSize - 155;
+				int craftYpos = (int) (invPosY + 65);
+
+				uiRenderer.beginUiRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
+				uiRenderer.drawRect(craftXpos, craftYpos, 2*slotSize+4, 2*slotSize, 0.6f, 0.6f, 0.6f, 1.0f);
+				uiRenderer.drawRect(craftXpos+2*slotSize+75, craftYpos + slotSize/2f, slotSize, slotSize, 0.5f, 0.5f, 0.5f, 1.0f);
+
+				for (int x = 0; x <= 1; x++) {
+					for (int y = 0; y <= 1; y++) {
+						int subSlotPosX = craftXpos + slotSize*x + 2;
+						int subSlotPosY = craftYpos + slotSize*y + 2;
+						byte index = (byte) (36 + x*2 + (1-y));
+						boolean isFree = !(activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == index);
+
+						uiRenderer.drawRect(subSlotPosX, subSlotPosY, slotSize-4, slotSize-4, 0.5f, 0.5f, 0.5f, 1.0f);
+						if (player.readInventoryType(index) != 0 && isFree) {
+							uiRenderer.drawIcon(player.readInventoryType(index), subSlotPosX, subSlotPosY, slotSize-4, slotSize-4);
+						}
+					}
+				}
+
+				uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
+				for (int x = 0; x <= 1; x++) {
+					for (int y = 0; y <= 1; y++) {
+						int subSlotPosX = craftXpos + slotSize*x + 2;
+						int subSlotPosY = craftYpos + slotSize*y + 2;
+						byte index = (byte) (36 + x*2 + (1-y));
+						boolean isFree = !(activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == index);
+
+						if (player.readInventoryType(index) != 0 && isFree) {
+							uiRenderer.renderFont(Integer.toString(player.readInventoryAmount(index)), subSlotPosX+slotSize-4, subSlotPosY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
+						}
 					}
 				}
 			}

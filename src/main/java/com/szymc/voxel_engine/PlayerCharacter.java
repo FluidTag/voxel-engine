@@ -27,8 +27,8 @@ public class PlayerCharacter {
     private boolean spectatorMode = true;
     private boolean guiInventoryActive = false;
 
-    private byte[] inventoryAmounts = new byte[36];
-    private byte[] inventory = new byte[36];
+    private byte[] inventoryAmounts = new byte[36+4];
+    private byte[] inventory = new byte[36+4];
 
     public void setInventorySlot(byte index, byte type, byte amount) {
         this.inventory[index] = type;
@@ -210,7 +210,20 @@ public class PlayerCharacter {
                 if (myPos[0] > invPosY + slotSize*3) myPos[0] -= hotbarGap;
 
                 int ySlot = (int) ((myPos[0] - invPosY + slotSize - 2) / slotSize);
-                if (ySlot < 1 || ySlot > 4) {engineAttachment.requestDropOfGuiDraggedItem(); return;}
+                if (ySlot < 1 || ySlot > 4) {
+                    int craftXpos = offsetX-2 + (slotSize * 9 + 4) - 2*slotSize - 155;
+                    int craftYpos = (int) (invPosY + 65);
+                    int checkCx = (int) ((mxPos[0] - craftXpos + slotSize) / slotSize)-1;
+                    int checkCy = (int) ((craftYpos - myPos[0] - slotSize) / slotSize)-1;
+                    if (checkCx < 0 || checkCx > 1 || checkCy < 0 || checkCy > 1) {
+                        engineAttachment.requestDropOfGuiDraggedItem();
+                        return;
+                    };
+                    System.out.println(checkCx + ", " + checkCy);
+                    int adjIndex = 36 + (checkCx)*2 + checkCy;
+                    engineAttachment.setActiveInventoryDrag(new Engine.InventoryActiveItem(inventory[adjIndex], inventoryAmounts[adjIndex], xSlot-1, ySlot-1, adjIndex), button == GLFW_MOUSE_BUTTON_LEFT);
+                    return;
+                }
 
                 //System.out.println(xSlot + ", " + ySlot);
 
