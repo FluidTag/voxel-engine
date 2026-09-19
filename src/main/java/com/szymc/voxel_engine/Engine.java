@@ -282,6 +282,16 @@ public class Engine {
 				modelVec.translation(tempModel);
 				entityShader.setModel(modelVec, matrixBuffer);
 
+				int xPos = (int) Math.floor(entity.position.x);
+				int yPos = (int) Math.floor(entity.position.y);
+				int zPos = (int) Math.floor(entity.position.z);
+
+				ChunkColumn eChunk = worldScene.getLoadedChunkAtPos(xPos>>5, zPos>>5);
+				byte skyLevel = eChunk.getSkylight(xPos&31, yPos, zPos&31);
+				byte blockLevel = eChunk.getBlockLight(xPos&31, yPos, zPos&31);
+
+				entityShader.setLightLevel((byte) Math.max(skyLevel, blockLevel));
+
 				if (entity.getClass() == EntityItem.class) {
 					EntityItem item = (EntityItem)entity;
 					glDrawElementsBaseVertex(GL_TRIANGLES, item.itemMesh.indexCount, GL_UNSIGNED_INT, item.itemMesh.byteOffset, item.itemMesh.baseVertex);

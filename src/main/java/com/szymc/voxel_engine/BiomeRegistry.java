@@ -14,7 +14,7 @@ public class BiomeRegistry {
 				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0.3f, 0.1f, new byte[] {Blocks.GRASS_DECORATION}, null));
 
 		register(new Biome(BiomeType.MEADOW, "Meadow", Blocks.GRASS, Blocks.DIRT,
-				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0.3f, 0.06f, new byte[] {Blocks.GRASS_DECORATION, Blocks.RED_FLOWER, Blocks.YELLOW_FLOWER}, null));
+				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0.3f, 0.06f, new byte[] {Blocks.GRASS_DECORATION, Blocks.RED_FLOWER, Blocks.YELLOW_FLOWER, Blocks.CORNFLOWER }, null));
 
 		register(new Biome(BiomeType.STEPPE, "Steppe", Blocks.GRASS, Blocks.DIRT,
 				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0f, 0.03f, new byte[] {Blocks.GRASS_DECORATION}, null));

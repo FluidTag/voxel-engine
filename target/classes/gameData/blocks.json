@@ -19,6 +19,8 @@
     "name": "OAK_WOOD",
     "hardness": 2.5,
     "textures": {
+      "TOP": "logTexTop.png",
+      "BOTTOM": "logTexTop.png",
       "DEFAULT": "logTex.png"
     }
   },
@@ -380,6 +382,14 @@
     "hardness": 0.83,
     "textures": {
       "DEFAULT": "clayTex.png"
+    }
+  },
+  "50": {
+    "name": "CORNFLOWER",
+    "hardness": 0.25,
+    "xMesh": true,
+    "textures": {
+      "DEFAULT": "cornFlower2.png"
     }
   }
 }

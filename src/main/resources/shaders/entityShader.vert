@@ -10,6 +10,8 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform float lightInput;
+
 void main() {
 	gl_Position = projection * view * model * vec4(pos, 1.0);
 	int u = ((uvData >> 8) & 0x3F);
@@ -18,5 +20,5 @@ void main() {
 
 	TexCoord = vec3(float(u)/16.0, float(v)/16.0, float(TexId));
 	vAoFactor = 1.0;
-	lightFactor = 16.0;
+	lightFactor = lightInput;
 }
