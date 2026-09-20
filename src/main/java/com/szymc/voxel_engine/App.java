@@ -79,8 +79,7 @@ public class App {
 
 				// Physics Update
 				for (Entity entity : mainWorld.getEntities().values()) {
-					if (entity.getClass() == EntityItem.class) {
-						EntityItem item = (EntityItem) entity;
+					if (entity instanceof EntityItem item) {
 						item.previousPosition.set(item.position);
 						item.velocity.y += -0.05f;
 						if (isCubeColliding(mainWorld, item.position.x, item.position.y + item.velocity.y, item.position.z, 0.3f)) {

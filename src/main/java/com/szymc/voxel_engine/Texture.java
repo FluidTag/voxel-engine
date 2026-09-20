@@ -55,6 +55,7 @@ public class Texture {
 
 	public static final int[] breakStages = new int[8];
 	public static final float[] hardnessLevels = new float[256];
+	public static final boolean[] isItemOnly = new boolean[256];
 
 	public static final Object2ShortOpenHashMap<String> craftingRecipes = new Object2ShortOpenHashMap<>();
 
@@ -104,11 +105,10 @@ public class Texture {
 					for (int y = maxY; y >= minY; y--) {
 						for (int x = minX; x < maxX+1; x++) {
 							int dat = recipe[y*3+x];
-							if (dat != 0) {
-								resultBuilder.append(dat);
-								resultBuilder.append('.');
-							}
+							resultBuilder.append(dat);
+							resultBuilder.append('.');
 						}
+
 						resultBuilder.append('/');
 					}
 
@@ -145,6 +145,7 @@ public class Texture {
 					if (subData.containsKey("icon")) itemTexturePaths[blockKey] = fileNameMap.get((String)subData.get("icon"));
 					if (subData.containsKey("light-level")) lightLevels[blockKey] = (byte) ((double)subData.get("light-level"));
 					if (subData.containsKey("hardness")) hardnessLevels[blockKey] = (float)((double)subData.get("hardness"));
+					if (subData.containsKey("isItemOnly")) isItemOnly[blockKey] = (boolean)subData.get("isItemOnly");
 
 					textures.forEach((faceName, texPath) -> {
 						if (faceName.equals("DEFAULT")) {

@@ -398,5 +398,25 @@
     "textures": {
       "DEFAULT": "oakPlanks.png"
     }
+  },
+  "52": {
+    "name": "STICK",
+    "hardness": 0.25,
+    "xMesh": true,
+    "icon": "stickIcon.png",
+    "isItemOnly": true,
+
+    "textures": {
+      "DEFAULT": "stickIcon.png"
+    }
+  },
+  "53": {
+    "name": "CRAFTING_TABLE",
+    "hardness": 1.4,
+    "textures": {
+      "TOP": "craftingTop.png",
+      "DEFAULT": "craftingSide.png",
+      "BOTTOM": "oakPlanks.png"
+    }
   }
 }
