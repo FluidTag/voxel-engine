@@ -302,7 +302,7 @@ public class Engine {
 		byte blockAt = worldScene.getLoadedChunkAtPos(x>>5, z>>5).getBlockInChunk(x&31, y, z&31);
 		boolean isNewBlock = currentlyMiningState != null && (x != currentlyMiningState.wx || y != currentlyMiningState.wy || z != currentlyMiningState.wz);
 		if (isNewBlock || (currentlyMiningState == null && isLeftMouseHeld)) {
-			currentlyMiningState = new BlockMineState(x, y, z, Texture.hardnessLevels[blockAt], Texture.hardnessLevels[blockAt]);
+			currentlyMiningState = new BlockMineState(x, y, z, Texture.hardnessLevels[blockAt], Texture.hardnessLevels[blockAt], blockAt);
 		}
     }
 
@@ -312,14 +312,15 @@ public class Engine {
 	public static boolean wireframeMode = false;
     public static final class BlockMineState {
         public int wx; public int wy; public int wz;
-		public float health; public float maxHealth;
+		public float health; public float maxHealth; public byte block;
 
-        public BlockMineState(int wx, int wy, int wz, float health, float maxHealth) {
+        public BlockMineState(int wx, int wy, int wz, float health, float maxHealth, byte block) {
             this.wx = wx;
             this.wy = wy;
             this.wz = wz;
             this.health = health;
             this.maxHealth = maxHealth;
+			this.block = block;
         }
     }
 
@@ -327,13 +328,16 @@ public class Engine {
 	private boolean isLeftMouseHeld = false;
 	public void startMining(int wx, int wy, int wz) {
 		byte blockAt = worldScene.getLoadedChunkAtPos(wx>>5, wz>>5).getBlockInChunk(wx&31, wy, wz&31);
-		currentlyMiningState = new BlockMineState(wx, wy, wz, Texture.hardnessLevels[blockAt], Texture.hardnessLevels[blockAt]);
+		currentlyMiningState = new BlockMineState(wx, wy, wz, Texture.hardnessLevels[blockAt], Texture.hardnessLevels[blockAt], blockAt);
 		isLeftMouseHeld = true;
 	}
 
 	public void leftMouseHeldTick() {
 		if (currentlyMiningState != null) {
-			currentlyMiningState.health -= 0.085f;
+			byte equipped = player.readInventoryType((byte) player.currentHotbarSlot);
+			float strength = 0.085f * ((Texture.toolType[equipped] != 0 && Texture.toolType[equipped] == Texture.idealToolType[currentlyMiningState.block]) ? Texture.toolTargetedDamage[equipped] : 1);
+
+			currentlyMiningState.health -= strength;
 
 			if (currentlyMiningState.health < 0) {
 				ChunkColumn chunk = worldScene.getLoadedChunkAtPos(currentlyMiningState.wx>>5, currentlyMiningState.wz>>5);

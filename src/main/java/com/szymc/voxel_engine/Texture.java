@@ -57,6 +57,10 @@ public class Texture {
 	public static final float[] hardnessLevels = new float[256];
 	public static final boolean[] isItemOnly = new boolean[256];
 
+	public static final byte[] idealToolType = new byte[256];
+	public static final byte[] toolType = new byte[256];
+	public static final float[] toolTargetedDamage = new float[256];
+
 	public static final Object2ShortOpenHashMap<String> craftingRecipes = new Object2ShortOpenHashMap<>();
 
 	public static void readInCraftingJson(String path) {
@@ -146,6 +150,9 @@ public class Texture {
 					if (subData.containsKey("light-level")) lightLevels[blockKey] = (byte) ((double)subData.get("light-level"));
 					if (subData.containsKey("hardness")) hardnessLevels[blockKey] = (float)((double)subData.get("hardness"));
 					if (subData.containsKey("isItemOnly")) isItemOnly[blockKey] = (boolean)subData.get("isItemOnly");
+					if (subData.containsKey("toolType")) toolType[blockKey] = (byte)(double) subData.get("toolType");
+					if (subData.containsKey("targetedStrength")) toolTargetedDamage[blockKey] = (float)((double)subData.get("targetedStrength"));
+					if (subData.containsKey("idealTool")) idealToolType[blockKey] = (byte)((double)subData.get("idealTool"));
 
 					textures.forEach((faceName, texPath) -> {
 						if (faceName.equals("DEFAULT")) {
