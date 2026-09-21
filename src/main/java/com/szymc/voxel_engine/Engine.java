@@ -16,7 +16,6 @@ import static org.lwjgl.system.MemoryStack.*;
 
 import java.io.IOException;
 import java.nio.FloatBuffer;
-import java.util.Arrays;
 
 
 import org.joml.Matrix4f;
@@ -79,14 +78,15 @@ public class Engine {
 		}
 	}
 
+	// Can be called directly for non drag through keyboard (q, ctrl+q) drops
 	public void requestDropInvIndex(byte invIndex, byte[] typeSource, byte[] amountSource, int decrementAmount) {
-		byte type = typeSource[invIndex];
+		byte type = activeInventoryDrag != null ? activeInventoryDrag.item : typeSource[invIndex];
 		if (type == 0) return;
 
-		byte amount = amountSource[invIndex];
+		byte amount = activeInventoryDrag != null ? activeInventoryDrag.itemAmount : amountSource[invIndex];
 		int clampedNewAmount = Math.max(0, amount - decrementAmount);
 
-		setInventorySlot(typeSource, amountSource, invIndex, (amount-decrementAmount > 0 ? type : (byte)0), (byte)clampedNewAmount);
+		if (invIndex != -1) setInventorySlot(typeSource, amountSource, invIndex, (amount-decrementAmount > 0 ? type : (byte)0), (byte)clampedNewAmount);
 
 		Camera cam = player.getPlayerCamera();
 		Vector3f lookDir = cam.getLookUnitNormal().normalize();
@@ -174,6 +174,19 @@ public class Engine {
 			setInventorySlot(itemData.typeSource, itemData.amountSource, (byte)itemData.inventoryIndex, itemData.item, (byte) remaining);
 
 			return;
+		} else if (activeInventoryDrag != null && !isLeftClick && (itemData.item == activeInventoryDrag.item || itemData.item == 0)) {
+			if (itemData.itemAmount == 64) return;
+
+			byte savedType = activeInventoryDrag.item;
+			if (activeInventoryDrag.itemAmount > 1) {
+				activeInventoryDrag = new InventoryActiveItem(activeInventoryDrag.item, (byte) (activeInventoryDrag.itemAmount-1), activeInventoryDrag.ogSlotX, activeInventoryDrag.ogSlotY, activeInventoryDrag.inventoryIndex, activeInventoryDrag.typeSource, activeInventoryDrag.amountSource);
+			} else {
+				activeInventoryDrag = null;
+			}
+
+			setInventorySlot(itemData.typeSource, itemData.amountSource, (byte)itemData.inventoryIndex, savedType, (byte) (itemData.itemAmount+1));
+			updateCraftResult();
+			return;
 		}
 
 		if (activeInventoryDrag != null && isLeftClick) {
@@ -189,20 +202,18 @@ public class Engine {
 				int beingApplied = Math.min(activeInventoryDrag.itemAmount, maxAmount);
 				int leftOver = activeInventoryDrag.itemAmount-beingApplied;
 
-				if (activeInventoryDrag.inventoryIndex != -1) setInventorySlot(activeInventoryDrag.typeSource, activeInventoryDrag.amountSource, (byte)activeInventoryDrag.inventoryIndex, (byte)0, (byte)0);
 				setInventorySlot(itemData.typeSource, itemData.amountSource, (byte) itemData.inventoryIndex, activeInventoryDrag.item, (byte)(currentInvAmount+beingApplied));
 
 				if (leftOver > 0) {
 					activeInventoryDrag = new InventoryActiveItem(activeInventoryDrag.item, (byte)leftOver, activeInventoryDrag.ogSlotX, activeInventoryDrag.ogSlotY, activeInventoryDrag.inventoryIndex, activeInventoryDrag.typeSource, activeInventoryDrag.amountSource);
 				} else activeInventoryDrag = null;
-				updateCraftResult();
 			} else if ((activeInventoryDrag.item != itemData.item || itemData.itemAmount == 64) && !((activeInventoryDrag.inventoryIndex == 40 && activeInventoryDrag.typeSource == player.getInventory()) || (activeInventoryDrag.inventoryIndex == 9 && activeInventoryDrag.typeSource == player.getCraftingInv()))) {
-				if (activeInventoryDrag.inventoryIndex != -1) setInventorySlot(activeInventoryDrag.typeSource, activeInventoryDrag.amountSource, (byte) activeInventoryDrag.inventoryIndex, itemData.item, itemData.itemAmount);
 				setInventorySlot(itemData.typeSource, itemData.amountSource, (byte) itemData.inventoryIndex, activeInventoryDrag.item, activeInventoryDrag.itemAmount);
 
 				activeInventoryDrag = new InventoryActiveItem(itemData.item, itemData.itemAmount, activeInventoryDrag.ogSlotX, activeInventoryDrag.ogSlotY, activeInventoryDrag.inventoryIndex, activeInventoryDrag.typeSource, activeInventoryDrag.amountSource);
 			}
 
+			updateCraftResult();
 			return;
 		}
 
@@ -228,7 +239,8 @@ public class Engine {
 				return;
 			}
 
-			this.activeInventoryDrag = itemData;
+			this.activeInventoryDrag = new InventoryActiveItem(itemData.item, itemData.itemAmount, itemData.ogSlotX, itemData.ogSlotY, -1, itemData.typeSource, itemData.amountSource);
+			setInventorySlot(itemData.typeSource, itemData.amountSource, (byte) itemData.inventoryIndex, (byte)0, (byte)0);
 		};
 	}
 
@@ -579,9 +591,8 @@ public class Engine {
 
 						uiRenderer.drawRect(slotX, slotY, slotSize - 4, slotSize - 4, 0.5f, 0.5f, 0.5f, 1.0f);
 						int ind = (3-iy)*9 + ix;
-						boolean isBeingDragged = activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == ind && activeInventoryDrag.typeSource == player.getInventory();
 
-						if (inventory[ind] != 0 && !isBeingDragged) uiRenderer.drawIcon(inventory[ind], slotX, slotY, slotSize-4, slotSize-4);
+						if (inventory[ind] != 0) uiRenderer.drawIcon(inventory[ind], slotX, slotY, slotSize-4, slotSize-4);
 					}
 				}
 
@@ -593,9 +604,8 @@ public class Engine {
 
 						int ind = (3-iy)*9 + ix;
 						byte amount = player.readInventoryAmount((byte) ind);
-						boolean isBeingDragged = activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == ind && activeInventoryDrag.typeSource == player.getInventory();
 
-						if (amount != 0 && !isBeingDragged) {
+						if (amount != 0) {
 							uiRenderer.renderFont(Integer.toString(amount), slotX+slotSize-4, slotY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
 						};
 					}
@@ -617,10 +627,9 @@ public class Engine {
 							int subSlotPosX = craftXpos + slotSize*x + 2;
 							int subSlotPosY = craftYpos + slotSize*y + 2;
 							byte index = (byte) (36 + x*2 + (1-y));
-							boolean isBeingDragged = activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == index && activeInventoryDrag.typeSource == inventory;
 
 							uiRenderer.drawRect(subSlotPosX, subSlotPosY, slotSize-4, slotSize-4, 0.5f, 0.5f, 0.5f, 1.0f);
-							if (player.readInventoryType(index) != 0 && !isBeingDragged) {
+							if (player.readInventoryType(index) != 0) {
 								uiRenderer.drawIcon(player.readInventoryType(index), subSlotPosX, subSlotPosY, slotSize-4, slotSize-4);
 							}
 						}
@@ -636,9 +645,8 @@ public class Engine {
 							int subSlotPosX = craftXpos + slotSize*x + 2;
 							int subSlotPosY = craftYpos + slotSize*y + 2;
 							byte index = (byte) (36 + x*2 + (1-y));
-							boolean isBeingDragged = activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == index && activeInventoryDrag.typeSource == inventory;
 
-							if (player.readInventoryType(index) != 0 && !isBeingDragged) {
+							if (player.readInventoryType(index) != 0) {
 								uiRenderer.renderFont(Integer.toString(player.readInventoryAmount(index)), subSlotPosX+slotSize-4, subSlotPosY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
 							}
 						}
@@ -665,10 +673,9 @@ public class Engine {
 							int slotX = craftTableXpos + x*slotSize + 2;
 							int slotY = craftTableYpos + y*slotSize + 2;
 							int ind = x*3+y;
-							boolean isBeingDragged = activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == ind && activeInventoryDrag.typeSource == cTypes;
 
 							uiRenderer.drawRect(slotX, slotY, slotSize-4, slotSize-4, 0.4f, 0.4f, 0.4f, 1.0f);
-							if (cTypes[ind] != 0 && !isBeingDragged) uiRenderer.drawIcon(cTypes[ind], slotX, slotY, slotSize-4, slotSize-4);
+							if (cTypes[ind] != 0) uiRenderer.drawIcon(cTypes[ind], slotX, slotY, slotSize-4, slotSize-4);
 						}
 					}
 
@@ -682,9 +689,8 @@ public class Engine {
 							int slotX = craftTableXpos + x*slotSize + 2;
 							int slotY = craftTableYpos + y*slotSize + 2;
 							int ind = x*3+y;
-							boolean isBeingDragged = activeInventoryDrag != null && activeInventoryDrag.inventoryIndex == ind && activeInventoryDrag.typeSource == cTypes;
 
-							if (cTypes[ind] != 0 && !isBeingDragged) uiRenderer.renderFont(Integer.toString(cAmounts[ind]), slotX+slotSize-4, slotY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
+							if (cTypes[ind] != 0) uiRenderer.renderFont(Integer.toString(cAmounts[ind]), slotX+slotSize-4, slotY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
 						}
 					}
 
