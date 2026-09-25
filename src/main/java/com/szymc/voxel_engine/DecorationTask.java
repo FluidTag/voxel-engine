@@ -381,10 +381,6 @@ public class DecorationTask {
 	private void regularTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
 		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
         SplittableRandom treeRng = new SplittableRandom(treeSeed);
-        
-		for (int j = 1; j<=5+treeRng.nextInt(2); j++) {
-			tryAddEdit(trunkWx, surfaceHeight+j, trunkWz, woodType, edits);
-		}
 		
 		for (int jx = -2; jx <= 2; jx++) {
 			for (int jy = surfaceHeight+5; jy<=surfaceHeight+6; jy++) {
@@ -401,7 +397,11 @@ public class DecorationTask {
 				}
 			}
 		}
-		
+
+		for (int j = 1; j<=7; j++) {
+			tryAddEdit(trunkWx, surfaceHeight+j, trunkWz, woodType, edits);
+		}
+
 		tryAddEdit(trunkWx, surfaceHeight+9, trunkWz, leaveType, edits);
 	}
 	

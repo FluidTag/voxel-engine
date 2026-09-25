@@ -6,6 +6,10 @@ public class PaletteContainer {
     private final static ThreadLocal<byte[]> threadByteBuffer = ThreadLocal.withInitial(() -> new byte[32*16*32]); // To be used as temporary read only outside of this function
     private int bitWidth;
 
+    public int getBitWidth() {
+        return this.bitWidth;
+    }
+
     public byte readBlock(int x, int y, int z) {
         int index = y*32*32 + z*32 + x;
         if (bitWidth == 0) return 0;

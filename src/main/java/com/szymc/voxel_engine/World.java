@@ -189,7 +189,7 @@ public class World {
 			long meshCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.MESHED).count();
 
 			System.out.printf("E: %d | T: %d | D: %d | L: %d | M: %d%n", emptyCount, terrainCount, decCount, lightCount, meshCount);
-			System.out.println("Entity Count: " + entityMap.size());
+			System.out.println("Total Entity Count: " + entityMap.size());
 			System.out.println("_______________");
 		}
 		

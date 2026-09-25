@@ -64,6 +64,11 @@ public class ChunkSection {
 	public byte[] getChunkData() {
 		return blockData.toByteArray();
 	}
+
+	public PaletteContainer getRawPaletteContainer() {
+		return blockData;
+	}
+
 	public byte[] getLightingData() {return lightLevels;}
 
 	public int getWorldX() {
@@ -85,8 +90,7 @@ public class ChunkSection {
 
 	public SectionMeshResult meshResult;
 	public void meshSection(GreedyMesher.SectionContext ctx) {
-		GreedyMesher mesher = new GreedyMesher(this);
-		meshResult = mesher.generateMeshData(ctx);
+		meshResult = GreedyMesher.generateMeshData(this, ctx);
 	}
 
 	public Mesh getMesh() {

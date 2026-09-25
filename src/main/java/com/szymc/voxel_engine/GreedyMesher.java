@@ -37,11 +37,6 @@ public class GreedyMesher {
         ChunkSection xMinorZminorTop; ChunkSection xMinorZminorBottom;
     }
 
-    private final ChunkSection chunkData;
-    public GreedyMesher(ChunkSection section) {
-        this.chunkData = Objects.requireNonNull(section, "Meshing cannot be started without a section to mesh.");
-    }
-
     public static void addGrassShrub(IntArrayList vBuffer, IntArrayList iBuffer, int x, int y, int z, byte blockType) {
         int bx = x * 10;
         int by = y * 10;
@@ -88,7 +83,6 @@ public class GreedyMesher {
                 bx + 1, topY, bz + 9,
                 uWidth, vHeight, blockType, true, 1, noAO, 0xFFFF, flipQuad, true);
     }
-
     private static void addQuad(
             IntArrayList vBuffer,
             IntArrayList iBuffer,
@@ -206,7 +200,7 @@ public class GreedyMesher {
         }
     }
 
-    private void fillPaddedArr(byte[] bArr, byte[] lArr, SectionContext ctx) {
+    private static void fillPaddedArr(byte[] bArr, byte[] lArr, ChunkSection chunkData, SectionContext ctx) {
         byte[] chunk = chunkData.getChunkData(); // Using getChunkData() for the main chunk
         byte[] localLighting = chunkData.getLightingData();
 
@@ -655,10 +649,10 @@ public class GreedyMesher {
     private static final ThreadLocal<short[]> TlocalLightFront = ThreadLocal.withInitial(() -> new short[32*32]);
     private static final ThreadLocal<short[]> TlocalLightBack = ThreadLocal.withInitial(() -> new short[32*32]);
 
-    private void meshAxis(byte[] chunk, byte[] lightArr, long[] occupancyMask, long[] waterMask, long[] leavesMask, int methodAxis,
-                          int axisLimit, int uLimit, int vLimit, int paddedULimit, byte[] padded,
-                          IntArrayList vertexBuffer, IntArrayList indexBuffer,
-                          IntArrayList waterVBuffer, IntArrayList waterIBuffer
+    private static void meshAxis(byte[] chunk, byte[] lightArr, long[] occupancyMask, long[] waterMask, long[] leavesMask, int methodAxis,
+                                 int axisLimit, int uLimit, int vLimit, int paddedULimit, byte[] padded,
+                                 IntArrayList vertexBuffer, IntArrayList indexBuffer,
+                                 IntArrayList waterVBuffer, IntArrayList waterIBuffer
     ) {
         // visible faces in 0 to 15 regular chunk range
         // with information of -1 to 16 or 18 length padded arr
@@ -980,7 +974,7 @@ public class GreedyMesher {
     private final static ThreadLocal<long[]> tWatX = ThreadLocal.withInitial(() -> new long[18*34]);
     private final static ThreadLocal<long[]> tLeaX = ThreadLocal.withInitial(() -> new long[18*34]);
 
-    public SectionMeshResult generateMeshData(SectionContext ctx) {
+    public static SectionMeshResult generateMeshData(ChunkSection sec, SectionContext ctx) {
         SectionMeshResult result = new SectionMeshResult();
         result.vertices = null;
         result.indices = null;
@@ -1007,7 +1001,7 @@ public class GreedyMesher {
         Arrays.fill(padded, (byte)0);
         Arrays.fill(lightingPadded, (byte)(0xF << 4));
 
-        fillPaddedArr(padded, lightingPadded, ctx);
+        fillPaddedArr(padded, lightingPadded, sec, ctx);
 
         // 34 x layers, 18 y layers, each mask is 34 z bits
         // 18 y layers, 34 x layers, each mask is 34 z bits
@@ -1037,7 +1031,7 @@ public class GreedyMesher {
         long[] leaX = tLeaX.get();
         Arrays.fill(leaX, 0L);
 
-        byte[] chunk = chunkData.getChunkData();
+        byte[] chunk = sec.getChunkData();
 
         for (int y = 0; y < 16; y++) {
             for (int z = 0; z < 32; z++) {

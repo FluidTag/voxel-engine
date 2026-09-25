@@ -1,5 +1,6 @@
 package com.szymc.voxel_engine;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import org.joml.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -78,7 +79,8 @@ public class App {
 				}
 
 				// Physics Update
-				for (Entity entity : mainWorld.getEntities().values()) {
+				Int2ObjectMaps.fastForEach(mainWorld.getEntities(), entry -> {
+					Entity entity = entry.getValue();
 					if (entity instanceof EntityItem item) {
 						item.previousPosition.set(item.position);
 						item.velocity.y += -0.05f;
@@ -90,8 +92,8 @@ public class App {
 						item.position.y += item.velocity.y;
 
 						float distance = (item.position.x - character.getPlayerCamera().cameraPos.x) * (item.position.x - character.getPlayerCamera().cameraPos.x)
-											+ (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f) * (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f)
-											+ (item.position.z - character.getPlayerCamera().cameraPos.z) * (item.position.z - character.getPlayerCamera().cameraPos.z);
+								+ (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f) * (item.position.y - character.getPlayerCamera().cameraPos.y + 0.9f)
+								+ (item.position.z - character.getPlayerCamera().cameraPos.z) * (item.position.z - character.getPlayerCamera().cameraPos.z);
 
 						if (distance <= 2.3 && (mainWorld.getTick()-item.createdAtTick > (item.playerDropped ? 30 : 5))) {
 							// Locate empty inventory slot
@@ -111,7 +113,7 @@ public class App {
 							} else System.out.println("Inventory full");
 						}
 					}
-				}
+				});
 
 				mainWorld.processEntityDeletions();
 			}
@@ -133,11 +135,13 @@ public class App {
 
 				int light = -1;
 				byte block = -1;
+				int palSize = -1;
 				ChunkColumn c = mainWorld.getLoadedChunkAtPos(wx>>5, wz>>5);
 				if (c != null) {
 					ChunkSection sec = c.getSection(wy>>4);
-					if (sec != null) light = c.getSection(wy>>4).getLightingData()[(wy&15)*32*32 + (wz&31)*32 + (wx&31)];
+					if (sec != null) light = sec.getLightingData()[(wy&15)*32*32 + (wz&31)*32 + (wx&31)];
 					if (sec != null) block = c.getBlockInChunk((wx&31), wy, (wz&31));
+					if (sec != null) palSize = sec.getRawPaletteContainer().getBitWidth();
 				}
 
 				BiomeType surfaceBiome = TerrainTask.getBiomeType(surfaceHeight, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));
@@ -146,6 +150,7 @@ public class App {
 				System.out.println("CameraAt: ("+camera.cameraPos.x + ", " + camera.cameraPos.y + ", " + camera.cameraPos.z + ")");
 				System.out.println(wx + ", " + wy + ", " + wz + " CC ("+(wx&31)+", " + (wy&15) + ", " + (wz&31) + ") | Surface Biome (@y-"+surfaceHeight+"): " + surfaceBiome + " [T "+Math.round(temp*100f)/100f+", M "+Math.round(moist*100f)/100f+", E "+Math.round(erosion*100f)/100f + "]");
 				System.out.println("Light | Sky: " + ((light >> 4) & 0xF) + ", Block: " + (light&0xF) + " | BlockId@ = " + block);
+				System.out.println("Palette size in section: " + palSize);
 			}
 
 			window.swapBuffers();

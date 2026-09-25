@@ -5,6 +5,11 @@ import com.szymc.localShaders.OutlineShader;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL32.*;
+
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import org.lwjgl.system.MemoryStack;
 
 
@@ -415,11 +420,13 @@ public class Engine {
 
 			//debugger.renderDebug(matrixBuffer);
 			mainShader.start();
-			for (ChunkColumn chunk : worldScene.getRendered().values()) {
-				if (chunk == null) continue;
+
+			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
+				ChunkColumn chunk = entry.getValue();
+				if (chunk == null) return;
 
 				if (!camera.frustumInt.testAab(chunk.getWorldX()*32, 0, chunk.getWorldZ()*32, chunk.getWorldX()*32+32, 256, chunk.getWorldZ()*32+32)) {
-					continue;
+					return;
 				}
 
 				for (int s = 0; s < 16; s++) {
@@ -434,29 +441,26 @@ public class Engine {
 					int maxY = section.getWorldY() + 16;
 					int maxZ = section.getWorldZ() + 32;
 
-
 					if (!camera.frustumInt.testAab(minX, minY, minZ, maxX, maxY, maxZ)) {
 						continue;
 					}
 
-					float worldX = minX;
-					float worldY = minY;
-					float worldZ = minZ;
-
-					tempModel.set(worldX, worldY, worldZ);
+                    tempModel.set((float) minX, (float) minY, (float) minZ);
 					modelVec.translation(tempModel);
 					mainShader.setModel(modelVec, matrixBuffer);
 
 					section.getMesh().render();
 				}
-			}
+			});
 
 			mainShader.stop();
 			entityShader.start();
 			entityShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
 
 			glBindVertexArray(EntityItem.getVao());
-			for (Entity entity : worldScene.getEntities().values()) {
+			Int2ObjectMaps.fastForEach(worldScene.getEntities(), entry -> {
+				Entity entity = entry.getValue();
+
 				tempModel.set(entity.renderPosition.x, entity.renderPosition.y, entity.renderPosition.z);
 				modelVec.translation(tempModel);
 				entityShader.setModel(modelVec, matrixBuffer);
@@ -466,29 +470,30 @@ public class Engine {
 				int zPos = (int) Math.floor(entity.position.z);
 
 				ChunkColumn eChunk = worldScene.getLoadedChunkAtPos(xPos>>5, zPos>>5);
-				if (eChunk == null) continue;
+				if (eChunk == null) return;
 
 				byte skyLevel = eChunk.getSkylight(xPos&31, yPos, zPos&31);
 				byte blockLevel = eChunk.getBlockLight(xPos&31, yPos, zPos&31);
 
 				entityShader.setLightLevel((byte) Math.max(skyLevel, blockLevel));
 
-				if (entity.getClass() == EntityItem.class) {
-					EntityItem item = (EntityItem)entity;
-					glDrawElementsBaseVertex(GL_TRIANGLES, item.itemMesh.indexCount, GL_UNSIGNED_INT, item.itemMesh.byteOffset, item.itemMesh.baseVertex);
+				if (entity instanceof EntityItem item) {
+                    glDrawElementsBaseVertex(GL_TRIANGLES, item.itemMesh.indexCount, GL_UNSIGNED_INT, item.itemMesh.byteOffset, item.itemMesh.baseVertex);
 				}
-			}
+			});
 
 			entityShader.stop();
 			mainShader.start();
 
 			glEnable(GL_BLEND);
 			glDepthMask(true);
-			for (ChunkColumn chunk : worldScene.getRendered().values()) {
-				if (chunk == null) continue;
+
+			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
+				ChunkColumn chunk = entry.getValue();
+				if (chunk == null) return;
 
 				if (!camera.frustumInt.testAab(chunk.getWorldX()*32, 0, chunk.getWorldZ()*32, chunk.getWorldX()*32+32, 256, chunk.getWorldZ()*32+32)) {
-					continue;
+					return;
 				}
 
 				for (int s = 0; s < 16; s++) {
@@ -508,13 +513,13 @@ public class Engine {
 						continue;
 					}
 
-                    tempModel.set((float) minX, (float) minY, (float) minZ);
+					tempModel.set((float) minX, (float) minY, (float) minZ);
 					modelVec.translation(tempModel);
 					mainShader.setModel(modelVec, matrixBuffer);
 
 					section.getWaterMesh().render();
 				}
-			}
+			});
 
 			if (outlineLoc != null) {
 				outlineShader.start();
