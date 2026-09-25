@@ -55,6 +55,7 @@ public class Texture {
 
 	public static final int[] breakStages = new int[8];
 	public static final float[] hardnessLevels = new float[256];
+	public static final byte[] customBlockDrop = new byte[256];
 	public static final boolean[] isItemOnly = new boolean[256];
 
 	public static final byte[] idealToolType = new byte[256];
@@ -153,6 +154,7 @@ public class Texture {
 					if (subData.containsKey("toolType")) toolType[blockKey] = (byte)(double) subData.get("toolType");
 					if (subData.containsKey("targetedStrength")) toolTargetedDamage[blockKey] = (float)((double)subData.get("targetedStrength"));
 					if (subData.containsKey("idealTool")) idealToolType[blockKey] = (byte)((double)subData.get("idealTool"));
+					if (subData.containsKey("drops")) customBlockDrop[blockKey] = (byte)((double)subData.get("drops"));
 
 					textures.forEach((faceName, texPath) -> {
 						if (faceName.equals("DEFAULT")) {

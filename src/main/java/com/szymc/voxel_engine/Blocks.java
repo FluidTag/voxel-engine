@@ -58,4 +58,11 @@ public class Blocks {
 	public static final byte WOODEN_PICKAXE = 55;
 	public static final byte WOODEN_AXE = 56;
 	public static final byte WOODEN_SHOVEL = 57;
+	public static final byte COBBLESTONE = 58;
+	public static final byte STONE_SWORD = 59;
+	public static final byte STONE_PICKAXE = 60;
+	public static final byte STONE_AXE = 61;
+	public static final byte STONE_SHOVEL = 62;
+	public static final byte COAL_ORE = 63;
+	public static final byte COAL = 64;
 }

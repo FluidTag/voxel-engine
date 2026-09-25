@@ -177,14 +177,14 @@ public class PlayerCharacter {
         this.worldReference = worldReference;
         this.windowReference = windowReference;
         this.engineAttachment = engineAttachment;
-        inventory[0] = Blocks.TORCH;
-        inventoryAmounts[0] = 64;
-
-        inventory[1] = Blocks.STONE;
-        inventoryAmounts[1] = 64;
-
-        inventory[2] = Blocks.CRAFTING_TABLE;
-        inventoryAmounts[2] = 4;
+//        inventory[0] = Blocks.TORCH;
+//        inventoryAmounts[0] = 64;
+//
+//        inventory[1] = Blocks.STONE;
+//        inventoryAmounts[1] = 64;
+//
+//        inventory[2] = Blocks.CRAFTING_TABLE;
+//        inventoryAmounts[2] = 4;
 
         glfwSetScrollCallback(windowReference.getWindowId(), (windowHandle, xOffset, yOffset) -> {
             if (guiInventoryActive) return;

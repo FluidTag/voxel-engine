@@ -40,9 +40,10 @@
     "name": "STONE",
     "hardness": 4.0,
     "idealTool": 2,
-    "icon": "stoneIconTest.png",
+    "drops": 58,
+
     "textures": {
-      "DEFAULT": "stoneTex.png"
+      "DEFAULT": "stoneTex3.png"
     }
   },
   "6": {
@@ -476,7 +477,7 @@
     "icon": "woodenSword.png",
     "isItemOnly": true,
     "toolType": 1,
-    "targetedStrength": 2,
+    "targetedStrength": 1.6,
 
     "textures": {
       "DEFAULT": "woodenSword.png"
@@ -489,7 +490,7 @@
     "icon": "woodenPickaxe.png",
     "isItemOnly": true,
     "toolType": 2,
-    "targetedStrength": 2,
+    "targetedStrength": 1.6,
 
     "textures": {
       "DEFAULT": "woodenPickaxe.png"
@@ -502,7 +503,7 @@
     "icon": "woodenAxe.png",
     "isItemOnly": true,
     "toolType": 3,
-    "targetedStrength": 2,
+    "targetedStrength": 1.6,
 
     "textures": {
       "DEFAULT": "woodenAxe.png"
@@ -515,10 +516,92 @@
     "icon": "woodenShovel.png",
     "isItemOnly": true,
     "toolType": 4,
-    "targetedStrength": 2,
+    "targetedStrength": 1.6,
 
     "textures": {
       "DEFAULT": "woodenShovel.png"
+    }
+  },
+  "58": {
+    "name": "COBBLESTONE",
+    "hardness": 3,
+    "idealTool": 2,
+    "textures": {
+      "DEFAULT": "cobbleStone.png"
+    }
+  },
+  "59": {
+    "name": "STONE_SWORD",
+    "hardness": 0.25,
+    "xMesh": true,
+    "icon": "stoneSword.png",
+    "isItemOnly": true,
+    "toolType": 1,
+    "targetedStrength": 2,
+
+    "textures": {
+      "DEFAULT": "stoneSword.png"
+    }
+  },
+  "60": {
+    "name": "STONE_PICKAXE",
+    "hardness": 0.25,
+    "xMesh": true,
+    "icon": "stonePickaxe.png",
+    "isItemOnly": true,
+    "toolType": 2,
+    "targetedStrength": 2,
+
+    "textures": {
+      "DEFAULT": "stonePickaxe.png"
+    }
+  },
+  "61": {
+    "name": "STONE_AXE",
+    "hardness": 0.25,
+    "xMesh": true,
+    "icon": "stoneAxe.png",
+    "isItemOnly": true,
+    "toolType": 3,
+    "targetedStrength": 2,
+
+    "textures": {
+      "DEFAULT": "stoneAxe.png"
+    }
+  },
+  "62": {
+    "name": "WOODEN_SHOVEL",
+    "hardness": 0.25,
+    "xMesh": true,
+    "icon": "stoneShovel.png",
+    "isItemOnly": true,
+    "toolType": 4,
+    "targetedStrength": 2,
+
+    "textures": {
+      "DEFAULT": "stoneShovel.png"
+    }
+  },
+  "63": {
+    "name": "COAL_ORE",
+    "hardness": 3,
+    "idealTool": 2,
+    "drops": 64,
+    "textures": {
+      "DEFAULT": "coalOreTex.png"
+    }
+  },
+  "64": {
+    "name": "COAL",
+    "hardness": 0.25,
+    "xMesh": true,
+    "icon": "coalIcon.png",
+    "isItemOnly": true,
+    "toolType": 4,
+    "targetedStrength": 2,
+
+    "textures": {
+      "DEFAULT": "coalIcon.png"
     }
   }
 }

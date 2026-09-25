@@ -35,7 +35,7 @@ public class Window {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_SAMPLES, 4); // Request 4x MSAA
+        glfwWindowHint(GLFW_SAMPLES, 8); // Request 4x MSAA
         
         // 3. Create the window
         long window = glfwCreateWindow(width, height, "Voxel Engine", NULL, NULL);

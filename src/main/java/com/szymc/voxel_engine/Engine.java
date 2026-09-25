@@ -92,7 +92,7 @@ public class Engine {
 		Vector3f lookDir = cam.getLookUnitNormal().normalize();
 
 		for (int i = 0; i < decrementAmount; i++) {
-			EntityItem createdEntity = worldScene.spawnNewItemEntity(type, 0, 0, 0, true);
+			EntityItem createdEntity = worldScene.spawnNewItemEntity(Texture.customBlockDrop[type] == 0 ? type : Texture.customBlockDrop[type], 0, 0, 0, true);
 
 			createdEntity.position.set(cam.cameraPos.x + lookDir.x*2, cam.cameraPos.y + lookDir.y*2, cam.cameraPos.z + lookDir.z*2 );
 		}
@@ -344,7 +344,7 @@ public class Engine {
 				int x = currentlyMiningState.wx; int y = currentlyMiningState.wy; int z = currentlyMiningState.wz;
 				byte block = chunk.getBlockInChunk(x&31, y, z&31);
 				chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
-				worldScene.spawnNewItemEntity(block, x, y, z, false);
+				worldScene.spawnNewItemEntity(Texture.customBlockDrop[block] == 0 ? block : Texture.customBlockDrop[block], x, y, z, false);
 				chunk.setSectionDirty(y >> 4);
 
 				worldScene.updateChunk(currentlyMiningState.wx>>5, y, currentlyMiningState.wz>>5, x&31, z&31, false, block);
@@ -466,6 +466,8 @@ public class Engine {
 				int zPos = (int) Math.floor(entity.position.z);
 
 				ChunkColumn eChunk = worldScene.getLoadedChunkAtPos(xPos>>5, zPos>>5);
+				if (eChunk == null) continue;
+
 				byte skyLevel = eChunk.getSkylight(xPos&31, yPos, zPos&31);
 				byte blockLevel = eChunk.getBlockLight(xPos&31, yPos, zPos&31);
 
