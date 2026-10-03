@@ -253,6 +253,7 @@ public class PlayerCharacter {
 
                     if (xClicked >= 1 && xClicked <= 3 && yClicked >= 1 && yClicked <= 3) {
                         xClicked--; yClicked--;
+                        yClicked = 2-yClicked;
                         int ind = xClicked*3 + yClicked;
 
                         engineAttachment.setActiveInventoryDrag(

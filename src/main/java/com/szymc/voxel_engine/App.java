@@ -3,6 +3,8 @@ package com.szymc.voxel_engine;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import org.joml.Vector3f;
 
+import java.lang.management.ManagementFactory;
+
 import static org.lwjgl.glfw.GLFW.*;
 public class App {
 	private static boolean blockAt(World world, int x, int y, int z) {
@@ -41,6 +43,7 @@ public class App {
 	public static final int WINDOW_HEIGHT = 900;
 
 	public static void main(String[] args) {
+		System.out.println("JVM Args: " + ManagementFactory.getRuntimeMXBean().getInputArguments());
 		Camera camera = new Camera();
 		Window window = new Window(App.WINDOW_WIDTH, App.WINDOW_HEIGHT, "Voxel-Engine");
 

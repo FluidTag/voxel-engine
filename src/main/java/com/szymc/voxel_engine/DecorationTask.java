@@ -16,13 +16,14 @@ public class DecorationTask {
 	private boolean[] treeOccupied = TREE_OCCUPIED.get();
 	
 	private static int packLocal(int x, int y, int z, byte block) {
+		if (y < 0 || y >= 255) throw new RuntimeException("Attempted to put y value out of bounds: " + y);
 		return (x & 0x7F) | ((y & 0xFF) << 7) | ((z & 0x7F) << 15) | ((block & 0xFF) << 22);
 	}
 	
 	private void tryAddEdit(int blockWx, int blockWy, int blockWz, byte blockType, IntArrayList edits) {
 		int lx = blockWx-wx;
 		int lz = blockWz-wz;
-		
+
 		if (lx >= 0 && lx <= 31 && lz >= 0 && lz <= 31) {
 			edits.add(packLocal(lx, blockWy, lz, blockType));
 		}
@@ -404,18 +405,83 @@ public class DecorationTask {
 
 		tryAddEdit(trunkWx, surfaceHeight+9, trunkWz, leaveType, edits);
 	}
-	
-	private void simulateSourceChunkTrees(int sourceCx, int sourceCz, IntArrayList edits) { 
-		SplittableRandom rng = new SplittableRandom((long)(sourceCx*341873128712L) ^ (long)(sourceCz * 132897987541L));
+
+
+	private byte getBlock(ChunkColumn[] chunkMap, int wx, int wy, int wz) {
+		int lcx = wx>>5;
+		int lcz = wz>>5;
+
+		int xInd = (lcx-cx+1);
+		int zInd = (lcz-cz+1);
+		if (xInd < 0 || xInd > 2 || zInd < 0 || zInd > 2) return 0;
+
+		ChunkColumn targetChunk = chunkMap[zInd*3 + xInd];
+		return targetChunk.getBlockInChunk(wx&31, wy, wz&31);
+	}
+
+	private void simulateSourceChunkTrees(ChunkColumn[] chunkMap, int sourceCx, int sourceCz, IntArrayList edits) {
+		SplittableRandom oreRng  = new SplittableRandom((long)(sourceCx * 341873128712L) ^ (long)(sourceCz * 132897987541L));
+		SplittableRandom treeRng = new SplittableRandom((long)(sourceCx * 498714289381L) ^ (long)(sourceCz * 812931289137L));
 		int cellSize = 10;
 		
 		int sourceWx = sourceCx * 32;
         int sourceWz = sourceCz * 32;
 
+		for (int i = 0; i < 110; i++) {
+			int wx = sourceWx + oreRng.nextInt(0, 32);
+			int y = oreRng.nextInt(1, 150);
+			int wz = sourceWz + oreRng.nextInt(0, 32);
+
+			byte block = getBlock(chunkMap, wx, y, wz);
+			if (block != Blocks.STONE) continue;
+
+//			for (int jx = wx-4; jx <= wx+4; jx++) {
+//				for (int jy = y-2; jy <= y+2; jy++) {
+//					for (int jz = wz-4; jz <= wz+4; jz++) {
+//						if (jy < 0 || jy > 255) continue;
+//						if (getBlock(chunkMap, jx, jy, jz) == Blocks.AIR) tryAddEdit(jx, jy, jz, Blocks.WATER, edits);
+//					}
+//				}
+//			}
+
+			//if (true) continue;
+
+			float angle = (float) (oreRng.nextFloat() * 2 * Math.PI);
+			int size = oreRng.nextInt(4, 6);
+			int endX = (int) (wx+ Math.sin(angle)*size);
+			int endY = y+oreRng.nextInt(-2, 3);
+			int endZ = (int) (wz + Math.cos(angle)*size);
+
+			for (int step = 0; step < size; step++) {
+				int px = (int) (wx + Math.sin(angle)*step);
+				int py = (int) (y + (endY-y)*(float)step/size);
+				int pz = (int) (wz + Math.cos(angle)*step);
+
+				int radius = oreRng.nextInt(1, 2);
+				for (int jx = px-radius; jx <= px+radius; jx++) {
+					for (int jy = py-radius; jy <= py+radius; jy++) {
+						if (jy < 0 || jy > 255) continue;
+						for (int jz = pz-radius; jz <= pz+radius; jz++) {
+							if (oreRng.nextFloat() > 0.7f) continue;
+							if (getBlock(chunkMap, jx, jy, jz) != Blocks.STONE) continue;
+
+							float dist = ((jx-px)*(jx-px)) + ((jy-py)*(jy-py)) + ((jz-pz)*(jz-pz));
+							if (dist <= radius*radius) tryAddEdit(jx, jy, jz, Blocks.COAL_ORE, edits);
+						}
+					}
+				}
+
+				if (getBlock(chunkMap, px, py, pz) == Blocks.STONE) tryAddEdit(px, py, pz, Blocks.COAL_ORE, edits);
+			}
+
+			tryAddEdit(wx, y, wz, Blocks.COAL_ORE, edits);
+			if (endY >= 0 && endY <= 255 && getBlock(chunkMap, endX, endY, endZ) == Blocks.STONE) tryAddEdit(endX, endY, endZ, Blocks.COAL_ORE, edits);
+ 		}
+
 		for (int gx = 0; gx < 32; gx+=cellSize) {
 			for (int gz = 0; gz < 32; gz+=cellSize) {
-				int x = gx + rng.nextInt(cellSize);
-				int z = gz + rng.nextInt(cellSize);
+				int x = gx + treeRng.nextInt(cellSize);
+				int z = gz + treeRng.nextInt(cellSize);
 				if (x < 0 || x > 31 || z < 0 || z > 31) continue;
 				
 				int trunkWx = sourceWx+x;
@@ -425,9 +491,9 @@ public class DecorationTask {
 				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(surfaceHeight, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz),
 						TerrainTask.getContinental(trunkWx, trunkWz), TerrainTask.getErosion(trunkWx, trunkWz),  TerrainTask.getWeirdness(trunkWx, trunkWz) ));
 				
-				if (rng.nextFloat() > currentBiome.treeDensity) continue;
+				if (treeRng.nextFloat() > currentBiome.treeDensity) continue;
 
-				byte surfaceBlock = TerrainTask.getSurfaceBlock(trunkWx, surfaceHeight, trunkWz, currentBiome);
+				byte surfaceBlock = getBlock(chunkMap, trunkWx, surfaceHeight, trunkWz);
 
 				if (surfaceHeight <= 64) continue;
 				if (surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS &&
@@ -446,13 +512,13 @@ public class DecorationTask {
 				if (currentBiome.type == BiomeType.TAIGA || currentBiome.type == BiomeType.SNOWY_TAIGA) {
 					spruceTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.JUNGLE) {
-					if (rng.nextFloat() > 0.65f) {jungleTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);} else regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
+					if (treeRng.nextFloat() > 0.65f) {jungleTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);} else regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.SAVANNA || currentBiome.type == BiomeType.DESERT) {
 					acaciaTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.DARK_OAK_FOREST) {
 					darkOakTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.REDWOOD_FOREST) {
-					if (rng.nextFloat() < 0.6f) {redwoodTreeAlt(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);} else redwoodTree(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);
+					if (treeRng.nextFloat() < 0.6f) {redwoodTreeAlt(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);} else redwoodTree(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);
 				} else {
 					regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				}
@@ -461,13 +527,18 @@ public class DecorationTask {
 	}
 	
 	public IntArrayList changeRequests;
-	public IntArrayList decorate() {
+	private static final ThreadLocal<ChunkColumn[]> tChunkMap = ThreadLocal.withInitial(() -> new ChunkColumn[9]);
+	public IntArrayList decorate(ChunkColumn xMaj, ChunkColumn xMin, ChunkColumn zMaj, ChunkColumn zMin, ChunkColumn xMajZmaj, ChunkColumn xMajZmin, ChunkColumn xMinZmaj, ChunkColumn xMinZmin) {
 		Arrays.fill(treeOccupied, false);
 		IntArrayList editRequests = new IntArrayList();
+		ChunkColumn[] chunkMap = tChunkMap.get();
+		chunkMap[0] = xMinZmin; chunkMap[1] = zMin; chunkMap[2] = xMajZmin;
+		chunkMap[3] = xMin; chunkMap[4] = chunk; chunkMap[5] = xMaj;
+		chunkMap[6] = xMinZmaj; chunkMap[7] = zMaj; chunkMap[8] = xMajZmaj;
 
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dz = -1; dz <= 1; dz++) {
-				simulateSourceChunkTrees(this.cx + dx, this.cz + dz, editRequests);
+				simulateSourceChunkTrees(chunkMap, this.cx + dx, this.cz + dz, editRequests);
 			}
 		}
 		

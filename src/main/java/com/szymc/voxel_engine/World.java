@@ -36,7 +36,7 @@ public class World {
 	private final Long2ObjectMap<ChunkColumn> loadedColumns = new Long2ObjectOpenHashMap<>();
 	private final Int2ObjectMap<Entity> entityMap = new Int2ObjectOpenHashMap<>();
 
-	private final int renderDistance = 15;
+	private final int renderDistance = 12;
 	private final long winId;
 	
 	public World(long winId) {
@@ -46,7 +46,7 @@ public class World {
 	
 	private final int threads = Runtime.getRuntime().availableProcessors()-1;
 	private final int terrainThreadCount = 4;
-	private final int meshThreadCount = Math.max(1, threads-3);
+	private final int meshThreadCount = Math.max(1, threads-3-1);
 	private final ExecutorService terrainPool = new ThreadPoolExecutor(
 			terrainThreadCount,
 			terrainThreadCount,
@@ -104,7 +104,16 @@ public class World {
 				&& xMinZmin.state.isAtleast(state)
 		);
 	}
-	
+
+	private int terrainTimeTotal;
+	private int terrainTasksDone;
+	private int decorateTimeTotal;
+	private int decorateTasksDone;
+	private int lightTimeTotal;
+	private int lightTasksDone;
+	private int meshTimeTotal;
+	private int meshTasksDone;
+
 	private void checkStateAdvances(int cx, int cz) {
 		for (int x = cx-1; x <= cx+1; x++) {
 			for (int z = cz-1; z <= cz+1; z++) {
@@ -123,26 +132,37 @@ public class World {
 				
 				final int fx = x;
 				final int fz = z;
-
-				if (chunk.state == ChunkState.TERRAIN) {
+				if (xMaj == null || xMin == null || zMaj == null || zMin == null || xMajZmaj == null || xMajZmin == null || xMinZmaj == null || xMinZmin == null) continue;
+				if (chunk.state == ChunkState.TERRAIN && fullNeighborsQualify(ChunkState.TERRAIN, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin)) {
 					if (chunk.decorationQueued.compareAndSet(false, true)) {
 						terrainPool.execute(new PriorityGenTask(0, () -> {
 							DecorationTask task = new DecorationTask(chunk, fx, fz);
-							
-							task.changeRequests = task.decorate();
+
+							long startTime = System.nanoTime();
+							task.changeRequests = task.decorate(xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
+							long elapsed = System.nanoTime() - startTime;
+
+							decorateTimeTotal += (int) (elapsed/1_000_000);
+							decorateTasksDone++;
+
 							completedDecorations.add(task);
 						}));
 					}
 				}
-				
-				if (xMaj == null || xMin == null || zMaj == null || zMin == null || xMajZmaj == null || xMajZmin == null || xMinZmaj == null || xMinZmin == null) continue;
+
 				if (chunk.state == ChunkState.DECORATED && fullNeighborsQualify(ChunkState.DECORATED, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin)) {
 					if (chunk.lightQueued.compareAndSet(false, true)) {
 						terrainPool.execute(new PriorityGenTask(0, () -> {
 							LightingTask task = new LightingTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
-							task.clearChunkLighting();
-							task.updateBlockLighting();
+							long startTime = System.nanoTime();
+							//task.clearChunkLighting();
+
+							//task.updateBlockLighting();
 							task.updateSkyLighting();
+							long elapsed = System.nanoTime() - startTime;
+
+							lightTimeTotal += (int)(elapsed/1_000_000);
+							lightTasksDone++;
 
 							completedLighting.add(task);
 						}));
@@ -161,7 +181,12 @@ public class World {
 
 						meshPool.execute(new PriorityGenTask(0, () -> {
 							MeshTask task = new MeshTask(fx, fz, chunk, xMaj, xMin, zMaj, zMin, xMajZmaj, xMajZmin, xMinZmaj, xMinZmin);
+							long startTime = System.nanoTime();
 							if (needsDirtyRemesh) task.fastTargetDirty(dirtyCopy); else task.runFullMeshTask();
+							long elapsed = System.nanoTime()-startTime;
+
+							meshTimeTotal += (int)(elapsed/1_000_000);
+							meshTasksDone++;
 							
 							completedMeshes.add(task);
 						}));
@@ -181,6 +206,7 @@ public class World {
 			Runtime rt = Runtime.getRuntime();
 			long usedMB = (rt.totalMemory() - rt.freeMemory()) / 1024 / 1024;
 			System.out.println("Used Memory: " + usedMB + " MB");
+			System.out.printf("Avg Gen Times: T: %f | D: %f | L : %f | M : %f%n", (float)terrainTimeTotal/terrainTasksDone, (float)decorateTimeTotal/decorateTasksDone, (float)lightTimeTotal/lightTasksDone, (float)meshTimeTotal/meshTasksDone);
 
 			long emptyCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.EMPTY).count();
 			long terrainCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.TERRAIN).count();
@@ -189,6 +215,7 @@ public class World {
 			long meshCount = loadedColumns.values().stream().filter(c -> c.state == ChunkState.MESHED).count();
 
 			System.out.printf("E: %d | T: %d | D: %d | L: %d | M: %d%n", emptyCount, terrainCount, decCount, lightCount, meshCount);
+			System.out.println("Loaded Column Count: " + loadedColumns.size() + " | Rendered Column Count: " + renderedColumns.size());
 			System.out.println("Total Entity Count: " + entityMap.size());
 			System.out.println("_______________");
 		}
@@ -374,7 +401,11 @@ public class World {
 				if (chunk.state == ChunkState.EMPTY && chunk.terrainQueued.compareAndSet(false, true)) {
 					terrainPool.execute(new PriorityGenTask(0, () -> {
 						TerrainTask task = new TerrainTask(fChunk, fx, fz, this);
+						long startTime = System.nanoTime();
 						task.runTask(); // Populates data into task
+						long elapsed = System.nanoTime()-startTime;
+						terrainTimeTotal += (int)(elapsed/1_000_000);
+						terrainTasksDone++;
 						
 						completedTerrain.add(task);
 					}));

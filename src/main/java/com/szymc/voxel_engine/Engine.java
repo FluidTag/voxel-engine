@@ -257,11 +257,11 @@ public class Engine {
 
 		//System.out.println(Arrays.toString(iTypes));
 		//System.out.println("Range/Last index: " + boundXind + ", " + boundYind);
-		for (int y = boundYind; y >= 0; y--) {
-			for (int x = 0; x < boundXind+1; x++) {
+		for (int y = 0; y <= boundYind; y++) {
+			for (int x = 0; x <= boundXind; x++) {
 				byte ind = (byte) (indOffset + x*(boundXind+1)+y);
 				byte itemType = iTypes[ind];
-
+				//System.out.printf("ind: %d (%d, %d) : item %d%n", ind, x, y, itemType);
 				if (itemType != 0) {
 					isEmpty = false;
 					minX = Math.min(x, minX);
@@ -274,8 +274,8 @@ public class Engine {
 
 		if (isEmpty) return null;
 
-		for (int y = maxY; y >= minY; y--) {
-			for (int x = minX; x < maxX+1; x++) {
+		for (int y = minY; y <= maxY; y++) {
+			for (int x = minX; x <= maxX; x++) {
 				byte ind = (byte) (indOffset + x*(boundXind+1)+y);
 				byte itemType = iTypes[ind];
 
@@ -418,7 +418,7 @@ public class Engine {
 			glDisable(GL_BLEND);
 			glDepthMask(true);
 
-			//debugger.renderDebug(matrixBuffer);
+			debugger.renderDebug(matrixBuffer);
 			mainShader.start();
 
 			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
@@ -679,11 +679,11 @@ public class Engine {
 					byte[] cTypes = player.getCraftingInv();
 					byte[] cAmounts = player.getCraftingAmounts();
 
-					for (int y = 2; y >= 0; y--) {
+					for (int y = 0; y < 3; y++) {
 						for (int x = 0; x < 3; x++) {
 							int slotX = craftTableXpos + x*slotSize + 2;
 							int slotY = craftTableYpos + y*slotSize + 2;
-							int ind = x*3+y;
+							int ind = x*3+(2-y);
 
 							uiRenderer.drawRect(slotX, slotY, slotSize-4, slotSize-4, 0.4f, 0.4f, 0.4f, 1.0f);
 							if (cTypes[ind] != 0) uiRenderer.drawIcon(cTypes[ind], slotX, slotY, slotSize-4, slotSize-4);
@@ -695,11 +695,11 @@ public class Engine {
 					}
 
 					uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
-					for (int y = 2; y >= 0; y--) {
+					for (int y = 0; y < 3; y++) {
 						for (int x = 0; x < 3; x++) {
 							int slotX = craftTableXpos + x*slotSize + 2;
 							int slotY = craftTableYpos + y*slotSize + 2;
-							int ind = x*3+y;
+							int ind = x*3+(2-y);
 
 							if (cTypes[ind] != 0) uiRenderer.renderFont(Integer.toString(cAmounts[ind]), slotX+slotSize-4, slotY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
 						}
