@@ -492,8 +492,9 @@ public class DecorationTask {
 						TerrainTask.getContinental(trunkWx, trunkWz), TerrainTask.getErosion(trunkWx, trunkWz),  TerrainTask.getWeirdness(trunkWx, trunkWz) ));
 				
 				if (treeRng.nextFloat() > currentBiome.treeDensity) continue;
+				float treeVariantNum = treeRng.nextFloat();
 
-				byte surfaceBlock = getBlock(chunkMap, trunkWx, surfaceHeight, trunkWz);
+				byte surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, trunkWx, surfaceHeight, trunkWz, currentBiome, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz));
 
 				if (surfaceHeight <= 64) continue;
 				if (surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS &&
@@ -512,13 +513,13 @@ public class DecorationTask {
 				if (currentBiome.type == BiomeType.TAIGA || currentBiome.type == BiomeType.SNOWY_TAIGA) {
 					spruceTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.JUNGLE) {
-					if (treeRng.nextFloat() > 0.65f) {jungleTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);} else regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
+					if (treeVariantNum > 0.65f) {jungleTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);} else regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.SAVANNA || currentBiome.type == BiomeType.DESERT) {
 					acaciaTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.DARK_OAK_FOREST) {
 					darkOakTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.REDWOOD_FOREST) {
-					if (treeRng.nextFloat() < 0.6f) {redwoodTreeAlt(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);} else redwoodTree(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);
+					if (treeVariantNum < 0.6f) {redwoodTreeAlt(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);} else redwoodTree(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);
 				} else {
 					regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				}

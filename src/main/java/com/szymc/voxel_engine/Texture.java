@@ -74,51 +74,55 @@ public class Texture {
 				StringBuilder resultBuilder = new StringBuilder();
 
 				data.forEach((key, subData) -> {
-					ArrayList<Object> listRecipe = (ArrayList<Object>)subData.get("recipe");
-					int[] recipe = new int[9];
-					for (int i = 0; i < listRecipe.size(); i++) {
-						recipe[i] = ((Number) listRecipe.get(i)).intValue();
-					}
+					ArrayList<ArrayList<Object>> allRecipes = (ArrayList<ArrayList<Object>>)subData.get("recipes");
+					for (ArrayList<Object> listRecipe : allRecipes) {
+						int[] recipe = new int[9];
+						for (int i = 0; i < listRecipe.size(); i++) {
+							recipe[i] = ((Number) listRecipe.get(i)).intValue();
+						}
 
-					int amount = ((Number) subData.get("amount")).intValue();
+						int amount = ((Number) subData.get("amount")).intValue();
 
-					int blockKey = Integer.parseInt(key);
+						int blockKey = Integer.parseInt(key);
 
-					int minX = 999; int maxX = -999;
-					int minY = 999; int maxY = -999;
-					boolean isEmpty = true;
+						int minX = 999;
+						int maxX = -999;
+						int minY = 999;
+						int maxY = -999;
+						boolean isEmpty = true;
 
-					for (int y = 2; y >= 0; y--) {
-						for (int x = 0; x < 3; x++) {
-							int dat = recipe[y*3+x];
-							if (dat != 0) {
-								isEmpty = false;
-								minX = Math.min(x, minX);
-								maxX = Math.max(x, maxX);
-								minY = Math.min(y, minY);
-								maxY = Math.max(y, maxY);
+						for (int y = 2; y >= 0; y--) {
+							for (int x = 0; x < 3; x++) {
+								int dat = recipe[y * 3 + x];
+								if (dat != 0) {
+									isEmpty = false;
+									minX = Math.min(x, minX);
+									maxX = Math.max(x, maxX);
+									minY = Math.min(y, minY);
+									maxY = Math.max(y, maxY);
+								}
 							}
 						}
-					}
 
-					if (isEmpty) {
-						System.err.println("Error, crafting recipe for blockId=" + blockKey + " is empty.");
-						return;
-					}
-
-					resultBuilder.setLength(0);
-					for (int y = maxY; y >= minY; y--) {
-						for (int x = minX; x < maxX+1; x++) {
-							int dat = recipe[y*3+x];
-							resultBuilder.append(dat);
-							resultBuilder.append('.');
+						if (isEmpty) {
+							System.err.println("Error, crafting recipe for blockId=" + blockKey + " is empty.");
+							return;
 						}
 
-						resultBuilder.append('/');
-					}
+						resultBuilder.setLength(0);
+						for (int y = maxY; y >= minY; y--) {
+							for (int x = minX; x < maxX + 1; x++) {
+								int dat = recipe[y * 3 + x];
+								resultBuilder.append(dat);
+								resultBuilder.append('.');
+							}
 
-					System.out.println(resultBuilder + " recipe read in");
-					craftingRecipes.put(resultBuilder.toString().trim(), (short) ((blockKey & 0xFF) | (amount & 0xFF) << 8));
+							resultBuilder.append('/');
+						}
+
+						System.out.println(resultBuilder + " recipe read in");
+						craftingRecipes.put(resultBuilder.toString().trim(), (short) ((blockKey & 0xFF) | (amount & 0xFF) << 8));
+					}
 				});
 			}
 		} catch (IOException e) {

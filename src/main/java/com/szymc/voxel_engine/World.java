@@ -36,7 +36,7 @@ public class World {
 	private final Long2ObjectMap<ChunkColumn> loadedColumns = new Long2ObjectOpenHashMap<>();
 	private final Int2ObjectMap<Entity> entityMap = new Int2ObjectOpenHashMap<>();
 
-	private final int renderDistance = 12;
+	private final int renderDistance = 15;
 	private final long winId;
 	
 	public World(long winId) {

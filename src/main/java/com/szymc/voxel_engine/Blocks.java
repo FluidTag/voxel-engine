@@ -65,4 +65,10 @@ public class Blocks {
 	public static final byte STONE_SHOVEL = 62;
 	public static final byte COAL_ORE = 63;
 	public static final byte COAL = 64;
+	public static final byte SPRUCE_PLANKS = 65;
+	public static final byte BIRCH_PLANKS = 66;
+	public static final byte DARK_OAK_PLANKS = 67;
+	public static final byte JUNGLE_PLANKS = 68;
+	public static final byte REDWOOD_PLANKS = 69;
+	public static final byte ACACIA_PLANKS = 70;
 }

@@ -284,6 +284,8 @@ public class Engine {
 			// Special Output Case (Multi-Craft)
 			if ((itemData.inventoryIndex == 40 && itemData.typeSource == player.getInventory()) || (itemData.inventoryIndex == 9 && itemData.typeSource == player.getCraftingInv())) {
 				craftMaxDirectInv(itemData);
+				updateCraftResult();
+
 				return;
 			}
 

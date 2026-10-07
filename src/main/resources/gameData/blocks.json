@@ -3,6 +3,7 @@
     "name": "GRASS",
     "hardness": 1.0,
     "idealTool": 4,
+    "drops": 2,
     "textures": {
       "DEFAULT": "grassSide2Tex.png",
       "TOP": "grassTopTex4.png",
@@ -113,6 +114,7 @@
     "name": "SAVANNA_GRASS",
     "hardness": 1.0,
     "idealTool": 4,
+    "drops": 2,
     "textures": {
       "DEFAULT": "savannaGrassSide.png",
       "TOP": "savannaGrass.png",
@@ -123,6 +125,7 @@
     "name": "JUNGLE_GRASS",
     "hardness": 1.0,
     "idealTool": 4,
+    "drops": 2,
     "textures": {
       "DEFAULT": "jungleGrassSideTex.png",
       "TOP": "jungleGrassTex.png",
@@ -133,6 +136,7 @@
     "name": "TAIGA_GRASS",
     "hardness": 1.0,
     "idealTool": 4,
+    "drops": 2,
     "textures": {
       "DEFAULT": "taigaGrassSideTex.png",
       "TOP": "taigaGrassTex.png",
@@ -143,6 +147,7 @@
     "name": "TUNDRA_GRASS",
     "hardness": 1.4,
     "idealTool": 4,
+    "drops": 2,
     "textures": {
       "DEFAULT": "tundraGrassSideTex.png",
       "TOP": "tundraGrassTex.png",
@@ -170,6 +175,7 @@
     "name": "FOREST_GRASS",
     "hardness": 1.0,
     "idealTool": 4,
+    "drops": 2,
     "textures": {
       "DEFAULT": "forestGrassSideTex.png",
       "TOP": "forestGrassTex.png",
@@ -180,6 +186,7 @@
     "name": "BIRCH_GRASS",
     "hardness": 1.0,
     "idealTool": 4,
+    "drops": 2,
     "textures": {
       "DEFAULT": "birchGrassSideTex.png",
       "TOP": "birchGrassTex.png",
@@ -391,6 +398,7 @@
     "name": "SWAMP_GRASS",
     "hardness": 1.0,
     "idealTool": 4,
+    "drops": 2,
     "textures": {
       "TOP": "swampGrassTop.png",
       "DEFAULT": "swampGrassSide.png"
@@ -602,6 +610,54 @@
 
     "textures": {
       "DEFAULT": "coalIcon.png"
+    }
+  },
+  "65": {
+    "name": "SPRUCE_PLANKS",
+    "hardness": 1.4,
+    "idealTool": 3,
+    "textures": {
+      "DEFAULT": "sprucePlanks.png"
+    }
+  },
+  "66": {
+    "name": "BIRCH_PLANKS",
+    "hardness": 1.4,
+    "idealTool": 3,
+    "textures": {
+      "DEFAULT": "birchPlanks.png"
+    }
+  },
+  "67": {
+    "name": "DARK_OAK_PLANKS",
+    "hardness": 1.4,
+    "idealTool": 3,
+    "textures": {
+      "DEFAULT": "darkOakPlanks.png"
+    }
+  },
+  "68": {
+    "name": "JUNGLE_PLANKS",
+    "hardness": 1.4,
+    "idealTool": 3,
+    "textures": {
+      "DEFAULT": "junglePlanks.png"
+    }
+  },
+  "69": {
+    "name": "REDWOOD_PLANKS",
+    "hardness": 1.4,
+    "idealTool": 3,
+    "textures": {
+      "DEFAULT": "redwoodPlanks.png"
+    }
+  },
+  "70": {
+    "name": "ACACIA_PLANKS",
+    "hardness": 1.4,
+    "idealTool": 3,
+    "textures": {
+      "DEFAULT": "acaciaPlanks.png"
     }
   }
 }
