@@ -14,12 +14,14 @@ public class ChunkSection {
 	private World worldReference;
 	private Mesh mesh = null;
 	private Mesh waterMesh = null;
-	private final IntArrayList lightBlocks = new IntArrayList();
+	private final IntArrayList lightBlocks;
 	private final IntArrayList lBlockRemovals = new IntArrayList();
 
 	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
-		blockData = new PaletteContainer();
-		lightLevels = skylightData;
+		this.blockData = new PaletteContainer();
+		this.lightLevels = skylightData;
+		this.lightBlocks = new IntArrayList();
+
 		for (int y = 0; y < 16; y++) {
 			for (int z = 0; z < 32; z++) {
 				for (int x = 0; x < 32; x++) {
@@ -35,9 +37,10 @@ public class ChunkSection {
 		this.worldZ = wz;
 	}
 
-	public ChunkSection(PaletteContainer paletteContainer, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
-		lightLevels = skylightData;
-		blockData = paletteContainer;
+	public ChunkSection(PaletteContainer paletteContainer, byte[] skylightData, IntArrayList lightBlocksIn, World worldReference, int wx, int wy, int wz) {
+		this.lightLevels = skylightData;
+		this.blockData = paletteContainer;
+		this.lightBlocks = lightBlocksIn;
 
 		this.worldReference = worldReference;
 

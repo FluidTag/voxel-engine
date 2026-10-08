@@ -509,7 +509,7 @@ public class Engine {
 				chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
 				worldScene.spawnNewItemEntity(Texture.customBlockDrop[block] == 0 ? block : Texture.customBlockDrop[block], x, y, z, false);
 				chunk.setSectionDirty(y >> 4);
-				chunk.hasBeenPlayerModified = true;
+				chunk.playerModification();
 
 				worldScene.updateChunk(currentlyMiningState.wx>>5, y, currentlyMiningState.wz>>5, x&31, z&31, false, block);
 				currentlyMiningState = null;

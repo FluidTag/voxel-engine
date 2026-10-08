@@ -17,8 +17,20 @@ public class ChunkColumn {
 	public ChunkState state = ChunkState.EMPTY;
 	public int dirtyBits = 0; // First 16 bits used to denote if a chunk section is dirty (Room to expand to 32 height later)
 	public boolean processLightDirty = false;
-	public boolean hasBeenPlayerModified = false;
+	private boolean hasBeenPlayerModified = false;
 
+	public void setDirectHasBeenPlayerModified() {
+		this.hasBeenPlayerModified = true;
+	}
+
+	public void playerModification() {
+		this.hasBeenPlayerModified = true;
+		worldReference.addChunkToPendingSerializations(this);
+	}
+
+	public boolean isHasBeenPlayerModified() {
+		return this.hasBeenPlayerModified;
+	}
 
 	public String toString() {
 		return "Chunk (" + worldX + ", " + worldZ + ")\n" + state + "\n" +
@@ -283,7 +295,17 @@ public class ChunkColumn {
 			byte[] data = Arrays.copyOfRange(encodedData, offset+72,  offset+72 + 32*16*32);
 
 			byte[] lighting = Arrays.copyOfRange(encodedData, offset+72 + 32*16*32, offset+72 + 32*16*32 + 32*16*32);
-			ChunkSection section = new ChunkSection(PaletteContainer.deserialize(palette, data), lighting, worldReference, wx*32, 16*i, wz*32);
+
+			byte sourceSize = encodedData[offset+72 + 32*16*32 + 32*16*32];
+			byte[] sourceData = Arrays.copyOfRange(encodedData, offset + 72 + 32*16*32 + 32*16*32 + 1, offset + 72 + 32*16*32 + 32*16*32 + 1 + 4*64);
+			IntArrayList lightSrcList = new IntArrayList(sourceSize);
+
+			for (int piece = 0; piece < sourceData.length-4; piece+=4) {
+				int light = (sourceData[piece+3] & 0xFF) | (sourceData[piece+2] & 0xFF) << 8 | (sourceData[piece+1] & 0xFF) << 16 | (sourceData[piece] & 0xFF) << 24;
+				lightSrcList.add(light);
+			}
+
+			ChunkSection section = new ChunkSection(PaletteContainer.deserialize(palette, data), lighting, lightSrcList, worldReference, wx*32, 16*i, wz*32);
 			createdSections[i] = section;
 
 			targetedSections &= targetedSections -1;

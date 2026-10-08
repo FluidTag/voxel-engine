@@ -6,7 +6,7 @@ public class DatabaseManager {
 
     public static void initializeSchema() {
         String sql = """
-                
+                VACUUM;
                 CREATE TABLE IF NOT EXISTS chunks (
                   x INTEGER,
                   z INTEGER,

@@ -5,6 +5,7 @@ import org.joml.Vector3f;
 
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
+import java.util.HashSet;
 
 import static org.lwjgl.glfw.GLFW.*;
 public class App {
@@ -61,6 +62,20 @@ public class App {
 
 		double lastFrameTime = 0.0;
 		double tIncrement = 0;
+
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			HashSet<ChunkColumn> toSerialize = mainWorld.getPendingChunkSerializations();
+			System.out.println("Saving " + toSerialize.size() + " chunks to database disk.");
+			long start = System.nanoTime();
+
+			for (ChunkColumn column : toSerialize) {
+				DatabaseManager.uploadChunk(column.getWorldX(), column.getWorldZ(), column.serialize());
+			}
+
+			long elapsed = (System.nanoTime()-start)/1_000_000;
+			System.out.println("Took " + elapsed + "ms to save all chunks");
+		}));
+
 		while (!window.shouldClose()) {
 			double currentFrameTime = window.getFrameTime();
 			float deltaTime = (float)(currentFrameTime - lastFrameTime);
@@ -162,7 +177,8 @@ public class App {
 				System.out.println(wx + ", " + wy + ", " + wz + " CC ("+(wx&31)+", " + (wy&15) + ", " + (wz&31) + ") | Surface Biome (@y-"+surfaceHeight+"): " + surfaceBiome + " [T "+Math.round(temp*100f)/100f+", M "+Math.round(moist*100f)/100f+", E "+Math.round(erosion*100f)/100f + "]");
 				System.out.println("Light | Sky: " + ((light >> 4) & 0xF) + ", Block: " + (light&0xF) + " | BlockId@ = " + block);
 				System.out.println("Palette size in section: " + palSize);
-				if (c != null) System.out.println("Chunk State: " + c);
+
+				//if (c != null) System.out.println("Chunk State: " + c);
 				//if (mesh != null) System.out.println("Mesh?: " + mesh);
 				//System.out.printf("Click Times: [%d, %d] diff ms: %d %n", PlayerCharacter.lastClickNano[0] / 1_000_000, PlayerCharacter.lastClickNano[1] / 1_000_000, (PlayerCharacter.lastClickNano[1] - PlayerCharacter.lastClickNano[0]) / 1_000_000);
 			}

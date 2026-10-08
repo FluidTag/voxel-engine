@@ -9,6 +9,8 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 
 
@@ -34,6 +36,15 @@ import java.util.concurrent.TimeUnit;
 public class World {
 	private final Long2ObjectMap<ChunkColumn> renderedColumns = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectMap<ChunkColumn> loadedColumns = new Long2ObjectOpenHashMap<>();
+	private final HashSet<ChunkColumn> pendingChunkSerializations = new HashSet<>();
+	public void addChunkToPendingSerializations(ChunkColumn column) {
+		pendingChunkSerializations.add(column);
+	}
+
+	public HashSet<ChunkColumn> getPendingChunkSerializations() {
+		return this.pendingChunkSerializations;
+	}
+
 	private final Int2ObjectMap<Entity> entityMap = new Int2ObjectOpenHashMap<>();
 
 	private final int renderDistance = 15;
@@ -391,7 +402,9 @@ public class World {
 					if (dat != null) {
 						chunk = ChunkColumn.deserialize(this, x, z, dat);
 						chunk.state = ChunkState.LIGHT;
-						//System.out.println("Chunk at " + x*32 + ", " + z*32 + " made from db");
+						chunk.setDirectHasBeenPlayerModified();
+
+						System.out.println("Chunk at " + x*32 + ", " + z*32 + " deserialized from db");
 					} else {
 						chunk = new ChunkColumn(this, x, z);
 						chunk.state = ChunkState.EMPTY;
@@ -448,13 +461,8 @@ public class World {
 			
 			if (xDist > renderDistance || zDist > renderDistance) {
 				renderedColumns.remove(key);
-				
-				if ((xDist > renderDistance+2 || zDist > renderDistance+2)) {
-					if (val.hasBeenPlayerModified && val.state.isAtleast(ChunkState.LIGHT)) {
-						System.out.println("Serializing " + cx + ", " + cz);
-						DatabaseManager.uploadChunk(cx, cz, val.serialize());
-					}
 
+				if (!val.isHasBeenPlayerModified() && (xDist > renderDistance+2 || zDist > renderDistance+2)) {
 					val.cleanupMeshes();
 					iter.remove();
 				}
