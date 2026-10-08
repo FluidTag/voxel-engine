@@ -387,8 +387,16 @@ public class World {
 				ChunkColumn chunk = loadedColumns.get(key);
 				
 				if (chunk == null) {
-					chunk = new ChunkColumn(this, x, z);
-					chunk.state = ChunkState.EMPTY;
+					byte[] dat = DatabaseManager.selectChunk(x, z);
+					if (dat != null) {
+						chunk = ChunkColumn.deserialize(this, x, z, dat);
+						chunk.state = ChunkState.LIGHT;
+						//System.out.println("Chunk at " + x*32 + ", " + z*32 + " made from db");
+					} else {
+						chunk = new ChunkColumn(this, x, z);
+						chunk.state = ChunkState.EMPTY;
+					}
+
 					loadedColumns.put(key, chunk);
 					checkStateAdvances(x, z);
 				}
@@ -441,7 +449,12 @@ public class World {
 			if (xDist > renderDistance || zDist > renderDistance) {
 				renderedColumns.remove(key);
 				
-				if (xDist > renderDistance+2 || zDist > renderDistance+2) {
+				if ((xDist > renderDistance+2 || zDist > renderDistance+2)) {
+					if (val.hasBeenPlayerModified && val.state.isAtleast(ChunkState.LIGHT)) {
+						System.out.println("Serializing " + cx + ", " + cz);
+						DatabaseManager.uploadChunk(cx, cz, val.serialize());
+					}
+
 					val.cleanupMeshes();
 					iter.remove();
 				}

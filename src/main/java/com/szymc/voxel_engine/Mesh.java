@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.joml.Vector3f;
 
@@ -21,7 +22,7 @@ public class Mesh {
 	private int vao, vbo, ebo, indexCount;
 	private static IntBuffer vertBuf = MemoryUtil.memAllocInt(1024*1024);
 	private static IntBuffer intBuf = MemoryUtil.memAllocInt(1024*1024);
-	
+
 	public Mesh(int[] verticies, int[] indicies, int numVerts, int numIndicies) {
 		this.indexCount = numIndicies;
 		

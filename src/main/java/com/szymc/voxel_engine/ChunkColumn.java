@@ -1,6 +1,8 @@
 package com.szymc.voxel_engine;
 
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -15,11 +17,14 @@ public class ChunkColumn {
 	public ChunkState state = ChunkState.EMPTY;
 	public int dirtyBits = 0; // First 16 bits used to denote if a chunk section is dirty (Room to expand to 32 height later)
 	public boolean processLightDirty = false;
+	public boolean hasBeenPlayerModified = false;
+
 
 	public String toString() {
 		return "Chunk (" + worldX + ", " + worldZ + ")\n" + state + "\n" +
 					"Terrain Queued: " + terrainQueued.get() + "\n" +
 					"Decoration Queued: " + decorationQueued.get() + "\n" +
+					"Light Queued: " + lightQueued.get() + "\n" +
 					"Mesh Queued " + meshQueued.get() + "\n";
 	}
 	
@@ -212,5 +217,79 @@ public class ChunkColumn {
 	
 	public int getWorldZ() {
 		return this.worldZ;
+	}
+
+	public byte[] serialize() {
+		int targetedSections = 0;
+		int size = 0;
+		for (int i = 0; i < 16; i++) {
+			if (sections[i] != null) size++;
+		}
+
+		byte[] data = new byte[2 + (72 + 32*16*32 + 32*16*32 + 1 + 4*64)*size];
+		int baseSize = 72 + 32*16*32 + 32*16*32 + 1 + 4*64;
+		int realIndex = 0;
+
+		for (int i = 0; i < 16; i++) {
+			ChunkSection sec = sections[i];
+			if (sec == null) continue;
+			targetedSections |= (1 << i);
+
+			PaletteContainer palette = sec.getRawPaletteContainer();
+			byte[] rawPaletteBytes = palette.serialize();
+			int offset = 2 + baseSize*realIndex;
+
+			System.arraycopy(rawPaletteBytes, 0, data, offset, rawPaletteBytes.length);
+			byte[] light = sec.getLightingData();
+
+			System.arraycopy(light, 0, data, offset + 72 + 32*16*32, light.length);
+
+			IntArrayList sourceCache = sec.getLightBlocks();
+			data[offset + 72 + 32*16*32 + light.length] = (byte) sourceCache.size();
+			byte[] createdByteSourceArr = new byte[sourceCache.size()*4];
+
+			for (int j = 0; j < sourceCache.size(); j++) {
+				int val = sourceCache.getInt(j);
+				int baseInd = j*4;
+
+				createdByteSourceArr[baseInd] = (byte) ((val >>> 24)&0xFF);
+				createdByteSourceArr[baseInd+1] = (byte) ((val >>> 16)&0xFF);
+				createdByteSourceArr[baseInd+2] = (byte) ((val >>> 8)&0xFF);
+				createdByteSourceArr[baseInd+3] = (byte) (val&0xFF);
+			}
+
+			System.arraycopy(createdByteSourceArr, 0, data, offset + 72 + 32*16*32 + light.length + 1, createdByteSourceArr.length);
+			realIndex++;
+		}
+
+		data[0] = (byte) (targetedSections & 0xFF);
+		data[1] = (byte) ((targetedSections >>> 8) & 0xFF);
+
+		return data;
+	}
+
+	public static ChunkColumn deserialize(World worldReference, int wx, int wz, byte[] encodedData) {
+		ChunkSection[] createdSections = new ChunkSection[16];
+		int targetedSections = (encodedData[0] & 0xFF) | ((encodedData[1] & 0xFF) << 8);
+        int baseSize = 72 + 32*16*32 + 32*16*32 + 1 + 4*64;
+		int realIndex = 0;
+		//System.out.println(Integer.toBinaryString(targetedSections));
+		while (targetedSections != 0) {
+			int i = Integer.numberOfTrailingZeros(targetedSections);
+			int offset = 2 + baseSize*realIndex;
+			byte palSize = (byte) (encodedData[offset] & 0xFF);
+
+			byte[] palette = Arrays.copyOfRange(encodedData, offset+1, offset+1+palSize);
+			byte[] data = Arrays.copyOfRange(encodedData, offset+72,  offset+72 + 32*16*32);
+
+			byte[] lighting = Arrays.copyOfRange(encodedData, offset+72 + 32*16*32, offset+72 + 32*16*32 + 32*16*32);
+			ChunkSection section = new ChunkSection(PaletteContainer.deserialize(palette, data), lighting, worldReference, wx*32, 16*i, wz*32);
+			createdSections[i] = section;
+
+			targetedSections &= targetedSections -1;
+			realIndex++;
+		}
+
+		return new ChunkColumn(worldReference, wx, wz, createdSections);
 	}
 }

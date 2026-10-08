@@ -509,6 +509,7 @@ public class Engine {
 				chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
 				worldScene.spawnNewItemEntity(Texture.customBlockDrop[block] == 0 ? block : Texture.customBlockDrop[block], x, y, z, false);
 				chunk.setSectionDirty(y >> 4);
+				chunk.hasBeenPlayerModified = true;
 
 				worldScene.updateChunk(currentlyMiningState.wx>>5, y, currentlyMiningState.wz>>5, x&31, z&31, false, block);
 				currentlyMiningState = null;
@@ -630,6 +631,7 @@ public class Engine {
 				ChunkColumn eChunk = worldScene.getLoadedChunkAtPos(xPos>>5, zPos>>5);
 				if (eChunk == null) return;
 
+				if (yPos < 0) return;
 				byte skyLevel = eChunk.getSkylight(xPos&31, yPos, zPos&31);
 				byte blockLevel = eChunk.getBlockLight(xPos&31, yPos, zPos&31);
 

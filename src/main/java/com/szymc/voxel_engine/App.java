@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import org.joml.Vector3f;
 
 import java.lang.management.ManagementFactory;
+import java.util.Arrays;
 
 import static org.lwjgl.glfw.GLFW.*;
 public class App {
@@ -56,6 +57,7 @@ public class App {
 		engine.setPlayer(character);
 
 		BiomeRegistry.init();
+		DatabaseManager.initializeSchema();
 
 		double lastFrameTime = 0.0;
 		double tIncrement = 0;
@@ -84,6 +86,9 @@ public class App {
 				// Physics Update
 				Int2ObjectMaps.fastForEach(mainWorld.getEntities(), entry -> {
 					Entity entity = entry.getValue();
+					ChunkColumn parentColumn = mainWorld.getLoadedChunkAtPos((int)entity.position.x>>5, (int)entity.position.z>>5);
+					if (parentColumn == null) return; // Not loaded
+
 					if (entity instanceof EntityItem item) {
 						item.previousPosition.set(item.position);
 						item.velocity.y += -0.05f;
@@ -140,11 +145,14 @@ public class App {
 				byte block = -1;
 				int palSize = -1;
 				ChunkColumn c = mainWorld.getLoadedChunkAtPos(wx>>5, wz>>5);
+				Mesh mesh = null;
+
 				if (c != null) {
 					ChunkSection sec = c.getSection(wy>>4);
 					if (sec != null) light = sec.getLightingData()[(wy&15)*32*32 + (wz&31)*32 + (wx&31)];
 					if (sec != null) block = c.getBlockInChunk((wx&31), wy, (wz&31));
 					if (sec != null) palSize = sec.getRawPaletteContainer().getBitWidth();
+					if (sec != null) mesh = sec.getMesh();
 				}
 
 				BiomeType surfaceBiome = TerrainTask.getBiomeType(surfaceHeight, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));
@@ -154,6 +162,8 @@ public class App {
 				System.out.println(wx + ", " + wy + ", " + wz + " CC ("+(wx&31)+", " + (wy&15) + ", " + (wz&31) + ") | Surface Biome (@y-"+surfaceHeight+"): " + surfaceBiome + " [T "+Math.round(temp*100f)/100f+", M "+Math.round(moist*100f)/100f+", E "+Math.round(erosion*100f)/100f + "]");
 				System.out.println("Light | Sky: " + ((light >> 4) & 0xF) + ", Block: " + (light&0xF) + " | BlockId@ = " + block);
 				System.out.println("Palette size in section: " + palSize);
+				if (c != null) System.out.println("Chunk State: " + c);
+				//if (mesh != null) System.out.println("Mesh?: " + mesh);
 				//System.out.printf("Click Times: [%d, %d] diff ms: %d %n", PlayerCharacter.lastClickNano[0] / 1_000_000, PlayerCharacter.lastClickNano[1] / 1_000_000, (PlayerCharacter.lastClickNano[1] - PlayerCharacter.lastClickNano[0]) / 1_000_000);
 			}
 

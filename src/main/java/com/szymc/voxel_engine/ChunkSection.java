@@ -8,7 +8,7 @@ import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 
 public class ChunkSection {
-	private PaletteContainer blockData = new PaletteContainer();
+	private PaletteContainer blockData;
 	private byte[] lightLevels;
 	private final int worldX, worldY, worldZ;
 	private World worldReference;
@@ -18,6 +18,7 @@ public class ChunkSection {
 	private final IntArrayList lBlockRemovals = new IntArrayList();
 
 	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
+		blockData = new PaletteContainer();
 		lightLevels = skylightData;
 		for (int y = 0; y < 16; y++) {
 			for (int z = 0; z < 32; z++) {
@@ -26,6 +27,17 @@ public class ChunkSection {
 				}
 			}
 		}
+
+		this.worldReference = worldReference;
+
+		this.worldX = wx;
+		this.worldY = wy;
+		this.worldZ = wz;
+	}
+
+	public ChunkSection(PaletteContainer paletteContainer, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
+		lightLevels = skylightData;
+		blockData = paletteContainer;
 
 		this.worldReference = worldReference;
 

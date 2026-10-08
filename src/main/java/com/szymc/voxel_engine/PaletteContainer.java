@@ -1,5 +1,8 @@
 package com.szymc.voxel_engine;
 
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
+
 public class PaletteContainer {
     private byte[] palette = new byte[0];
     private long[] blockData = new long[256];
@@ -116,5 +119,43 @@ public class PaletteContainer {
     private int calculateBitCount(int uniqueValues) {
         if (uniqueValues <= 1) return 1;
         return 32 - Integer.numberOfLeadingZeros(uniqueValues - 1);
+    }
+
+    public byte[] serialize() {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 64 + 7 + (32*16*32));
+
+        byteBuffer.put((byte) palette.length);
+        byteBuffer.put(palette);
+        byteBuffer.put(new byte[64 - palette.length]);
+        byteBuffer.put(new byte[7]);
+        byteBuffer.asLongBuffer().put(blockData);
+        byteBuffer.position(byteBuffer.position() + (32 * 16 * 32));
+
+        return byteBuffer.array();
+    }
+
+    public PaletteContainer() {}
+
+    private PaletteContainer(byte[] palette, byte[] data) {
+        this.palette = palette;
+        this.bitWidth = calculateBitCount(palette.length);
+
+        if (this.bitWidth == 0) {
+            this.blockData = new long[0];
+            return;
+        }
+
+        // Calculate how many longs are active based on bitWidth
+        int requiredLongs = ((32 * 16 * 32) * this.bitWidth) / 64;
+
+        ByteBuffer byteBuffer = ByteBuffer.wrap(data);
+        LongBuffer longBuffer = byteBuffer.asLongBuffer();
+
+        this.blockData = new long[requiredLongs];
+        longBuffer.get(this.blockData, 0, requiredLongs); // Only read what's active
+    }
+
+    public static PaletteContainer deserialize(byte[] palette, byte[] data) {
+        return new PaletteContainer(palette, data);
     }
 }
