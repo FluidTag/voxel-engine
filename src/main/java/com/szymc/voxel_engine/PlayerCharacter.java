@@ -2,6 +2,8 @@ package com.szymc.voxel_engine;
 
 import org.joml.Vector3f;
 
+import java.util.Arrays;
+
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT;
 import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
@@ -174,6 +176,11 @@ public class PlayerCharacter {
     private byte[] lastInvTypesClicked = null;
     private long lastClickTime = -1;
     private static final int doubleGrabDelayMs = 164;
+
+    public void setInventoryStruct(byte[] inv, byte[] amounts) {
+        this.inventory = inv;
+        this.inventoryAmounts = amounts;
+    }
 
     public PlayerCharacter(Camera playerCamera, World worldReference, Window windowReference, Engine engineAttachment) {
         this.playerCamera = playerCamera;
@@ -408,6 +415,7 @@ public class PlayerCharacter {
             }
         });
 
+        playerCamera.recieveMouseOffset(0, 0); // IDK why this should be needed but it is I guess
         glfwSetCursorPosCallback(windowReference.getWindowId(), (windowHandle, xPos, yPos) -> {
             engineAttachment.setMousePosition((int) xPos, (int) yPos);
             if (guiInventoryActive) return;
@@ -494,5 +502,10 @@ public class PlayerCharacter {
 
     public Camera getPlayerCamera() {
         return this.playerCamera;
+    }
+
+    @Override
+    public String toString() {
+        return "Camera: " + getPlayerCamera() + "\nInventory: " + Arrays.toString(inventory) + "\nInventoryAmounts: " + Arrays.toString(inventoryAmounts);
     }
 }

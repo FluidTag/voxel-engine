@@ -49,10 +49,12 @@ public class World {
 
 	private final int renderDistance = 15;
 	private final long winId;
+	private final int worldId;
 	
-	public World(long winId) {
+	public World(long winId, int worldId) {
 		System.out.println(threads);
 		this.winId = winId;
+		this.worldId = worldId;
 	}
 	
 	private final int threads = Runtime.getRuntime().availableProcessors()-1;

@@ -24,6 +24,26 @@ public class Camera {
 	private Matrix4f projection = new Matrix4f().perspective((float)Math.toRadians(74.0f), (float) App.WINDOW_WIDTH /App.WINDOW_HEIGHT, 0.1f, 1500.0f);
 	public final FrustumIntersection frustumInt = new FrustumIntersection();
 
+	@Override
+	public String toString() {
+		return "[CamData: " + cameraPos.toString() + " yaw: " + yaw + ", pitch: " + pitch + "]";
+	}
+
+	public void setOrientation(float yaw, float pitch) {
+		this.yaw = yaw;
+		this.pitch = pitch;
+	}
+
+	public float getYaw() {
+		return this.yaw;
+	}
+
+	public float getPitch() {
+		return this.pitch;
+	}
+
+	public Camera() {}
+
 	public Vector3f getLookUnitNormal() {
 		return new Vector3f(cameraFront).normalize();
 	}

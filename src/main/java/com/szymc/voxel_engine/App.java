@@ -49,12 +49,16 @@ public class App {
 		Camera camera = new Camera();
 		Window window = new Window(App.WINDOW_WIDTH, App.WINDOW_HEIGHT, "Voxel-Engine");
 
-		World mainWorld = new World(window.getWindowId());
+		World mainWorld = new World(window.getWindowId(), 0);
 		TerrainTask.initNoise();
 
 		window.attachCamera(camera);
 		Engine engine = new Engine(mainWorld, camera);
-		PlayerCharacter character = new PlayerCharacter(camera, mainWorld, window, engine);
+
+		PlayerCharacter savedChar = DatabaseManager.getPlayer(0, mainWorld, window, engine, camera);
+		System.out.println(savedChar);
+		PlayerCharacter character = savedChar != null ? savedChar : new PlayerCharacter(camera, mainWorld, window, engine);
+
 		engine.setPlayer(character);
 
 		BiomeRegistry.init();
@@ -73,7 +77,8 @@ public class App {
 			}
 
 			long elapsed = (System.nanoTime()-start)/1_000_000;
-			System.out.println("Took " + elapsed + "ms to save all chunks");
+			DatabaseManager.uploadPlayer(0, character);
+			System.out.println("Took " + elapsed + "ms to save all and players chunks");
 		}));
 
 		while (!window.shouldClose()) {
