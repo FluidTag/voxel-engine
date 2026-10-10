@@ -4,8 +4,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import org.joml.Vector3f;
 
 import java.lang.management.ManagementFactory;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.*;
 
 import static org.lwjgl.glfw.GLFW.*;
 public class App {
@@ -67,6 +66,12 @@ public class App {
 		double lastFrameTime = 0.0;
 		double tIncrement = 0;
 
+		ArrayList<Entity> storedEntities = DatabaseManager.getEntities(0);
+		System.out.println(storedEntities);
+		for (Entity e : storedEntities) {
+			mainWorld.getEntities().put(e.entityId, e);
+		}
+
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			HashSet<ChunkColumn> toSerialize = mainWorld.getPendingChunkSerializations();
 			System.out.println("Saving " + toSerialize.size() + " chunks to database disk.");
@@ -74,6 +79,14 @@ public class App {
 
 			for (ChunkColumn column : toSerialize) {
 				DatabaseManager.uploadChunk(column.getWorldX(), column.getWorldZ(), column.serialize());
+			}
+
+			DatabaseManager.clearEntites(0);
+			for (Map.Entry<UUID, Entity> entry : mainWorld.getEntities().entrySet()) {
+				Entity e = entry.getValue();
+				if (e instanceof EntityItem item) {
+					DatabaseManager.uploadEntity(0, item);
+				}
 			}
 
 			long elapsed = (System.nanoTime()-start)/1_000_000;
@@ -104,10 +117,23 @@ public class App {
 				}
 
 				// Physics Update
-				Int2ObjectMaps.fastForEach(mainWorld.getEntities(), entry -> {
+				for (Map.Entry<UUID, Entity> entry : mainWorld.getEntities().entrySet()) {
 					Entity entity = entry.getValue();
 					ChunkColumn parentColumn = mainWorld.getLoadedChunkAtPos((int)entity.position.x>>5, (int)entity.position.z>>5);
-					if (parentColumn == null) return; // Not loaded
+
+					if (entity.currentChunk == null && parentColumn != null) {
+						entity.currentChunk = parentColumn;
+						parentColumn.addEntityToLookup(entity);
+					};
+
+					if (entity.currentChunk != parentColumn) {
+						entity.currentChunk.removeEntityLookup(entity);
+						entity.currentChunk = parentColumn;
+						parentColumn.addEntityToLookup(entity);
+					}
+
+					if (parentColumn == null) continue; // Not loaded
+					if (!parentColumn.state.isAtleast(ChunkColumn.ChunkState.LIGHT)) continue;
 
 					if (entity instanceof EntityItem item) {
 						item.previousPosition.set(item.position);
@@ -138,10 +164,11 @@ public class App {
 							if (slot != -1) {
 								character.setInventorySlot(slot, item.item, (byte)(character.readInventoryAmount(slot)+1));
 								mainWorld.addEntityIdToDeleteList(item.entityId);
+								if (item.currentChunk != null) item.currentChunk.removeEntityLookup(item);
 							} else System.out.println("Inventory full");
 						}
 					}
-				});
+				};
 
 				mainWorld.processEntityDeletions();
 			}
@@ -183,6 +210,7 @@ public class App {
 				System.out.println("Light | Sky: " + ((light >> 4) & 0xF) + ", Block: " + (light&0xF) + " | BlockId@ = " + block);
 				System.out.println("Palette size in section: " + palSize);
 
+				if (c != null) System.out.println(c.readEntityLookup());
 				//if (c != null) System.out.println("Chunk State: " + c);
 				//if (mesh != null) System.out.println("Mesh?: " + mesh);
 				//System.out.printf("Click Times: [%d, %d] diff ms: %d %n", PlayerCharacter.lastClickNano[0] / 1_000_000, PlayerCharacter.lastClickNano[1] / 1_000_000, (PlayerCharacter.lastClickNano[1] - PlayerCharacter.lastClickNano[0]) / 1_000_000);

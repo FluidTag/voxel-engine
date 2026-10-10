@@ -1,9 +1,13 @@
 package com.szymc.voxel_engine;
 
 
+import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
@@ -18,6 +22,19 @@ public class ChunkColumn {
 	public int dirtyBits = 0; // First 16 bits used to denote if a chunk section is dirty (Room to expand to 32 height later)
 	public boolean processLightDirty = false;
 	private boolean hasBeenPlayerModified = false;
+	private HashSet<Entity> eLookup;
+	public void addEntityToLookup(Entity e) {
+		if (eLookup == null) eLookup = new HashSet<>();
+		eLookup.add(e);
+	}
+
+	public void removeEntityLookup(Entity e) {
+		if (eLookup != null) eLookup.remove(e);
+	}
+
+	public HashSet<Entity> readEntityLookup() {
+		return this.eLookup;
+	}
 
 	public void setDirectHasBeenPlayerModified() {
 		this.hasBeenPlayerModified = true;
@@ -254,10 +271,10 @@ public class ChunkColumn {
 			System.arraycopy(rawPaletteBytes, 0, data, offset, rawPaletteBytes.length);
 			byte[] light = sec.getLightingData();
 
-			System.arraycopy(light, 0, data, offset + 72 + 32*16*32, light.length);
+			System.arraycopy(light, 0, data, offset + 72 + 32*16*32, 32*16*32);
 
 			IntArrayList sourceCache = sec.getLightBlocks();
-			data[offset + 72 + 32*16*32 + light.length] = (byte) sourceCache.size();
+			data[offset + 72 + 32*16*32 + 32*16*32] = (byte) sourceCache.size();
 			byte[] createdByteSourceArr = new byte[sourceCache.size()*4];
 
 			for (int j = 0; j < sourceCache.size(); j++) {
@@ -270,7 +287,7 @@ public class ChunkColumn {
 				createdByteSourceArr[baseInd+3] = (byte) (val&0xFF);
 			}
 
-			System.arraycopy(createdByteSourceArr, 0, data, offset + 72 + 32*16*32 + light.length + 1, createdByteSourceArr.length);
+			System.arraycopy(createdByteSourceArr, 0, data, offset + 72 + 32*16*32 + 32*16*32 + 1, createdByteSourceArr.length);
 			realIndex++;
 		}
 

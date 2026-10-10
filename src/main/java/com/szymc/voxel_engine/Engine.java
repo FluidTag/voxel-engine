@@ -21,6 +21,8 @@ import static org.lwjgl.system.MemoryStack.*;
 
 import java.io.IOException;
 import java.nio.FloatBuffer;
+import java.util.Map;
+import java.util.UUID;
 
 
 import org.joml.Matrix4f;
@@ -617,7 +619,7 @@ public class Engine {
 			entityShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
 
 			glBindVertexArray(EntityItem.getVao());
-			Int2ObjectMaps.fastForEach(worldScene.getEntities(), entry -> {
+			for (Map.Entry<UUID, Entity> entry : worldScene.getEntities().entrySet()) {
 				Entity entity = entry.getValue();
 
 				tempModel.set(entity.renderPosition.x, entity.renderPosition.y, entity.renderPosition.z);
@@ -629,18 +631,19 @@ public class Engine {
 				int zPos = (int) Math.floor(entity.position.z);
 
 				ChunkColumn eChunk = worldScene.getLoadedChunkAtPos(xPos>>5, zPos>>5);
-				if (eChunk == null) return;
+				if (eChunk == null) continue;
+				if (!eChunk.state.isAtleast(ChunkColumn.ChunkState.LIGHT)) continue;
 
-				if (yPos < 0) return;
+				if (yPos < 0) continue;
 				byte skyLevel = eChunk.getSkylight(xPos&31, yPos, zPos&31);
 				byte blockLevel = eChunk.getBlockLight(xPos&31, yPos, zPos&31);
 
 				entityShader.setLightLevel((byte) Math.max(skyLevel, blockLevel));
 
 				if (entity instanceof EntityItem item) {
-                    glDrawElementsBaseVertex(GL_TRIANGLES, item.itemMesh.indexCount, GL_UNSIGNED_INT, item.itemMesh.byteOffset, item.itemMesh.baseVertex);
+					glDrawElementsBaseVertex(GL_TRIANGLES, item.itemMesh.indexCount, GL_UNSIGNED_INT, item.itemMesh.byteOffset, item.itemMesh.baseVertex);
 				}
-			});
+			}
 
 			entityShader.stop();
 			mainShader.start();

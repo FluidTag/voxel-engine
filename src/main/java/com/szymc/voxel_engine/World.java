@@ -10,7 +10,9 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 
@@ -45,7 +47,7 @@ public class World {
 		return this.pendingChunkSerializations;
 	}
 
-	private final Int2ObjectMap<Entity> entityMap = new Int2ObjectOpenHashMap<>();
+	private final HashMap<UUID, Entity> entityMap = new HashMap<>();
 
 	private final int renderDistance = 15;
 	private final long winId;
@@ -472,7 +474,7 @@ public class World {
 		}
 	}
 
-	public Int2ObjectMap<Entity> getEntities() {return this.entityMap;}
+	public HashMap<UUID, Entity> getEntities() {return this.entityMap;}
 	public EntityItem spawnNewItemEntity(byte block, int wx, int wy, int wz, boolean playerDropped) {
 		EntityItem item = new EntityItem(block, tick, playerDropped);
 		float xOffset = (1-item.xWidth)/2;
@@ -484,8 +486,8 @@ public class World {
 		return item;
 	}
 
-	private IntArrayList pendingEntityRemovals = new IntArrayList(16);
-	public void addEntityIdToDeleteList(int entityId) { // Must be processed with processEntityDeletions
+	private ArrayList<UUID> pendingEntityRemovals = new ArrayList<>(16);
+	public void addEntityIdToDeleteList(UUID entityId) { // Must be processed with processEntityDeletions
 		if (!entityMap.containsKey(entityId)) {
 			System.err.println("Error, could not delete entityId " + entityId + " as it does not exist in the worlds entity map.");
 			return;
@@ -494,7 +496,7 @@ public class World {
 	}
 
 	public void processEntityDeletions() {
-		for (int id : pendingEntityRemovals) {
+		for (UUID id : pendingEntityRemovals) {
 			entityMap.remove(id);
 		}
 
