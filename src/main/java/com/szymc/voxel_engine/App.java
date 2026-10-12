@@ -87,9 +87,7 @@ public class App {
 			DatabaseManager.clearEntites(0);
 			for (Map.Entry<UUID, Entity> entry : mainWorld.getEntities().entrySet()) {
 				Entity e = entry.getValue();
-				if (e instanceof EntityItem item) {
-					DatabaseManager.uploadEntity(0, item);
-				}
+				DatabaseManager.uploadEntity(0, e);
 			}
 
 			long elapsed = (System.nanoTime()-start)/1_000_000;

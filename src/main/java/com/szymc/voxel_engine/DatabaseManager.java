@@ -49,6 +49,7 @@ public class DatabaseManager {
                     entity_id_high INTEGER,
                     entity_id_low INTEGER,
                     item INTEGER,
+                    type INTEGER NOT NULL CHECK (type in (0, 1, 2)),
                     x REAL,
                     y REAL,
                     z REAL,
@@ -75,27 +76,33 @@ public class DatabaseManager {
         }
     }
 
-    public static void uploadEntity(int worldId, Entity entity) {
-        String sql = "INSERT OR REPLACE INTO entities (world_id, entity_id_high, entity_id_low, item, x, y, z, xVel, yVel, zVel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        if (entity instanceof EntityItem item) {
-            try (Connection conn = DriverManager.getConnection(URL); PreparedStatement statement = conn.prepareStatement(sql)) {
-                statement.setInt(1, worldId);
-                statement.setLong(2, item.entityId.getMostSignificantBits());
-                statement.setLong(3, item.entityId.getLeastSignificantBits());
-                statement.setInt(4, item.item);
-                statement.setFloat(5, item.position.x);
-                statement.setFloat(6, item.position.y);
-                statement.setFloat(7, item.position.z);
-                statement.setFloat(8, item.velocity.x);
-                statement.setFloat(9, item.velocity.y);
-                statement.setFloat(10, item.velocity.z);
-
-                System.out.println(item.entityId + ": " + item.position.x + ", " + item.position.y + ", " + item.position.z);
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                e.printStackTrace();
+    public static void uploadEntity(int worldId, Entity e) {
+        String sql = "INSERT OR REPLACE INTO entities (world_id, entity_id_high, entity_id_low, item, type, x, y, z, xVel, yVel, zVel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement statement = conn.prepareStatement(sql)) {
+            statement.setInt(1, worldId);
+            statement.setLong(2, e.entityId.getMostSignificantBits());
+            statement.setLong(3, e.entityId.getLeastSignificantBits());
+            if (e instanceof EntityItem itemEntity) {
+                statement.setInt(4, itemEntity.item);
+                statement.setInt(5, 0); // Entity Type 0: Item
+            } else if (e instanceof BlockEntity blockEntity) {
+                statement.setInt(4, blockEntity.blockType);
+                statement.setInt(5, 1); // Entity Type 1: Block
             }
+
+            statement.setFloat(6, e.position.x);
+            statement.setFloat(7, e.position.y);
+            statement.setFloat(8, e.position.z);
+            statement.setFloat(9, e.velocity.x);
+            statement.setFloat(10, e.velocity.y);
+            statement.setFloat(11, e.velocity.z);
+
+            System.out.println(e.entityId + ": " + e.position.x + ", " + e.position.y + ", " + e.position.z);
+            statement.executeUpdate();
+        } catch (SQLException err) {
+            err.printStackTrace();
         }
+
     }
 
     public static ArrayList<Entity> getEntities(int worldId) {
@@ -109,6 +116,7 @@ public class DatabaseManager {
                     long idHigh = resultSet.getLong("entity_id_high");
                     long idLow = resultSet.getLong("entity_id_low");
                     byte item = resultSet.getByte("item");
+                    int type = resultSet.getInt("type");
                     float x = resultSet.getFloat("x");
                     float y = resultSet.getFloat("y");
                     float z = resultSet.getFloat("z");
@@ -116,14 +124,20 @@ public class DatabaseManager {
                     float yVel = resultSet.getFloat("yVel");
                     float zVel = resultSet.getFloat("zVel");
 
-                    EntityItem createdItem = new EntityItem(item, 0, true);
-                    createdItem.position.set(x, y, z);
-                    createdItem.velocity.set(xVel, yVel, zVel);
-                    createdItem.renderPosition.set(x, y, z);
-                    createdItem.entityId = new UUID(idHigh, idLow);
+                    Entity createdEntity = null;
+                    if (type == 0) {
+                        createdEntity = new EntityItem(item, 0, true);
+                    } else if (type == 1) {
+                        createdEntity = new BlockEntity(item, 0);
+                    }
 
-                    System.out.println(createdItem.entityId);
-                    entities.add(createdItem);
+                    assert createdEntity != null;
+                    createdEntity.position.set(x, y, z);
+                    createdEntity.velocity.set(xVel, yVel, zVel);
+                    createdEntity.renderPosition.set(x, y, z);
+                    createdEntity.entityId = new UUID(idHigh, idLow);
+
+                    entities.add(createdEntity);
                 }
             }
         } catch (SQLException e) {
