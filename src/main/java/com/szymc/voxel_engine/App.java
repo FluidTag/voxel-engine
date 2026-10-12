@@ -4,7 +4,10 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import org.joml.Vector3f;
 
 import java.lang.management.ManagementFactory;
-import java.util.*;
+import java.util.UUID;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
 
 import static org.lwjgl.glfw.GLFW.*;
 public class App {
@@ -126,14 +129,14 @@ public class App {
 						parentColumn.addEntityToLookup(entity);
 					};
 
-					if (entity.currentChunk != parentColumn) {
+					if (entity.currentChunk != parentColumn && parentColumn != null) {
 						entity.currentChunk.removeEntityLookup(entity);
 						entity.currentChunk = parentColumn;
 						parentColumn.addEntityToLookup(entity);
 					}
 
 					if (parentColumn == null) continue; // Not loaded
-					if (!parentColumn.state.isAtleast(ChunkColumn.ChunkState.LIGHT)) continue;
+					if (!parentColumn.state.isAtleast(ChunkColumn.ChunkState.DECORATED)) continue;
 
 					if (entity instanceof EntityItem item) {
 						item.previousPosition.set(item.position);
@@ -210,7 +213,7 @@ public class App {
 				System.out.println("Light | Sky: " + ((light >> 4) & 0xF) + ", Block: " + (light&0xF) + " | BlockId@ = " + block);
 				System.out.println("Palette size in section: " + palSize);
 
-				if (c != null) System.out.println(c.readEntityLookup());
+				System.out.println(mainWorld.getEntities());
 				//if (c != null) System.out.println("Chunk State: " + c);
 				//if (mesh != null) System.out.println("Mesh?: " + mesh);
 				//System.out.printf("Click Times: [%d, %d] diff ms: %d %n", PlayerCharacter.lastClickNano[0] / 1_000_000, PlayerCharacter.lastClickNano[1] / 1_000_000, (PlayerCharacter.lastClickNano[1] - PlayerCharacter.lastClickNano[0]) / 1_000_000);

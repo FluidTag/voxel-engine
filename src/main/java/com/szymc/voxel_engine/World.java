@@ -1,9 +1,6 @@
 package com.szymc.voxel_engine;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -484,6 +481,16 @@ public class World {
 
 		entityMap.put(item.entityId, item);
 		return item;
+	}
+
+	public BlockEntity spawnNewBlockEntity(byte block, int wx, int wy, int wz) {
+		BlockEntity createdBlockEntity = new BlockEntity(block, tick);
+		createdBlockEntity.position.set(wx, wy, wz);
+		createdBlockEntity.previousPosition.set(wx, wy, wz);
+		createdBlockEntity.renderPosition.set(wx, wy, wz);
+
+		entityMap.put(createdBlockEntity.entityId, createdBlockEntity);
+		return createdBlockEntity;
 	}
 
 	private ArrayList<UUID> pendingEntityRemovals = new ArrayList<>(16);

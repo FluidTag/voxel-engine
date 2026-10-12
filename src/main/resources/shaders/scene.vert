@@ -23,9 +23,9 @@ void main() {
 	
 	int aoLevel = (dat2 >> 20) & 0x3;
 	if (aoLevel == 3) vAoFactor = 1.0;
-    else if (aoLevel == 2) vAoFactor = 0.75;
-    else if (aoLevel == 1) vAoFactor = 0.5;
-    else vAoFactor = 0.25;
+    else if (aoLevel == 2) vAoFactor = 0.79;
+    else if (aoLevel == 1) vAoFactor = 0.55;
+    else vAoFactor = 0.4;
     lightFactor = light;
 	
 	vec3 pos = vec3(float(x), float(y), float(z));

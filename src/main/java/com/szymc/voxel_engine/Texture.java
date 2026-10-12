@@ -50,6 +50,7 @@ public class Texture {
 	// Used extremely hotly in meshing, rather use slightly more memory than have to unbitpack and read, instead simple array lookup
 	public static final boolean[] isXShapedBlock = new boolean[256];
 	public static final boolean[] isLeafBlock = new boolean[256];
+	public static final boolean[] isBlockEntity = new boolean[256];
 	public static final int[] itemTexturePaths = new int[256];
 	public static final byte[] lightLevels = new byte[256];
 
@@ -151,6 +152,7 @@ public class Texture {
 
 					if (subData.containsKey("xMesh")) isXShapedBlock[blockKey] = true;
 					if (subData.containsKey("isLeaves")) isLeafBlock[blockKey] = true;
+					if (subData.containsKey("isBlockEntity")) isBlockEntity[blockKey] = true;
 					if (subData.containsKey("icon")) itemTexturePaths[blockKey] = fileNameMap.get((String)subData.get("icon"));
 					if (subData.containsKey("light-level")) lightLevels[blockKey] = (byte) ((double)subData.get("light-level"));
 					if (subData.containsKey("hardness")) hardnessLevels[blockKey] = (float)((double)subData.get("hardness"));
@@ -226,7 +228,7 @@ public class Texture {
 		try {
 			URL url = getClass().getClassLoader().getResource(resourcePath);
 			if (url == null) throw new RuntimeException("Directory not found: " + resourcePath);
-			
+
 			Path path = Paths.get(url.toURI());
 			try (Stream<Path> walk = Files.walk(path, 1)) {
 				textureFiles = walk

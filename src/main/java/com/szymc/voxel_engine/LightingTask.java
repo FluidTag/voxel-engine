@@ -448,6 +448,7 @@ public class LightingTask {
         processBlockProp(pendingSkyRebackQueue, tempChunkMap, true);
     }
 
+    // Potential optimization to test: Converting all to byte[] first
     public void updateSkyLighting() {
         LongArrayFIFOQueue pendingSkyPropQueue = tPendingLightPropQueue.get();
         pendingSkyPropQueue.clear();

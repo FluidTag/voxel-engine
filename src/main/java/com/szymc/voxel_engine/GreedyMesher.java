@@ -1059,7 +1059,7 @@ public class GreedyMesher {
                         leaZ[z*34+x] |= (1L << y);
                         leaY[y*34+x] |= (1L << z);
                         leaX[x*18+y] |= (1L << z);
-                    } else if (block != 0 && !Texture.isXShapedBlock[block]) {
+                    } else if (block != 0 && !Texture.isXShapedBlock[block] && !Texture.isBlockEntity[block]) {
                         occZ[z*34+x] |= (1L << y);
                         occY[y*34+x] |= (1L << z);
                         occX[x*18+y] |= (1L << z);

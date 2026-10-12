@@ -545,7 +545,9 @@ public class Engine {
 		uiRenderer.setScreenDimensions(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
 		uiRenderer.setFontColor(1.0f, 1.0f, 1.0f, 1.0f);
 		EntityItem.setBlockTextures(mainShader.getTexture());
-		EntityItem.generateEaoCache();
+		Entity.initializeEABCache();
+		EntityItem.generateStaticItemMeshes();
+		BlockEntity.generateBlockEntityMeshes();
 
 		try {
 			uiRenderer.loadFont("/fonts/mainFont.ttf");
@@ -618,7 +620,7 @@ public class Engine {
 			entityShader.start();
 			entityShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
 
-			glBindVertexArray(EntityItem.getVao());
+			glBindVertexArray(Entity.getVao());
 			for (Map.Entry<UUID, Entity> entry : worldScene.getEntities().entrySet()) {
 				Entity entity = entry.getValue();
 
@@ -632,17 +634,25 @@ public class Engine {
 
 				ChunkColumn eChunk = worldScene.getLoadedChunkAtPos(xPos>>5, zPos>>5);
 				if (eChunk == null) continue;
-				if (!eChunk.state.isAtleast(ChunkColumn.ChunkState.LIGHT)) continue;
+				boolean hasLightData = eChunk.state.isAtleast(ChunkColumn.ChunkState.LIGHT);
 
 				if (yPos < 0) continue;
-				byte skyLevel = eChunk.getSkylight(xPos&31, yPos, zPos&31);
-				byte blockLevel = eChunk.getBlockLight(xPos&31, yPos, zPos&31);
 
-				entityShader.setLightLevel((byte) Math.max(skyLevel, blockLevel));
-
-				if (entity instanceof EntityItem item) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, item.itemMesh.indexCount, GL_UNSIGNED_INT, item.itemMesh.byteOffset, item.itemMesh.baseVertex);
+				if (!(entity instanceof BlockEntity)) {
+					if (hasLightData) {
+						byte skyLevel = eChunk.getSkylight(xPos & 31, yPos, zPos & 31);
+						byte blockLevel = eChunk.getBlockLight(xPos & 31, yPos, zPos & 31);
+						byte maxLevel = (byte) Math.max(skyLevel, blockLevel);
+						entity.lastLightLevel = maxLevel;
+						entityShader.setLightLevel(maxLevel);
+					} else {
+						entityShader.setLightLevel(entity.lastLightLevel);
+					}
+				} else {
+					entityShader.setLightLevel((byte) 15);
 				}
+
+				glDrawElementsBaseVertex(GL_TRIANGLES, entity.itemMesh.indexCount, GL_UNSIGNED_INT, entity.itemMesh.byteOffset, entity.itemMesh.baseVertex);
 			}
 
 			entityShader.stop();

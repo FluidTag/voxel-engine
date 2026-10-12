@@ -22,7 +22,7 @@ public class ChunkColumn {
 	public int dirtyBits = 0; // First 16 bits used to denote if a chunk section is dirty (Room to expand to 32 height later)
 	public boolean processLightDirty = false;
 	private boolean hasBeenPlayerModified = false;
-	private HashSet<Entity> eLookup;
+	private HashSet<Entity> eLookup = null;
 	public void addEntityToLookup(Entity e) {
 		if (eLookup == null) eLookup = new HashSet<>();
 		eLookup.add(e);
@@ -161,8 +161,34 @@ public class ChunkColumn {
 		ChunkSection section = getSection(sectorI);
 		if (section == null) section = initializeSection(sectorI);
 		
-		section.setBlock(cx, (cy & 15), cz, blockType);
+		byte old = 0;
+		if (blockType == Blocks.AIR) {
+			old = section.getLocalBlock(cx, cy&15, cz);
+		}
 		
+		section.setBlock(cx, (cy & 15), cz, blockType);
+		if (Texture.isBlockEntity[blockType]) {
+			worldReference.spawnNewBlockEntity(blockType, worldX*32 + cx, cy, worldZ*32 + cz);
+		} else if (eLookup != null && blockType == Blocks.AIR && Texture.isBlockEntity[old]) {
+			Iterator<Entity> it = eLookup.iterator();
+			while (it.hasNext()) {
+				Entity e = it.next();
+
+				if (e instanceof BlockEntity) {
+					int eCx = (int) Math.floor(e.position.x) & 31;
+					int eCy = (int) Math.floor(e.position.y);
+					int eCz = (int) Math.floor(e.position.z) & 31;
+
+					if (eCx == cx && eCy == cy && eCz == cz) {
+						worldReference.addEntityIdToDeleteList(e.entityId);
+						it.remove();
+					}
+				}
+			}
+
+			worldReference.processEntityDeletions();
+		}
+
 		if (sectorI > 0 && (cy&15) == 0) {
 			setSectionDirty(sectorI-1);
 		}

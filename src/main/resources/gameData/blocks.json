@@ -659,5 +659,17 @@
     "textures": {
       "DEFAULT": "acaciaPlanks.png"
     }
+  },
+  "71": {
+    "name": "CHEST",
+    "isBlockEntity": true,
+    "hardness": 1.4,
+    "idealTool": 3,
+    "textures": {
+      "TOP": "chestTop.png",
+      "BOTTOM": "chestTop.png",
+      "NORTH": "chestFront.png",
+      "DEFAULT": "chestSide.png"
+    }
   }
 }

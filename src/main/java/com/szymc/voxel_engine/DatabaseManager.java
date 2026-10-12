@@ -121,7 +121,6 @@ public class DatabaseManager {
                     createdItem.velocity.set(xVel, yVel, zVel);
                     createdItem.renderPosition.set(x, y, z);
                     createdItem.entityId = new UUID(idHigh, idLow);
-                    // Have to change the entiy id system bro just gonna do ts tomorrow
 
                     System.out.println(createdItem.entityId);
                     entities.add(createdItem);

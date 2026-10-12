@@ -71,4 +71,5 @@ public class Blocks {
 	public static final byte JUNGLE_PLANKS = 68;
 	public static final byte REDWOOD_PLANKS = 69;
 	public static final byte ACACIA_PLANKS = 70;
+	public static final byte CHEST = 71;
 }

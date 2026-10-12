@@ -26,7 +26,7 @@ public class PlayerCharacter {
     private boolean isSprinting = false;
     private final boolean[] keysPressed = new boolean[GLFW_KEY_LAST + 1];
 
-    private boolean spectatorMode = true;
+    private boolean spectatorMode = false;
     private boolean guiInventoryActive = false;
 
     private byte[] inventoryAmounts = new byte[36+5];
@@ -446,6 +446,9 @@ public class PlayerCharacter {
         } else {
             engineAttachment.removeOutlineLoc();
         }
+
+        ChunkColumn parentColumn = worldReference.getLoadedChunkAtPos((int)Math.floor(playerCamera.cameraPos.x) >> 5, (int)Math.floor(playerCamera.cameraPos.z) >> 5);
+        if (parentColumn == null || !parentColumn.state.isAtleast(ChunkColumn.ChunkState.MESHED)) return;
 
         if (!keysPressed[GLFW_KEY_PAGE_UP] && glfwGetKey(windowReference.getWindowId(), GLFW_KEY_PAGE_UP) == GLFW_PRESS) {
             spectatorMode = !spectatorMode;
