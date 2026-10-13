@@ -4,22 +4,28 @@ import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
 public class PaletteContainer {
-    private byte[] palette = new byte[0];
+    private int[] palette = new int[0]; // 16 bits - Blocktype, 16 bits - Blockstate
     private long[] blockData = new long[256];
-    private final static ThreadLocal<byte[]> threadByteBuffer = ThreadLocal.withInitial(() -> new byte[32*16*32]); // To be used as temporary read only outside of this function
+    private final static ThreadLocal<int[]> threadIntBuffer = ThreadLocal.withInitial(() -> new int[32*16*32]); // To be used as temporary read only outside of this function
     private int bitWidth;
 
     public int getBitWidth() {
         return this.bitWidth;
     }
 
-    public byte readBlock(int x, int y, int z) {
+    public short readBlock(int x, int y, int z) {
         int index = y*32*32 + z*32 + x;
         if (bitWidth == 0) return 0;
-        return palette[(int)(readRawIndex(blockData, bitWidth, index))];
+        return (short) (palette[(int)(readRawIndex(blockData, bitWidth, index))] & 0xFFFF);
     }
 
-    public void writeBlock(int x, int y, int z, byte block) {
+    public int readFullBlockAndState(int x, int y, int z) {
+        int index = y*32*32 + z*32 + x;
+        if (bitWidth == 0) return 0;
+        return palette[(int)(readRawIndex(blockData, bitWidth, index))] & 0xFFFF;
+    }
+
+    public void writeBlock(int x, int y, int z, short block) {
         int currentPalettePos = -1;
         for (int i = 0; i < palette.length; i++) {
             if (palette[i] == block) {
@@ -29,7 +35,7 @@ public class PaletteContainer {
         }
 
         if (currentPalettePos == -1) {
-            byte[] newPalette = new byte[palette.length+1];
+            int[] newPalette = new int[palette.length+1];
             newPalette[palette.length] = block;
             currentPalettePos = palette.length;
             System.arraycopy(palette, 0, newPalette, 0, palette.length);
@@ -53,9 +59,9 @@ public class PaletteContainer {
         writeRawIndex(blockData, bitWidth, index, currentPalettePos);
     }
 
-    public byte[] toByteArray() {
+    public int[] toIntArray() {
         int bitWidth = calculateBitCount(palette.length);
-        byte[] buffer = threadByteBuffer.get();
+        int[] buffer = threadIntBuffer.get();
         int currentLongIndex = 0;
         int bitOffset = 0;
         for (int i = 0; i < (32*16*32); i++) {
@@ -122,21 +128,22 @@ public class PaletteContainer {
     }
 
     public byte[] serialize() {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 64 + 7 + (32*16*32));
+        ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 256 + 7 + (32*16*32));
 
         byteBuffer.put((byte) palette.length);
-        byteBuffer.put(palette);
-        byteBuffer.put(new byte[64 - palette.length]);
-        byteBuffer.put(new byte[7]);
+        byteBuffer.asIntBuffer().put(palette);
+        byteBuffer.position(byteBuffer.position() + palette.length*4);
+
+        byteBuffer.position(1 + 256 + 7);
         byteBuffer.asLongBuffer().put(blockData);
-        byteBuffer.position(byteBuffer.position() + (32 * 16 * 32));
+        byteBuffer.position(byteBuffer.position() + blockData.length*8);
 
         return byteBuffer.array();
     }
 
     public PaletteContainer() {}
 
-    private PaletteContainer(byte[] palette, byte[] data) {
+    private PaletteContainer(int[] palette, byte[] data) {
         this.palette = palette;
         this.bitWidth = calculateBitCount(palette.length);
 
@@ -155,7 +162,7 @@ public class PaletteContainer {
         longBuffer.get(this.blockData, 0, requiredLongs); // Only read what's active
     }
 
-    public static PaletteContainer deserialize(byte[] palette, byte[] data) {
+    public static PaletteContainer deserialize(int[] palette, byte[] data) {
         return new PaletteContainer(palette, data);
     }
 }

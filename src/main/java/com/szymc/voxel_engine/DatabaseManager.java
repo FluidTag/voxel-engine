@@ -1,4 +1,7 @@
 package com.szymc.voxel_engine;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -8,6 +11,7 @@ public class DatabaseManager {
 
     public static void initializeSchema() {
         try (Connection conn = DriverManager.getConnection(URL); Statement statement = conn.createStatement()) {
+            //statement.execute("DROP TABLE worlds");
            statement.execute("""
                 CREATE TABLE IF NOT EXISTS worlds (
                     world_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,6 +20,7 @@ public class DatabaseManager {
                 );
             """);
 
+            //statement.execute("DROP TABLE players");
             statement.execute("""
                 CREATE TABLE IF NOT EXISTS players (
                     world_id INTEGER,
@@ -24,14 +29,14 @@ public class DatabaseManager {
                     cameraY REAL,
                     cameraZ REAL,
                     cameraYaw REAL,
-                    cameraPitch REAL,
+                    cameraPitch REAL,  
                     inventory BLOB,
                     inventoryAmounts BLOB,
                     PRIMARY KEY (world_id, player_id),
                     FOREIGN KEY (world_id) REFERENCES worlds(world_id) ON DELETE CASCADE
                 );
             """);
-            //statement.execute("DELETE FROM chunks");
+            //statement.execute("DROP TABLE chunks");
             statement.execute("""
                 CREATE TABLE IF NOT EXISTS chunks (
                     world_id INTEGER,
@@ -159,7 +164,10 @@ public class DatabaseManager {
 
             statement.setFloat(5, cam.getYaw());
             statement.setFloat(6, cam.getPitch());
-            statement.setBytes(7, character.getInventory());
+            ByteBuffer invBuffer = ByteBuffer.allocate(character.getInventory().length * 2);
+            invBuffer.asShortBuffer().put(character.getInventory());
+
+            statement.setBytes(7, invBuffer.array());
             statement.setBytes(8, character.getInventoryAmounts());
 
             statement.executeUpdate();
@@ -177,10 +185,13 @@ public class DatabaseManager {
                     useCamera.cameraPos.set(resultSet.getFloat("cameraX"), resultSet.getFloat("cameraY"), resultSet.getFloat("cameraZ"));
                     useCamera.setOrientation(resultSet.getFloat("cameraYaw"), resultSet.getFloat("cameraPitch"));
 
-                    byte[] inventory = resultSet.getBytes("inventory");
+                    ShortBuffer invBuffer = ByteBuffer.wrap(resultSet.getBytes("inventory")).asShortBuffer();
+                    short[] invPrim = new short[invBuffer.remaining()];
+                    invBuffer.get(invPrim);
+
                     byte[] inventoryAmounts = resultSet.getBytes("inventoryAmounts");
                     PlayerCharacter character = new PlayerCharacter(useCamera, worldReference, windowReference, engineReference);
-                    character.setInventoryStruct(inventory, inventoryAmounts);
+                    character.setInventoryStruct(invPrim, inventoryAmounts);
 
                     return character;
                 }
@@ -192,13 +203,14 @@ public class DatabaseManager {
         return null;
     }
 
-    public static void uploadChunk(int x, int z, byte[] blob) {
-        String sql = "INSERT INTO chunks (x, z, data) VALUES (?, ?, ?) ON CONFLICT(x, z) DO UPDATE set data = excluded.data";
+    public static void uploadChunk(int worldId, int x, int z, byte[] blob) {
+        String sql = "INSERT INTO chunks (world_id, x, z, data) VALUES (?, ?, ?, ?) ON CONFLICT(world_id, x, z) DO UPDATE set data = excluded.data";
 
         try (Connection conn = DriverManager.getConnection(URL); PreparedStatement statement = conn.prepareStatement(sql)) {
-            statement.setInt(1, x);
-            statement.setInt(2, z);
-            statement.setBytes(3, blob);
+            statement.setInt(1, worldId);
+            statement.setInt(2, x);
+            statement.setInt(3, z);
+            statement.setBytes(4, blob);
 
             statement.executeUpdate();
         } catch (SQLException e) {

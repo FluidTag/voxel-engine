@@ -30,18 +30,18 @@ public class PlayerCharacter {
     private boolean guiInventoryActive = false;
 
     private byte[] inventoryAmounts = new byte[36+5];
-    private byte[] inventory = new byte[36+5];
+    private short[] inventory = new short[36+5];
 
-    private byte[] craftTableInventory = new byte[10];
+    private short[] craftTableInventory = new short[10];
     private byte[] craftTableAmounts = new byte[10];
 
-    public void setInventorySlot(byte index, byte type, byte amount) {
+    public void setInventorySlot(byte index, short type, byte amount) {
         this.inventory[index] = type;
         this.inventoryAmounts[index] = amount;
         if (inventoryAmounts[index] == 0) inventory[index] = 0;
     }
 
-    public byte readInventoryType(byte index) {
+    public short readInventoryType(byte index) {
         return this.inventory[index];
     }
 
@@ -49,7 +49,7 @@ public class PlayerCharacter {
         return this.inventoryAmounts[index];
     }
 
-    public byte[] getCraftingInv() {
+    public short[] getCraftingInv() {
         return this.craftTableInventory;
     }
 
@@ -71,7 +71,7 @@ public class PlayerCharacter {
         if (y < 0 && y > -50) return false;
         if (y <= -50) return true;
 
-        byte block = chunk.getBlockInChunk(x&31, y, z&31);
+        short block = chunk.getBlockInChunk(x&31, y, z&31);
         return block != Blocks.AIR;
     }
 
@@ -173,11 +173,11 @@ public class PlayerCharacter {
         }
     }
     private int lastInvIndexClicked = -1;
-    private byte[] lastInvTypesClicked = null;
+    private short[] lastInvTypesClicked = null;
     private long lastClickTime = -1;
     private static final int doubleGrabDelayMs = 164;
 
-    public void setInventoryStruct(byte[] inv, byte[] amounts) {
+    public void setInventoryStruct(short[] inv, byte[] amounts) {
         this.inventory = inv;
         this.inventoryAmounts = amounts;
     }
@@ -346,7 +346,7 @@ public class PlayerCharacter {
 
                     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
                         if (Texture.isItemOnly[inventory[currentHotbarSlot]]) return;
-                        byte lookingAtBlock = worldReference.getLoadedChunkAtPos(x>>5, z>>5).getBlockInChunk(x&31, y, z&31);
+                        short lookingAtBlock = worldReference.getLoadedChunkAtPos(x>>5, z>>5).getBlockInChunk(x&31, y, z&31);
                         if (inventory[currentHotbarSlot] == 0 && lookingAtBlock == Blocks.CRAFTING_TABLE) {
                             engineAttachment.inCraftingTable = true;
                             if (!guiInventoryActive) toggleInventoryGui();
@@ -398,7 +398,7 @@ public class PlayerCharacter {
 
                     if (button == GLFW_MOUSE_BUTTON_LEFT) {
                         engineAttachment.removeOutlineLoc();
-                        byte block = chunk.getBlockInChunk(x & 31, y, z & 31);
+                        short block = chunk.getBlockInChunk(x & 31, y, z & 31);
                         if (block == Blocks.AIR) return;
 
                         engineAttachment.startMining(x, y, z);
@@ -435,7 +435,7 @@ public class PlayerCharacter {
         });
     }
 
-    public byte[] getInventory() {
+    public short[] getInventory() {
         return inventory;
     }
 

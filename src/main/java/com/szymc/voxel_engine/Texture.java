@@ -184,7 +184,7 @@ public class Texture {
 		}
 	}
 
-	public static int getTextureIndex(byte blockType, BLOCK_FACE face) {
+	public static int getTextureIndex(short blockType, BLOCK_FACE face) {
 		int val = blockTextureArray[blockType][face.ordinal()+1];
 
 		return val != -1 ? val : blockTextureArray[blockType][0];

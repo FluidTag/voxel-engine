@@ -349,7 +349,7 @@ public class World {
 	}
 
 	// Block Breaks, Direct Computation
-	public void updateChunk(int cx, int y, int cz, int bcx, int bcz, boolean isBlockPlace, byte block) {
+	public void updateChunk(int cx, int y, int cz, int bcx, int bcz, boolean isBlockPlace, short block) {
 		ChunkColumn chunk = getLoadedChunkAtPos(cx, cz);
 		chunk.state = ChunkState.DECORATED;
 		System.out.println("Block Update at " + bcx + ", " + y + ", " + bcz);
@@ -472,7 +472,7 @@ public class World {
 	}
 
 	public HashMap<UUID, Entity> getEntities() {return this.entityMap;}
-	public EntityItem spawnNewItemEntity(byte block, int wx, int wy, int wz, boolean playerDropped) {
+	public EntityItem spawnNewItemEntity(short block, int wx, int wy, int wz, boolean playerDropped) {
 		EntityItem item = new EntityItem(block, tick, playerDropped);
 		float xOffset = (1-item.xWidth)/2;
 		float zOffset = (1-item.zWidth)/2;
@@ -483,7 +483,7 @@ public class World {
 		return item;
 	}
 
-	public BlockEntity spawnNewBlockEntity(byte block, int wx, int wy, int wz) {
+	public BlockEntity spawnNewBlockEntity(short block, int wx, int wy, int wz) {
 		BlockEntity createdBlockEntity = new BlockEntity(block, tick);
 		createdBlockEntity.position.set(wx, wy, wz);
 		createdBlockEntity.previousPosition.set(wx, wy, wz);

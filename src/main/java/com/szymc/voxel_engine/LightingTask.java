@@ -128,7 +128,7 @@ public class LightingTask {
 
                 byte atLight = remeshAndDirect ? targetChunk.getSkylight(nx&31, ny, nz&31) : readLocalSkyLevel(anx, ny, anz);
                 byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
+                short block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
                 boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
 
                 if (remeshAndDirect && isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
@@ -176,7 +176,7 @@ public class LightingTask {
 
                 byte atLight = remeshAndDirect ? targetChunk.getBlockLight(nx&31, ny, nz&31) : readLocalBlockLevel(anx, ny, anz);
                 byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
+                short block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
                 boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
 
                 if (remeshAndDirect && isTransparent && requestedLight > atLight && (xInd != 1 || zInd != 1) && isSource) {
@@ -224,7 +224,7 @@ public class LightingTask {
                             int gridZ = z + (nz < 0 ? -1 : (nz >= 32 ? 1 : 0));
 
                             ChunkColumn subChunk = tempChunkMap[gridZ*3+gridX];
-                            byte block = subChunk.getBlockInChunk(nx&31, ny, nz&31);
+                            short block = subChunk.getBlockInChunk(nx&31, ny, nz&31);
 
                             if (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]) {isEnclosed = false; break;}
                         }
@@ -254,7 +254,7 @@ public class LightingTask {
 
         if (readLocalSkyLevel(chunkX+16, chunkY+1, chunkZ+16) == 15) {
             for (int y = chunkY; y >= 0; y--) {
-                byte block = chunk.getBlockInChunk(chunkX, y, chunkZ);
+                short block = chunk.getBlockInChunk(chunkX, y, chunkZ);
                 boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
                 byte skyLevel = readLocalSkyLevel(chunkX + 16, y, chunkZ + 16);
 
@@ -338,7 +338,7 @@ public class LightingTask {
 
                 byte atLight = targetChunk.getBlockLight(nx&31, ny, nz&31);
                 byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
+                short block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
                 boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
 
                 if (isTransparent && requestedLight == atLight && (xInd != 1 || zInd != 1) && isSource) {
@@ -361,7 +361,7 @@ public class LightingTask {
     }
 
     // Placing blocks
-    public void updateChunkLightingPlacement(int chunkX, int chunkY, int chunkZ, byte placedBlock) {
+    public void updateChunkLightingPlacement(int chunkX, int chunkY, int chunkZ, short placedBlock) {
         LongArrayFIFOQueue pendingSkyRemovalQueue = tPendingLightPropQueue.get();
         LongArrayFIFOQueue pendingSkyRebackQueue = tPendingSecondPropQueue.get();
 
@@ -377,7 +377,7 @@ public class LightingTask {
         if (currentSkylevel == 15) {
             System.out.println("Invalidating down sky column at " + chunkX + ", " + chunkY + ", " + chunkZ);
             for (int y = chunkY-1; y >= 0; y--) {
-                byte block = chunk.getBlockInChunk(chunkX, y, chunkZ);
+                short block = chunk.getBlockInChunk(chunkX, y, chunkZ);
                 boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
                 byte skyLevel = readLocalSkyLevel(chunkX + 16, y, chunkZ + 16);
 
@@ -420,7 +420,7 @@ public class LightingTask {
 
                 byte atLight = targetChunk.getSkylight(nx&31, ny, nz&31);
                 byte requestedLight = (byte) (currentLight-1);
-                byte block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
+                short block = targetChunk.getBlockInChunk(nx&31, ny, nz&31);
                 boolean isTransparent = (block == Blocks.AIR || Texture.isXShapedBlock[block] || Texture.isLeafBlock[block]);
 
                 if (isTransparent && requestedLight == atLight && (xInd != 1 || zInd != 1) && isSource) {
@@ -464,7 +464,7 @@ public class LightingTask {
                 int skyLight = 15;
 
                 for (int y = 255; y >= 0; y--) {
-                    byte block = targetChunk.getBlockInChunk(lx&31, y, lz&31);
+                    short block = targetChunk.getBlockInChunk(lx&31, y, lz&31);
                     if (block == Blocks.AIR) {
                         setLocalSkyLevel(ax, y, az, (byte) skyLight);
                         if (skyLight > 0) pendingSkyPropQueue.enqueue(packLightsource(lx, y, lz, skyLight, (xInd == 1 && zInd == 1), lx&31, y, lz&31));

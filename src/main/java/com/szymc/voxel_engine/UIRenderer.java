@@ -39,7 +39,7 @@ public class UIRenderer {
             int x2, int y2, int z2,
             int x3, int y3, int z3,
             int x4, int y4, int z4,
-            int width, int height, byte blockType, // U width, V height
+            int width, int height, short blockType, // U width, V height
             boolean backFace, int axis, byte packedAO, boolean flipQuad, boolean downscale
     ) {
 
@@ -143,7 +143,7 @@ public class UIRenderer {
         }
     }
 
-    private static Mesh buildBlockMesh(byte blockType) {
+    private static Mesh buildBlockMesh(short blockType) {
         IntArrayList vBuffer = new IntArrayList(48); // 24 vertices * 2 ints
         IntArrayList iBuffer = new IntArrayList(36); // 6 faces * 6 indices
 
@@ -172,7 +172,7 @@ public class UIRenderer {
     }
 
     private static final WorldShader cubeShader = new WorldShader();
-    private static void bakeBlockMesh(byte blockType, int slotX, int slotY, int blockTextureId) {
+    private static void bakeBlockMesh(short blockType, int slotX, int slotY, int blockTextureId) {
         int x = slotX*64;
         int y = atlasSize-((slotY+1)*64);
 
@@ -386,7 +386,7 @@ public class UIRenderer {
         glUniformMatrix4fv(fontShader.proj_loc, false, screenOrtho.get(matrixBuffer));
     }
 
-    public void drawIcon(byte blockId, float screenX, float screenY, float width, float height) {
+    public void drawIcon(short blockId, float screenX, float screenY, float width, float height) {
         int tileX = blockId%16;
         int tileY = blockId/16;
         glUniform1i(locUseTexture, 1);

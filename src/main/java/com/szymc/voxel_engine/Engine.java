@@ -44,13 +44,13 @@ public class Engine {
 
 	// Engine is begging for a refactor bro, fix ts, maybe consider moving the ui to another class
 
-	public record InventoryActiveItem(byte item, byte itemAmount, int ogSlotX, int ogSlotY, int inventoryIndex, byte[] typeSource, byte[] amountSource) {}
+	public record InventoryActiveItem(short item, byte itemAmount, int ogSlotX, int ogSlotY, int inventoryIndex, short[] typeSource, byte[] amountSource) {}
 	private InventoryActiveItem activeInventoryDrag = null;
 	public boolean inCraftingTable = false;
 	public void flushCraftingGui() {
-		byte[] cTypes = player.getCraftingInv();
+		short[] cTypes = player.getCraftingInv();
 		byte[] cAmounts = player.getCraftingAmounts();
-		byte[] iTypes = player.getInventory();
+		short[] iTypes = player.getInventory();
 		byte[] iAmounts = player.getInventoryAmounts();
 
 		for (int slot = 0; slot < (inCraftingTable ? 9 : 4); slot++) {
@@ -101,14 +101,14 @@ public class Engine {
 	}
 
 	// Can be called directly for non drag through keyboard (q, ctrl+q) drops
-	public void requestDropInvIndex(byte invIndex, byte[] typeSource, byte[] amountSource, int decrementAmount) {
-		byte type = activeInventoryDrag != null ? activeInventoryDrag.item : typeSource[invIndex];
+	public void requestDropInvIndex(byte invIndex, short[] typeSource, byte[] amountSource, int decrementAmount) {
+		short type = activeInventoryDrag != null ? activeInventoryDrag.item : typeSource[invIndex];
 		if (type == 0) return;
 
 		byte amount = activeInventoryDrag != null ? activeInventoryDrag.itemAmount : amountSource[invIndex];
 		int clampedNewAmount = Math.max(0, amount - decrementAmount);
 
-		if (invIndex != -1) setInventorySlot(typeSource, amountSource, invIndex, (amount-decrementAmount > 0 ? type : (byte)0), (byte)clampedNewAmount);
+		if (invIndex != -1) setInventorySlot(typeSource, amountSource, invIndex, (amount-decrementAmount > 0 ? type : 0), (byte)clampedNewAmount);
 
 		Camera cam = player.getPlayerCamera();
 		Vector3f lookDir = cam.getLookUnitNormal().normalize();
@@ -133,7 +133,7 @@ public class Engine {
 		}
 	}
 
-	private static void setInventorySlot(byte[] typeSource, byte[] amountSource, byte ind, byte type, byte amount) {
+	private static void setInventorySlot(short[] typeSource, byte[] amountSource, byte ind, short type, byte amount) {
 		typeSource[ind] = type;
 		amountSource[ind] = amount;
 	}
@@ -141,7 +141,7 @@ public class Engine {
 	private void updateCraftResult() {
 		int tabSize = inCraftingTable ? 2 : 1;
 		byte resultInd = (byte) (inCraftingTable ? 9 : 40);
-		byte[] relevantCtype = inCraftingTable ? player.getCraftingInv() : player.getInventory();
+		short[] relevantCtype = inCraftingTable ? player.getCraftingInv() : player.getInventory();
 		byte[] relevantCamount = inCraftingTable ? player.getCraftingAmounts() : player.getInventoryAmounts();
 
 		String tableInput = extractCraftInput(relevantCtype, relevantCamount, inCraftingTable ? 0 : 36, tabSize, tabSize);
@@ -247,11 +247,11 @@ public class Engine {
 		if (isDoubleClick && isLeftClick && !isShiftClick) {
 			if (itemData.itemAmount == 64) return;
 			int amountTaken = activeInventoryDrag == null ? itemData.itemAmount : activeInventoryDrag.itemAmount;
-			byte gatherType = activeInventoryDrag == null ? itemData.item : activeInventoryDrag.item;
+			short gatherType = activeInventoryDrag == null ? itemData.item : activeInventoryDrag.item;
 			if (gatherType <= 0) return;
 
 			if (inCraftingTable) {
-				byte[] cTypes = player.getCraftingInv();
+				short[] cTypes = player.getCraftingInv();
 				byte[] cAmount = player.getCraftingAmounts();
 
 				for (byte i = 0; i < 9; i++) {
@@ -342,7 +342,7 @@ public class Engine {
 		} else if (activeInventoryDrag != null && !isLeftClick && (itemData.item == activeInventoryDrag.item || itemData.item == 0)) {
 			if (itemData.itemAmount == 64) return;
 
-			byte savedType = activeInventoryDrag.item;
+			short savedType = activeInventoryDrag.item;
 			if (activeInventoryDrag.itemAmount > 1) {
 				activeInventoryDrag = new InventoryActiveItem(activeInventoryDrag.item, (byte) (activeInventoryDrag.itemAmount-1), activeInventoryDrag.ogSlotX, activeInventoryDrag.ogSlotY, activeInventoryDrag.inventoryIndex, activeInventoryDrag.typeSource, activeInventoryDrag.amountSource);
 			} else {
@@ -409,7 +409,7 @@ public class Engine {
 		};
 	}
 
-	public String extractCraftInput(byte[] iTypes, byte[] iAmounts, int indOffset, int boundXind, int boundYind) {
+	public String extractCraftInput(short[] iTypes, byte[] iAmounts, int indOffset, int boundXind, int boundYind) {
 		StringBuilder result = new StringBuilder();
 		int minX = 999; int maxX = -999;
 		int minY = 999; int maxY = -999;
@@ -420,7 +420,7 @@ public class Engine {
 		for (int y = 0; y <= boundYind; y++) {
 			for (int x = 0; x <= boundXind; x++) {
 				byte ind = (byte) (indOffset + x*(boundXind+1)+y);
-				byte itemType = iTypes[ind];
+				short itemType = iTypes[ind];
 				//System.out.printf("ind: %d (%d, %d) : item %d%n", ind, x, y, itemType);
 				if (itemType != 0) {
 					isEmpty = false;
@@ -437,7 +437,7 @@ public class Engine {
 		for (int y = minY; y <= maxY; y++) {
 			for (int x = minX; x <= maxX; x++) {
 				byte ind = (byte) (indOffset + x*(boundXind+1)+y);
-				byte itemType = iTypes[ind];
+				short itemType = iTypes[ind];
 
 				result.append(itemType);
 				result.append('.');
@@ -464,7 +464,7 @@ public class Engine {
 
 	public void setOutlineLoc(int x, int y, int z) {
 		this.outlineLoc = new Matrix4f().translation(x, y, z);
-		byte blockAt = worldScene.getLoadedChunkAtPos(x>>5, z>>5).getBlockInChunk(x&31, y, z&31);
+		short blockAt = worldScene.getLoadedChunkAtPos(x>>5, z>>5).getBlockInChunk(x&31, y, z&31);
 		boolean isNewBlock = currentlyMiningState != null && (x != currentlyMiningState.wx || y != currentlyMiningState.wy || z != currentlyMiningState.wz);
 		if (isNewBlock || (currentlyMiningState == null && isLeftMouseHeld)) {
 			currentlyMiningState = new BlockMineState(x, y, z, Texture.hardnessLevels[blockAt], Texture.hardnessLevels[blockAt], blockAt);
@@ -477,9 +477,9 @@ public class Engine {
 	public static boolean wireframeMode = false;
     public static final class BlockMineState {
         public int wx; public int wy; public int wz;
-		public float health; public float maxHealth; public byte block;
+		public float health; public float maxHealth; public short block;
 
-        public BlockMineState(int wx, int wy, int wz, float health, float maxHealth, byte block) {
+        public BlockMineState(int wx, int wy, int wz, float health, float maxHealth, short block) {
             this.wx = wx;
             this.wy = wy;
             this.wz = wz;
@@ -492,14 +492,14 @@ public class Engine {
 	private BlockMineState currentlyMiningState = null;
 	private boolean isLeftMouseHeld = false;
 	public void startMining(int wx, int wy, int wz) {
-		byte blockAt = worldScene.getLoadedChunkAtPos(wx>>5, wz>>5).getBlockInChunk(wx&31, wy, wz&31);
+		short blockAt = worldScene.getLoadedChunkAtPos(wx>>5, wz>>5).getBlockInChunk(wx&31, wy, wz&31);
 		currentlyMiningState = new BlockMineState(wx, wy, wz, Texture.hardnessLevels[blockAt], Texture.hardnessLevels[blockAt], blockAt);
 		isLeftMouseHeld = true;
 	}
 
 	public void leftMouseHeldTick() {
 		if (currentlyMiningState != null) {
-			byte equipped = player.readInventoryType((byte) player.currentHotbarSlot);
+			short equipped = player.readInventoryType((byte) player.currentHotbarSlot);
 			float strength = 0.085f * ((Texture.toolType[equipped] != 0 && Texture.toolType[equipped] == Texture.idealToolType[currentlyMiningState.block]) ? Texture.toolTargetedDamage[equipped] : 1);
 
 			currentlyMiningState.health -= strength;
@@ -507,7 +507,7 @@ public class Engine {
 			if (currentlyMiningState.health < 0) {
 				ChunkColumn chunk = worldScene.getLoadedChunkAtPos(currentlyMiningState.wx>>5, currentlyMiningState.wz>>5);
 				int x = currentlyMiningState.wx; int y = currentlyMiningState.wy; int z = currentlyMiningState.wz;
-				byte block = chunk.getBlockInChunk(x&31, y, z&31);
+				short block = chunk.getBlockInChunk(x&31, y, z&31);
 				chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
 				worldScene.spawnNewItemEntity(Texture.customBlockDrop[block] == 0 ? block : Texture.customBlockDrop[block], x, y, z, false);
 				chunk.setSectionDirty(y >> 4);
@@ -741,12 +741,12 @@ public class Engine {
 			int slotSize = 64;
 			int offsetX = (int)((App.WINDOW_WIDTH/2.0f)-(slotSize*4.5f));
 			uiRenderer.drawRect(offsetX-2, App.WINDOW_HEIGHT - 80-2, slotSize*9 + 4, slotSize + 4, 0.7f, 0.7f, 0.7f, 0.8f);
-			byte[] inventory = player.getInventory();
+			short[] inventory = player.getInventory();
 
 			for (int i = 0; i < 9; i++) {
 				float color = player.currentHotbarSlot == i ? 0.45f : 0.2f;
 				uiRenderer.drawRect(offsetX + (slotSize*i) + 2, App.WINDOW_HEIGHT - 80+2, slotSize-4, slotSize-4, color, color, color, 0.6f);
-				byte item = inventory[i];
+				short item = inventory[i];
 				if (item != 0) uiRenderer.drawIcon(item, offsetX + (slotSize*i), App.WINDOW_HEIGHT - 80, slotSize, slotSize);
 			}
 
@@ -831,7 +831,7 @@ public class Engine {
 							byte index = (byte) (36 + x*2 + (1-y));
 
 							if (player.readInventoryType(index) != 0) {
-								uiRenderer.renderFont(Integer.toString(player.readInventoryAmount(index)), subSlotPosX+slotSize-4, subSlotPosY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
+								uiRenderer.renderFont(Byte.toString(player.readInventoryAmount(index)), subSlotPosX+slotSize-4, subSlotPosY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
 							}
 						}
 					}
@@ -849,7 +849,7 @@ public class Engine {
 					uiRenderer.drawRect(craftTableXpos, craftTableYpos, 3*slotSize, 3*slotSize, 0.5f, 0.5f, 0.5f, 1.0f);
 					uiRenderer.drawRect(resultX, resultY, slotSize, slotSize, 0.8f, 0.8f, 0.8f, 1.0f);
 
-					byte[] cTypes = player.getCraftingInv();
+					short[] cTypes = player.getCraftingInv();
 					byte[] cAmounts = player.getCraftingAmounts();
 
 					for (int y = 0; y < 3; y++) {
@@ -874,7 +874,7 @@ public class Engine {
 							int slotY = craftTableYpos + y*slotSize + 2;
 							int ind = x*3+(2-y);
 
-							if (cTypes[ind] != 0) uiRenderer.renderFont(Integer.toString(cAmounts[ind]), slotX+slotSize-4, slotY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
+							if (cTypes[ind] != 0) uiRenderer.renderFont(Byte.toString(cAmounts[ind]), slotX+slotSize-4, slotY+slotSize-4, UIRenderer.TextAlignment.RIGHT);
 						}
 					}
 

@@ -12,7 +12,7 @@ import java.util.Arrays;
 // VAO functions (glGenVertexArrays)
 
 public class EntityItem extends Entity {
-    byte item;
+    short item;
     boolean isBlock;
 
     private static int packUV(int texId, int x, int y) {
@@ -237,7 +237,7 @@ public class EntityItem extends Entity {
     }
 
     public boolean playerDropped = false;
-    public EntityItem(byte item, int currentTick, boolean playerDropped) {
+    public EntityItem(short item, int currentTick, boolean playerDropped) {
         super(currentTick);
         this.item = item;
         this.itemMesh = meshCache[item];

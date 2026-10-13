@@ -15,12 +15,12 @@ public class DecorationTask {
 	private static final ThreadLocal<boolean[]> TREE_OCCUPIED = ThreadLocal.withInitial(() -> new boolean[32*32]);
 	private boolean[] treeOccupied = TREE_OCCUPIED.get();
 	
-	private static int packLocal(int x, int y, int z, byte block) {
+	private static int packLocal(int x, int y, int z, short block) {
 		if (y < 0 || y >= 255) throw new RuntimeException("Attempted to put y value out of bounds: " + y);
 		return (x & 0x7F) | ((y & 0xFF) << 7) | ((z & 0x7F) << 15) | ((block & 0xFF) << 22);
 	}
 	
-	private void tryAddEdit(int blockWx, int blockWy, int blockWz, byte blockType, IntArrayList edits) {
+	private void tryAddEdit(int blockWx, int blockWy, int blockWz, short blockType, IntArrayList edits) {
 		int lx = blockWx-wx;
 		int lz = blockWz-wz;
 
@@ -29,7 +29,7 @@ public class DecorationTask {
 		}
 	}
 
-	private void redwoodTreeAlt(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+	private void redwoodTreeAlt(int trunkWx, int trunkWz, int surfaceHeight, short woodType, short leaveType, IntArrayList edits) {
 		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
 		SplittableRandom treeRng = new SplittableRandom(treeSeed);
 		int treeHeight = 26 + treeRng.nextInt(11);
@@ -73,7 +73,7 @@ public class DecorationTask {
 		}
 	}
 
-	private void redwoodTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+	private void redwoodTree(int trunkWx, int trunkWz, int surfaceHeight, short woodType, short leaveType, IntArrayList edits) {
 		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
 		SplittableRandom treeRng = new SplittableRandom(treeSeed);
 		int treeHeight = 26 + treeRng.nextInt(11);
@@ -162,7 +162,7 @@ public class DecorationTask {
 		}
 	}
 
-	private void darkOakTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+	private void darkOakTree(int trunkWx, int trunkWz, int surfaceHeight, short woodType, short leaveType, IntArrayList edits) {
 		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
 		SplittableRandom treeRng = new SplittableRandom(treeSeed);
 		int treeHeight = 6 + treeRng.nextInt(4);
@@ -229,7 +229,7 @@ public class DecorationTask {
 		}
 	}
 
-	private void acaciaTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+	private void acaciaTree(int trunkWx, int trunkWz, int surfaceHeight, short woodType, short leaveType, IntArrayList edits) {
 		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
 		SplittableRandom treeRng = new SplittableRandom(treeSeed);
 
@@ -291,7 +291,7 @@ public class DecorationTask {
 		}
 	}
 
-	private void jungleTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+	private void jungleTree(int trunkWx, int trunkWz, int surfaceHeight, short woodType, short leaveType, IntArrayList edits) {
 		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
 		SplittableRandom treeRng = new SplittableRandom(treeSeed);
 		int treeHeight = 20 + treeRng.nextInt(7);
@@ -341,7 +341,7 @@ public class DecorationTask {
 		}
 	}
 	
-	private void spruceTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+	private void spruceTree(int trunkWx, int trunkWz, int surfaceHeight, short woodType, short leaveType, IntArrayList edits) {
 		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
       	SplittableRandom treeRng = new SplittableRandom(treeSeed);
         
@@ -359,7 +359,7 @@ public class DecorationTask {
 					int dist = (jx*jx) + (jz*jz);
 					
 					if (dist <= r && dist != 0) {
-						byte effectiveLeaf = leaveType;
+						short effectiveLeaf = leaveType;
 						if (leaveType == Blocks.SNOWY_SPRUCE_LEAVES && treeRng.nextFloat() > 0.5f + (ring-surfaceHeight)*0.01f) effectiveLeaf = Blocks.SPRUCE_LEAVES;
 
 						tryAddEdit(trunkWx+jx, ring, trunkWz+jz, effectiveLeaf, edits);
@@ -379,7 +379,7 @@ public class DecorationTask {
 	}
 	
 	
-	private void regularTree(int trunkWx, int trunkWz, int surfaceHeight, byte woodType, byte leaveType, IntArrayList edits) {
+	private void regularTree(int trunkWx, int trunkWz, int surfaceHeight, short woodType, short leaveType, IntArrayList edits) {
 		long treeSeed = ((long)trunkWx * 341873128712L) ^ ((long)trunkWz * 132897987541L);
         SplittableRandom treeRng = new SplittableRandom(treeSeed);
 		
@@ -407,7 +407,7 @@ public class DecorationTask {
 	}
 
 
-	private byte getBlock(ChunkColumn[] chunkMap, int wx, int wy, int wz) {
+	private short getBlock(ChunkColumn[] chunkMap, int wx, int wy, int wz) {
 		int lcx = wx>>5;
 		int lcz = wz>>5;
 
@@ -432,7 +432,7 @@ public class DecorationTask {
 			int y = oreRng.nextInt(1, 150);
 			int wz = sourceWz + oreRng.nextInt(0, 32);
 
-			byte block = getBlock(chunkMap, wx, y, wz);
+			short block = getBlock(chunkMap, wx, y, wz);
 			if (block != Blocks.STONE) continue;
 
 //			for (int jx = wx-4; jx <= wx+4; jx++) {
@@ -494,7 +494,7 @@ public class DecorationTask {
 				if (treeRng.nextFloat() > currentBiome.treeDensity) continue;
 				float treeVariantNum = treeRng.nextFloat();
 
-				byte surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, trunkWx, surfaceHeight, trunkWz, currentBiome, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz));
+				short surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, trunkWx, surfaceHeight, trunkWz, currentBiome, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz));
 
 				if (surfaceHeight <= 64) continue;
 				if (surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS &&
@@ -507,8 +507,8 @@ public class DecorationTask {
 					treeOccupied[x*32+z] = true;
 				}
 				
-				byte woodType = currentBiome.woodBlock;
-				byte leaveType = currentBiome.leafBlock;
+				short woodType = currentBiome.woodBlock;
+				short leaveType = currentBiome.leafBlock;
 				
 				if (currentBiome.type == BiomeType.TAIGA || currentBiome.type == BiomeType.SNOWY_TAIGA) {
 					spruceTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
@@ -554,7 +554,7 @@ public class DecorationTask {
 				if (currentBiome.type == BiomeType.DESERT) {
 					if (rng.nextFloat() > 0.993f) {
 						if (surfaceHeight == -1) continue;
-						byte topBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
+						short topBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
 
 						if (topBlock != currentBiome.topBlock) continue;
 						if (chunk.getBlockInChunk(x, surfaceHeight+1, z) != Blocks.AIR) continue;
@@ -571,14 +571,14 @@ public class DecorationTask {
 				if (currentBiome.possibleDecorations == null) continue;
 
 				if (surfaceHeight == -1) continue;
-				byte topBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
+				short topBlock = chunk.getBlockInChunk(x, surfaceHeight, z);
 				
 				if (topBlock != currentBiome.topBlock) continue;
 				if (chunk.getBlockInChunk(x, surfaceHeight+1, z) != Blocks.AIR) continue;
 
 				if (treeOccupied[x * 32 + z]) continue;
 				
-				byte decoration = currentBiome.possibleDecorations[rng.nextInt(currentBiome.possibleDecorations.length)];
+				short decoration = currentBiome.possibleDecorations[rng.nextInt(currentBiome.possibleDecorations.length)];
 				editRequests.add(packLocal(x, surfaceHeight+1, z, decoration));
 			}
 		}

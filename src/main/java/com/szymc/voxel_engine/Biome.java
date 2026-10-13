@@ -3,12 +3,12 @@ package com.szymc.voxel_engine;
 import org.lwjgl.system.linux.XGenericEvent;
 
 class GroundLayer {
-	public byte block;
+	public short block;
 	public FastNoiseLite generator;
 	public float threshold;
 	private static int createdLayers = 0;
 
-	public GroundLayer(byte block, float frequency, float threshold) {
+	public GroundLayer(short block, float frequency, float threshold) {
 		this.block = block;
 		this.generator = new FastNoiseLite();
 		this.threshold = threshold;
@@ -26,18 +26,18 @@ public class Biome {
 	public final BiomeType type;
     public final String name;
     
-    public final byte topBlock;
-    public final byte fillerBlock;
+    public final short topBlock;
+    public final short fillerBlock;
     
-    public final byte woodBlock;
-    public final byte leafBlock;
+    public final short woodBlock;
+    public final short leafBlock;
     public final float treeDensity;
     public final float decorationChance;
-    public final byte[] possibleDecorations;
+    public final short[] possibleDecorations;
 	public final GroundLayer[] topLayers;
 
-    public Biome(BiomeType type, String name, byte topBlock, byte fillerBlock,
-    		byte woodBlock, byte leafBlock, float treeDensity, float decorationChance, byte[] possibleDecorations, GroundLayer[] topLayers) {
+    public Biome(BiomeType type, String name, short topBlock, short fillerBlock,
+    		short woodBlock, short leafBlock, float treeDensity, float decorationChance, short[] possibleDecorations, GroundLayer[] topLayers) {
     	this.type = type;
     	this.name = name;
     	this.topBlock = topBlock;
@@ -52,10 +52,10 @@ public class Biome {
 
 	// Biome Ground Utilities
 
-	public byte getTopBlock(int wx, int wz) {
+	public short getTopBlock(int wx, int wz) {
 		if (topLayers == null || topLayers.length == 0) return this.topBlock;
 		float bestResult = -999;
-		byte target = this.topBlock;
+		short target = this.topBlock;
 
 		for (GroundLayer layer : topLayers) {
 			float v = layer.generator.GetNoise(wx, wz);

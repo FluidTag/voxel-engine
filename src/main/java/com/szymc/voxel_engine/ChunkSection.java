@@ -1,10 +1,6 @@
 package com.szymc.voxel_engine;
-import java.util.Arrays;
 
-import it.unimi.dsi.fastutil.ints.Int2ByteOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 
 public class ChunkSection {
@@ -17,7 +13,7 @@ public class ChunkSection {
 	private final IntArrayList lightBlocks;
 	private final IntArrayList lBlockRemovals = new IntArrayList();
 
-	public ChunkSection(byte[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
+	public ChunkSection(short[] data, byte[] skylightData, World worldReference, int wx, int wy, int wz) {
 		this.blockData = new PaletteContainer();
 		this.lightLevels = skylightData;
 		this.lightBlocks = new IntArrayList();
@@ -49,12 +45,12 @@ public class ChunkSection {
 		this.worldZ = wz;
 	}
 
-	public void setBlock(int x, int y, int z, byte block) {
+	public void setBlock(int x, int y, int z, short block) {
 		if (x < 0 || x > 31) throw new IndexOutOfBoundsException();
 		if (y < 0 || y > 15) throw new IndexOutOfBoundsException();
 		if (z < 0 || z > 31) throw new IndexOutOfBoundsException();
 
-		byte oldBlock = getLocalBlock(x, y, z);
+		short oldBlock = getLocalBlock(x, y, z);
 		if (Texture.lightLevels[block] > 0) {
 			int data = (x & 0x1F) | ((y & 0xFF) << 5) | ((z & 0x1F) << 13) | ((Texture.lightLevels[block] & 0xFF) << 18);
 			lightBlocks.add(data);
@@ -68,7 +64,7 @@ public class ChunkSection {
 		blockData.writeBlock(x, y, z, block);
 	}
 
-	public byte getLocalBlock(int x, int y, int z) {
+	public short getLocalBlock(int x, int y, int z) {
 		if (x < 0 || x > 31) throw new IndexOutOfBoundsException();
 		if (y < 0 || y > 15) throw new IndexOutOfBoundsException();
 		if (z < 0 || z > 31) throw new IndexOutOfBoundsException();
@@ -76,8 +72,8 @@ public class ChunkSection {
 		return blockData.readBlock(x, y, z);
 	}
 
-	public byte[] getChunkData() {
-		return blockData.toByteArray();
+	public int[] getChunkIntData() {
+		return blockData.toIntArray();
 	}
 
 	public PaletteContainer getRawPaletteContainer() {

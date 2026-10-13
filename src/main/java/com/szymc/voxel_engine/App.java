@@ -18,7 +18,7 @@ public class App {
 		if (y < 0 && y > -50) return false;
 		if (y <= -50) return true;
 
-		byte block = chunk.getBlockInChunk(x&31, y, z&31);
+		short block = chunk.getBlockInChunk(x&31, y, z&31);
 		return block != Blocks.AIR;
 	}
 
@@ -48,6 +48,8 @@ public class App {
 
 	public static void main(String[] args) {
 		System.out.println("JVM Args: " + ManagementFactory.getRuntimeMXBean().getInputArguments());
+		DatabaseManager.initializeSchema();
+
 		Camera camera = new Camera();
 		Window window = new Window(App.WINDOW_WIDTH, App.WINDOW_HEIGHT, "Voxel-Engine");
 
@@ -64,7 +66,6 @@ public class App {
 		engine.setPlayer(character);
 
 		BiomeRegistry.init();
-		DatabaseManager.initializeSchema();
 
 		double lastFrameTime = 0.0;
 		double tIncrement = 0;
@@ -81,7 +82,7 @@ public class App {
 			long start = System.nanoTime();
 
 			for (ChunkColumn column : toSerialize) {
-				DatabaseManager.uploadChunk(column.getWorldX(), column.getWorldZ(), column.serialize());
+				DatabaseManager.uploadChunk(0, column.getWorldX(), column.getWorldZ(), column.serialize());
 			}
 
 			DatabaseManager.clearEntites(0);
@@ -154,7 +155,7 @@ public class App {
 							// Locate empty inventory slot
 							byte slot = -1;
 							for (byte i = 0; i < 36; i++) {
-								byte inventoryType = character.readInventoryType(i);
+								short inventoryType = character.readInventoryType(i);
 								if (inventoryType == 0 && slot == -1) slot = i;
 								if (inventoryType == item.item && character.readInventoryAmount(i) < 64) {
 									slot = i;
@@ -190,7 +191,7 @@ public class App {
 				float erosion = TerrainTask.getErosion(wx, wz);
 
 				int light = -1;
-				byte block = -1;
+				short block = -1;
 				int palSize = -1;
 				ChunkColumn c = mainWorld.getLoadedChunkAtPos(wx>>5, wz>>5);
 				Mesh mesh = null;

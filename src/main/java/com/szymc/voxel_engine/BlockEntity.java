@@ -13,8 +13,8 @@ public class BlockEntity extends Entity {
         }
     }
 
-    public byte blockType;
-    public BlockEntity(byte item, int currentTick) {
+    public short blockType;
+    public BlockEntity(short item, int currentTick) {
         super(currentTick);
         System.out.println("Block entity of " + item + ": " + meshCache[item]);
         this.itemMesh = meshCache[256 + item];

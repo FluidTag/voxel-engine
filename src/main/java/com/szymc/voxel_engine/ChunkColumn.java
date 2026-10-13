@@ -4,6 +4,8 @@ package com.szymc.voxel_engine;
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -97,7 +99,7 @@ public class ChunkColumn {
 	}
 
 	// Returns 0 if null sector
-	public byte getBlockInChunk(int cx, int cy, int cz) {
+	public short getBlockInChunk(int cx, int cy, int cz) {
 		int sectorI = cy >> 4;
 		ChunkSection section = getSection(sectorI);
 		if (section == null) return 0;
@@ -156,12 +158,12 @@ public class ChunkColumn {
 	}
 
 	// Also need to set neighboring chunk segments to dirty if its on a border
-	public void setBlockInChunk(int cx, int cy, int cz, byte blockType) {
+	public void setBlockInChunk(int cx, int cy, int cz, short blockType) {
 		int sectorI = cy >> 4;
 		ChunkSection section = getSection(sectorI);
 		if (section == null) section = initializeSection(sectorI);
 		
-		byte old = 0;
+		short old = 0;
 		if (blockType == Blocks.AIR) {
 			old = section.getLocalBlock(cx, cy&15, cz);
 		}
@@ -220,7 +222,7 @@ public class ChunkColumn {
 	
 	public ChunkSection initializeSection(int yIndex) {
 		if (yIndex > 15) throw new ArrayIndexOutOfBoundsException("World limit exceeded, attempting init of section index " + yIndex);
-		sections[yIndex] = new ChunkSection(new byte[32*16*32], new byte[32*16*32], worldReference, worldX*32, yIndex*16, worldZ*32);
+		sections[yIndex] = new ChunkSection(new short[32*16*32], new byte[32*16*32], worldReference, worldX*32, yIndex*16, worldZ*32);
 
 		byte[] lightingData = sections[yIndex].getLightingData();
 		Arrays.fill(lightingData, (byte)(0xF << 4));
@@ -281,8 +283,8 @@ public class ChunkColumn {
 			if (sections[i] != null) size++;
 		}
 
-		byte[] data = new byte[2 + (72 + 32*16*32 + 32*16*32 + 1 + 4*64)*size];
-		int baseSize = 72 + 32*16*32 + 32*16*32 + 1 + 4*64;
+		byte[] data = new byte[2 + (264 + 32*16*32 + 32*16*32 + 1 + 4*64)*size];
+		int baseSize = 264 + 32*16*32 + 32*16*32 + 1 + 4*64;
 		int realIndex = 0;
 
 		for (int i = 0; i < 16; i++) {
@@ -297,10 +299,10 @@ public class ChunkColumn {
 			System.arraycopy(rawPaletteBytes, 0, data, offset, rawPaletteBytes.length);
 			byte[] light = sec.getLightingData();
 
-			System.arraycopy(light, 0, data, offset + 72 + 32*16*32, 32*16*32);
+			System.arraycopy(light, 0, data, offset + 264 + 32*16*32, 32*16*32);
 
 			IntArrayList sourceCache = sec.getLightBlocks();
-			data[offset + 72 + 32*16*32 + 32*16*32] = (byte) sourceCache.size();
+			data[offset + 264 + 32*16*32 + 32*16*32] = (byte) sourceCache.size();
 			byte[] createdByteSourceArr = new byte[sourceCache.size()*4];
 
 			for (int j = 0; j < sourceCache.size(); j++) {
@@ -313,7 +315,7 @@ public class ChunkColumn {
 				createdByteSourceArr[baseInd+3] = (byte) (val&0xFF);
 			}
 
-			System.arraycopy(createdByteSourceArr, 0, data, offset + 72 + 32*16*32 + 32*16*32 + 1, createdByteSourceArr.length);
+			System.arraycopy(createdByteSourceArr, 0, data, offset + 264 + 32*16*32 + 32*16*32 + 1, createdByteSourceArr.length);
 			realIndex++;
 		}
 
@@ -326,7 +328,7 @@ public class ChunkColumn {
 	public static ChunkColumn deserialize(World worldReference, int wx, int wz, byte[] encodedData) {
 		ChunkSection[] createdSections = new ChunkSection[16];
 		int targetedSections = (encodedData[0] & 0xFF) | ((encodedData[1] & 0xFF) << 8);
-        int baseSize = 72 + 32*16*32 + 32*16*32 + 1 + 4*64;
+        int baseSize = 264 + 32*16*32 + 32*16*32 + 1 + 4*64;
 		int realIndex = 0;
 		//System.out.println(Integer.toBinaryString(targetedSections));
 		while (targetedSections != 0) {
@@ -334,21 +336,26 @@ public class ChunkColumn {
 			int offset = 2 + baseSize*realIndex;
 			byte palSize = (byte) (encodedData[offset] & 0xFF);
 
-			byte[] palette = Arrays.copyOfRange(encodedData, offset+1, offset+1+palSize);
-			byte[] data = Arrays.copyOfRange(encodedData, offset+72,  offset+72 + 32*16*32);
+			byte[] palette = Arrays.copyOfRange(encodedData, offset+1, offset+1+palSize*4);
+			byte[] data = Arrays.copyOfRange(encodedData, offset+264,  offset+264 + 32*16*32);
 
-			byte[] lighting = Arrays.copyOfRange(encodedData, offset+72 + 32*16*32, offset+72 + 32*16*32 + 32*16*32);
+			byte[] lighting = Arrays.copyOfRange(encodedData, offset+264 + 32*16*32, offset+264 + 32*16*32 + 32*16*32);
 
-			byte sourceSize = encodedData[offset+72 + 32*16*32 + 32*16*32];
-			byte[] sourceData = Arrays.copyOfRange(encodedData, offset + 72 + 32*16*32 + 32*16*32 + 1, offset + 72 + 32*16*32 + 32*16*32 + 1 + 4*64);
+			byte sourceSize = encodedData[offset+264 + 32*16*32 + 32*16*32];
+			byte[] sourceData = Arrays.copyOfRange(encodedData, offset + 264 + 32*16*32 + 32*16*32 + 1, offset + 264 + 32*16*32 + 32*16*32 + 1 + sourceSize*4);
 			IntArrayList lightSrcList = new IntArrayList(sourceSize);
 
-			for (int piece = 0; piece < sourceData.length-4; piece+=4) {
+			for (int piece = 0; piece <= sourceData.length-4; piece+=4) {
 				int light = (sourceData[piece+3] & 0xFF) | (sourceData[piece+2] & 0xFF) << 8 | (sourceData[piece+1] & 0xFF) << 16 | (sourceData[piece] & 0xFF) << 24;
 				lightSrcList.add(light);
 			}
 
-			ChunkSection section = new ChunkSection(PaletteContainer.deserialize(palette, data), lighting, lightSrcList, worldReference, wx*32, 16*i, wz*32);
+			ByteBuffer palBuffer = ByteBuffer.wrap(palette);
+			IntBuffer palInts = palBuffer.asIntBuffer();
+			int[] primPalInts = new int[palInts.remaining()];
+			palInts.get(primPalInts);
+
+			ChunkSection section = new ChunkSection(PaletteContainer.deserialize(primPalInts, data), lighting, lightSrcList, worldReference, wx*32, 16*i, wz*32);
 			createdSections[i] = section;
 
 			targetedSections &= targetedSections -1;

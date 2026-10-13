@@ -246,7 +246,7 @@ public class TerrainTask {
 		return resultType;
 	}
 
-	public static byte noiseGetBlock(int height, int wx, int wy, int wz, Biome biome, float temp, float moist) {
+	public static short noiseGetBlock(int height, int wx, int wy, int wz, Biome biome, float temp, float moist) {
 		//if (wy < 69) return Blocks.WATER;
 		if (wy == 0) return Blocks.BEDROCK;
 		if (wy > height && wy == 64 && temp < 0.2f && ((iceOceanNoise.GetNoise(wx, wz) > 0.3f) || subIceOceanNoise.GetNoise(wx, wz) > 0.3f)) return Blocks.ICE;
@@ -277,7 +277,7 @@ public class TerrainTask {
 		return Blocks.AIR;
 	}
 
-	public static byte getSurfaceBlock(int wx, int noiseHeight, int wz, Biome biome) { // Simulates generate chunk for one tile
+	public static short getSurfaceBlock(int wx, int noiseHeight, int wz, Biome biome) { // Simulates generate chunk for one tile
 		float temp = getTemp(wx, wz); float moist = getMoist(wx, wz); float cont = getContinental(wx, wz); float erosion = getErosion(wx, wz); float weird = getWeirdness(wx, wz);
 		if (biome == null) biome = BiomeRegistry.get(getBiomeType(noiseHeight, temp, moist, cont, erosion, weird));
 
@@ -292,7 +292,7 @@ public class TerrainTask {
 		float steepness = (float)Math.sqrt(steepX * steepX + steepZ * steepZ);
 		boolean isCliff = steepness >= 1.5f;
 
-		byte block = noiseGetBlock(noiseHeight, wx, noiseHeight, wz, biome, temp, moist);
+		short block = noiseGetBlock(noiseHeight, wx, noiseHeight, wz, biome, temp, moist);
 		if (isCliff && block != Blocks.AIR && block != Blocks.WATER) {
 			block = (steepness < 2.2f) ? Blocks.STONE : Blocks.HARDENED_STONE;
 		}
@@ -350,7 +350,7 @@ public class TerrainTask {
 		}
 
 		for (int sec = 0; sec < 16; sec++) {
-			byte[] chunkData = null;
+			short[] chunkData = null;
 
 			boolean changed = false;
 			for (int z = 0; z < 32; z++) {
@@ -370,13 +370,13 @@ public class TerrainTask {
 						int worldY = sec*16+y;
 						int depth = noiseHeight-worldY;
 
-						byte block = noiseGetBlock(noiseHeight, worldX, worldY, worldZ, biome, temp, moist);
+						short block = noiseGetBlock(noiseHeight, worldX, worldY, worldZ, biome, temp, moist);
 						if (isCliff && depth >= 0 && depth <= (1 + (int)(steepness)) && block != Blocks.AIR && block != Blocks.WATER) {
 							block = (steepness < 2.2f) ? Blocks.STONE : Blocks.HARDENED_STONE;
 						}
 
 						if (block != Blocks.AIR) {
-							if (chunkData == null) chunkData = new byte[32*16*32];
+							if (chunkData == null) chunkData = new short[32*16*32];
 							chunkData[y*(32*32) + z*32 + x] = block;
 							changed = true;
 							skyLevels[z*32+x] = 0;
