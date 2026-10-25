@@ -22,6 +22,7 @@
     "name": "OAK_WOOD",
     "hardness": 2.5,
     "idealTool": 3,
+    "specialRotation": "axis",
     "textures": {
       "TOP": "logTexTop.png",
       "BOTTOM": "logTexTop.png",
@@ -665,6 +666,7 @@
     "isBlockEntity": true,
     "hardness": 1.4,
     "idealTool": 3,
+    "specialRotation": "lookHorizontal",
     "textures": {
       "TOP": "chestTop.png",
       "BOTTOM": "chestTop.png",

@@ -25,10 +25,11 @@ public class PaletteContainer {
         return palette[(int)(readRawIndex(blockData, bitWidth, index))] & 0xFFFF;
     }
 
-    public void writeBlock(int x, int y, int z, short block) {
+    public void writeBlock(int x, int y, int z, short block, short modifiers) {
+        int fullBlockContext = (block & 0xFFFF) | ((modifiers & 0xFFFF) << 16);
         int currentPalettePos = -1;
         for (int i = 0; i < palette.length; i++) {
-            if (palette[i] == block) {
+            if (palette[i] == fullBlockContext) {
                 currentPalettePos = i;
                 break;
             }
@@ -36,13 +37,15 @@ public class PaletteContainer {
 
         if (currentPalettePos == -1) {
             int[] newPalette = new int[palette.length+1];
-            newPalette[palette.length] = block;
+            newPalette[palette.length] = fullBlockContext;
+
             currentPalettePos = palette.length;
             System.arraycopy(palette, 0, newPalette, 0, palette.length);
             palette = newPalette;
 
             int newBitWidth = calculateBitCount(newPalette.length);
             int datLength = ((32*16*32)*newBitWidth) / 64;
+
             if (datLength != blockData.length) {
                 long[] oldBlockData = blockData;
                 blockData = new long[datLength];

@@ -91,7 +91,8 @@ public class DatabaseManager {
                 statement.setInt(4, itemEntity.item);
                 statement.setInt(5, 0); // Entity Type 0: Item
             } else if (e instanceof BlockEntity blockEntity) {
-                statement.setInt(4, blockEntity.blockType);
+                statement.setInt(4, (blockEntity.blockType & 0xFFFF) | ((blockEntity.blockModifiers & 0xFFFF) << 16));
+                System.out.println("Saved modifiers: " + Integer.toBinaryString((blockEntity.blockModifiers & 0xFFFF)));
                 statement.setInt(5, 1); // Entity Type 1: Block
             }
 
@@ -120,7 +121,7 @@ public class DatabaseManager {
                 while (resultSet.next()) {
                     long idHigh = resultSet.getLong("entity_id_high");
                     long idLow = resultSet.getLong("entity_id_low");
-                    byte item = resultSet.getByte("item");
+                    int item = resultSet.getInt("item");
                     int type = resultSet.getInt("type");
                     float x = resultSet.getFloat("x");
                     float y = resultSet.getFloat("y");
@@ -131,9 +132,10 @@ public class DatabaseManager {
 
                     Entity createdEntity = null;
                     if (type == 0) {
-                        createdEntity = new EntityItem(item, 0, true);
+                        createdEntity = new EntityItem((short) (item&0xFFFF), 0, true);
                     } else if (type == 1) {
-                        createdEntity = new BlockEntity(item, 0);
+                        System.out.println("Got modifiers: " + Integer.toBinaryString((item >>> 16) & 0xFFFF));
+                        createdEntity = new BlockEntity((short) (item&0xFFFF), (short) ((item >>> 16) & 0xFFFF), 0);
                     }
 
                     assert createdEntity != null;

@@ -8,7 +8,7 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT;
 import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 
-record RaycastResult(String face, int x, int y, int z) {};
+record RaycastResult(BLOCK_FACE face, int x, int y, int z) {};
 public class PlayerCharacter {
     private Camera playerCamera;
     private World worldReference;
@@ -117,7 +117,7 @@ public class PlayerCharacter {
         float tMaxY = (rayDir.y > 0) ? (float)(Math.floor(rayOrigin.y) + 1.0f - rayOrigin.y) * tDeltaY : (float)(rayOrigin.y - Math.floor(rayOrigin.y)) * tDeltaY;
         float tMaxZ = (rayDir.z > 0) ? (float)(Math.floor(rayOrigin.z) + 1.0f - rayOrigin.z) * tDeltaZ : (float)(rayOrigin.z - Math.floor(rayOrigin.z)) * tDeltaZ;
 
-        String hitFace = "NONE";
+        BLOCK_FACE hitFace = null;
         boolean hit = false;
         float t = 0;
 
@@ -132,24 +132,24 @@ public class PlayerCharacter {
                     t = tMaxX;
                     tMaxX += tDeltaX;
                     x += stepX;
-                    hitFace = (stepX > 0) ? "WEST" : "EAST";
+                    hitFace = (stepX > 0) ? BLOCK_FACE.WEST : BLOCK_FACE.EAST;
                 } else {
                     t = tMaxZ;
                     tMaxZ += tDeltaZ;
                     z += stepZ;
-                    hitFace = (stepZ > 0) ? "NORTH" : "SOUTH";
+                    hitFace = (stepZ > 0) ? BLOCK_FACE.NORTH : BLOCK_FACE.SOUTH;
                 }
             } else {
                 if (tMaxY < tMaxZ) {
                     t = tMaxY;
                     tMaxY += tDeltaY;
                     y += stepY;
-                    hitFace = (stepY > 0) ? "DOWN" : "UP";
+                    hitFace = (stepY > 0) ? BLOCK_FACE.BOTTOM : BLOCK_FACE.TOP;
                 } else {
                     t = tMaxZ;
                     tMaxZ += tDeltaZ;
                     z += stepZ;
-                    hitFace = (stepZ > 0) ? "NORTH" : "SOUTH";
+                    hitFace = (stepZ > 0) ? BLOCK_FACE.NORTH : BLOCK_FACE.SOUTH;
                 }
             }
         }
@@ -342,8 +342,9 @@ public class PlayerCharacter {
                     int x = result.x();
                     int y = result.y();
                     int z = result.z();
-                    String hitFace = result.face();
+                    BLOCK_FACE hitFace = result.face();
 
+                    int axis = -1;
                     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
                         if (Texture.isItemOnly[inventory[currentHotbarSlot]]) return;
                         short lookingAtBlock = worldReference.getLoadedChunkAtPos(x>>5, z>>5).getBlockInChunk(x&31, y, z&31);
@@ -357,12 +358,12 @@ public class PlayerCharacter {
                         }
 
                         switch (hitFace) {
-                            case "WEST":  x -= 1; break;
-                            case "EAST":  x += 1; break;
-                            case "DOWN":  y -= 1; break;
-                            case "UP":    y += 1; break;
-                            case "NORTH": z -= 1; break;
-                            case "SOUTH": z += 1; break;
+                            case WEST:  {x -= 1; axis = 0;} break;
+                            case EAST:  {x += 1; axis = 0;} break;
+                            case BOTTOM:  {y -= 1; axis = 1;} break;
+                            case TOP:    {y += 1; axis = 1;} break;
+                            case NORTH: {z -= 1; axis = 2;} break;
+                            case SOUTH: {z += 1; axis = 2;} break;
                         }
 
                         int minX = (int)Math.floor(playerCamera.cameraPos.x-PLAYER_RADIUS);
@@ -403,7 +404,31 @@ public class PlayerCharacter {
 
                         engineAttachment.startMining(x, y, z);
                     } else if (inventory[currentHotbarSlot] != 0 && inventoryAmounts[currentHotbarSlot] > 0) {
-                        chunk.setBlockInChunk(x & 31, y, z & 31, inventory[currentHotbarSlot]);
+                        int rotationType = Texture.rotationBlockTypes[inventory[currentHotbarSlot]];
+                        short modifiers = (short) (rotationType & 0x3);
+
+                        if (Texture.rotationBlockTypes[inventory[currentHotbarSlot]] == 1) { // AXIS
+                            modifiers |= (short) ((axis & 0x3) << 2);
+                        } else if (Texture.rotationBlockTypes[inventory[currentHotbarSlot]] == 2) { // LOOK HORIZONTAL
+                            System.out.println("Placing block entity at " + playerCamera.getHorizontalAxisDirection());
+                            BLOCK_FACE camLookDir = playerCamera.getHorizontalAxisDirection();
+
+                            int rightAngleRotateAmount = switch (camLookDir) { // CLOCKWISE
+                                case NORTH -> 2;
+                                case EAST -> 1;
+                                case SOUTH -> 0;
+                                case WEST -> 3;
+                                default -> throw new IllegalStateException("Cam get horizontal axis direction returned a non horizontal axis");
+                            };
+
+                            modifiers |= (short) ((rightAngleRotateAmount & 0x3) << 2);
+                        } else if (Texture.rotationBlockTypes[inventory[currentHotbarSlot]] == 3) { // LOOK ALL
+                            // Unimplemented but reserved
+                        }
+
+                        System.out.println(axis + ": " + Integer.toBinaryString(modifiers));
+
+                        chunk.setBlockInChunk(x & 31, y, z & 31, inventory[currentHotbarSlot], modifiers);
                         inventoryAmounts[currentHotbarSlot]--;
                         if (inventoryAmounts[currentHotbarSlot] == 0) inventory[currentHotbarSlot] = 0;
                         chunk.setSectionDirty(y >> 4);

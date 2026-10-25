@@ -49,7 +49,7 @@ public class App {
 	public static void main(String[] args) {
 		System.out.println("JVM Args: " + ManagementFactory.getRuntimeMXBean().getInputArguments());
 		DatabaseManager.initializeSchema();
-
+		// Investigate the minor lagspike when breaking and placing ok good
 		Camera camera = new Camera();
 		Window window = new Window(App.WINDOW_WIDTH, App.WINDOW_HEIGHT, "Voxel-Engine");
 
@@ -207,7 +207,8 @@ public class App {
 				BiomeType surfaceBiome = TerrainTask.getBiomeType(surfaceHeight, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));
 				//BiomeType biome = TerrainTask.getBiomeType(wy, temp, moist, TerrainTask.getContinental(wx, wz), erosion, TerrainTask.getWeirdness(wx, wz));
 				System.out.println("____Log_________");
-				System.out.println("CameraAt: ("+camera.cameraPos.x + ", " + camera.cameraPos.y + ", " + camera.cameraPos.z + ")");
+				System.out.println("CameraAt: ("+camera.cameraPos.x + ", " + camera.cameraPos.y + ", " + camera.cameraPos.z + ") Rotation: (" + camera.getYaw() + " yaw, " + camera.getPitch() + " pitch)");
+				System.out.println(camera.getAxisDirection());
 				System.out.println(wx + ", " + wy + ", " + wz + " CC ("+(wx&31)+", " + (wy&15) + ", " + (wz&31) + ") | Surface Biome (@y-"+surfaceHeight+"): " + surfaceBiome + " [T "+Math.round(temp*100f)/100f+", M "+Math.round(moist*100f)/100f+", E "+Math.round(erosion*100f)/100f + "]");
 				System.out.println("Light | Sky: " + ((light >> 4) & 0xF) + ", Block: " + (light&0xF) + " | BlockId@ = " + block);
 				System.out.println("Palette size in section: " + palSize);

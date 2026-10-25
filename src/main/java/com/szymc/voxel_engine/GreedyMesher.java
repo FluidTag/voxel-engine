@@ -95,13 +95,51 @@ public class GreedyMesher {
     ) {
 
         int addedVerts = vBuffer.size()/2;
-        int texId = 0;
+        int texId;
 
         short coreBlock = (short) (blockTypeAndState & 0xFFFF);
+        short modifiers = (short) ((blockTypeAndState >>> 16) & 0xFFFF);
+        int rotationType = (modifiers & 0x3);
+        int coreRotationParameters = (modifiers >>> 2) & 0x3;
+        int axisTypeBackfaceData = (modifiers >>> 4) & 0x1; // axis backface extra data
 
-        if (axis == 1) texId = Texture.getTextureIndex(coreBlock, backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM); // Y
-        if (axis == 0) texId = Texture.getTextureIndex(coreBlock, backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST); // X
-        if (axis == 2) texId = Texture.getTextureIndex(coreBlock, backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH); // Z
+        BLOCK_FACE faceToTexLookup;
+        BLOCK_FACE defaultFace;
+        defaultFace = switch (axis) {
+            case 0 -> backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST; // X
+            case 1 -> backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM; // Y
+            case 2 -> backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH; // Z
+            default -> throw new IllegalArgumentException("Invalid axis value: " + axis);
+        };
+
+        if (rotationType == 0 || (rotationType == 1 && coreRotationParameters == 1) || (rotationType == 2 && axis == 1)) { // No rotation or axis rotation, core parameter y-axis
+            faceToTexLookup = defaultFace;
+            if (axisTypeBackfaceData != 0) faceToTexLookup = faceToTexLookup.getOpposite();
+        } else if (rotationType == 1) { // Remap standard texture mapping for rotation
+            faceToTexLookup = switch (coreRotationParameters) {
+                case 0 -> switch (axis) {  // Rotated on X axis
+                    case 0 -> backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM; // X
+                    case 1 -> backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH; // Y
+                    case 2 -> backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST; // Z
+                    default -> throw new IllegalArgumentException("Invalid axis value: " + axis);
+                };
+
+                case 2 -> switch (axis) { // Rotated on Z axis
+                    case 0 -> backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH; // X
+                    case 1 -> backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST; // Y
+                    case 2 -> backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM; // Z
+                    default -> throw new IllegalArgumentException("Invalid axis value: " + axis);
+                };
+
+                default -> throw new IllegalArgumentException("Invalid rotational axis: " + coreRotationParameters);
+            };
+        } else if (rotationType == 2) {
+            faceToTexLookup = (coreRotationParameters == 0 || coreRotationParameters == 2)
+                    ? (coreRotationParameters == 0 ? defaultFace : defaultFace.getOpposite())
+                    : (coreRotationParameters == 1 ? defaultFace.getRotated90HorizontalFace() : defaultFace.getOpposite().getRotated90HorizontalFace());
+        } else throw new IllegalArgumentException("Rotation of type " + rotationType + " not supported");
+
+        texId = Texture.getTextureIndex(coreBlock, faceToTexLookup);
 
         int ao1 = packedAO & 0x3;
         int ao2 = (packedAO >> 2) & 0x3;

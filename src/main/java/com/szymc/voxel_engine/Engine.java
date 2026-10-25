@@ -508,7 +508,7 @@ public class Engine {
 				ChunkColumn chunk = worldScene.getLoadedChunkAtPos(currentlyMiningState.wx>>5, currentlyMiningState.wz>>5);
 				int x = currentlyMiningState.wx; int y = currentlyMiningState.wy; int z = currentlyMiningState.wz;
 				short block = chunk.getBlockInChunk(x&31, y, z&31);
-				chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR);
+				chunk.setBlockInChunk(x & 31, y, z & 31, Blocks.AIR, (short) 0);
 				worldScene.spawnNewItemEntity(Texture.customBlockDrop[block] == 0 ? block : Texture.customBlockDrop[block], x, y, z, false);
 				chunk.setSectionDirty(y >> 4);
 				chunk.playerModification();
@@ -650,6 +650,11 @@ public class Engine {
 					}
 				} else {
 					entityShader.setLightLevel((byte) 15);
+				}
+
+				if (entity.itemMesh == null) {
+					System.out.println(entity);
+					throw new NullPointerException("Entity itemMesh is null; cannot render frame.");
 				}
 
 				glDrawElementsBaseVertex(GL_TRIANGLES, entity.itemMesh.indexCount, GL_UNSIGNED_INT, entity.itemMesh.byteOffset, entity.itemMesh.baseVertex);

@@ -23,8 +23,6 @@ class MeshDrawCommand {
 }
 
 public abstract class Entity {
-    public static int entitiesCreated = 0;
-
     public int createdAtTick;
     public Vector3f position = new Vector3f();
     public Vector3f renderPosition = new Vector3f();
@@ -42,7 +40,7 @@ public abstract class Entity {
     private static int currentVertexOffset = 0; // Total vertices uploaded so far
     private static int currentIndexOffset = 0;  // Total indices uploaded so far
     private final static int VERTEX_SIZE = 3*Float.BYTES + Integer.BYTES;
-    protected static MeshDrawCommand[] meshCache = new MeshDrawCommand[512]; // First 256 is items, next 256 is block-entities
+    protected static MeshDrawCommand[] meshCache = new MeshDrawCommand[256 + 256*16]; // First 256 is items, next 256 is block-entities each with [Default, 3*2 axis rotations, 4 horizontal rotations] (10 reserved now)
 
     public static void initializeEABCache() {
         vao = glGenVertexArrays();
@@ -95,16 +93,57 @@ public abstract class Entity {
             float x2, float y2, float z2,
             float x3, float y3, float z3,
             float x4, float y4, float z4,
-            byte blockType, // U width, V height
+            int blockTypeAndState, // U width, V height
             boolean backFace, int axis, byte packedAO
     ) {
 
         int addedVerts = vBuffer.size()/4;
-        int texId = 0;
+        int texId;
 
-        if (axis == 1) texId = Texture.getTextureIndex(blockType, backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM); // Y
-        if (axis == 0) texId = Texture.getTextureIndex(blockType, backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST); // X
-        if (axis == 2) texId = Texture.getTextureIndex(blockType, backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH); // Z
+        short coreBlock = (short) (blockTypeAndState & 0xFFFF);
+        short modifiers = (short) ((blockTypeAndState >>> 16) & 0xFFFF);
+        int rotationType = (modifiers & 0x3);
+        int coreRotationParameters = (modifiers >>> 2) & 0x3;
+        int axisTypeBackfaceData = (modifiers >>> 4) & 0x1; // axis backface extra data
+
+        BLOCK_FACE faceToTexLookup;
+        BLOCK_FACE defaultFace;
+        defaultFace = switch (axis) {
+            case 0 -> backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST; // X
+            case 1 -> backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM; // Y
+            case 2 -> backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH; // Z
+            default -> throw new IllegalArgumentException("Invalid axis value: " + axis);
+        };
+
+        if (rotationType == 0 || (rotationType == 1 && coreRotationParameters == 1) || (rotationType == 2 && axis == 1)) { // No rotation or axis rotation, core parameter y-axis
+            faceToTexLookup = defaultFace;
+            if (axisTypeBackfaceData != 0) faceToTexLookup = faceToTexLookup.getOpposite();
+        } else if (rotationType == 1) { // Remap standard texture mapping for rotation
+            faceToTexLookup = switch (coreRotationParameters) {
+                case 0 -> switch (axis) {  // Rotated on X axis
+                    case 0 -> backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM; // X
+                    case 1 -> backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH; // Y
+                    case 2 -> backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST; // Z
+                    default -> throw new IllegalArgumentException("Invalid axis value: " + axis);
+                };
+
+                case 2 -> switch (axis) { // Rotated on Z axis
+                    case 0 -> backFace ? BLOCK_FACE.SOUTH : BLOCK_FACE.NORTH; // X
+                    case 1 -> backFace ? BLOCK_FACE.WEST : BLOCK_FACE.EAST; // Y
+                    case 2 -> backFace ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM; // Z
+                    default -> throw new IllegalArgumentException("Invalid axis value: " + axis);
+                };
+
+                default -> throw new IllegalArgumentException("Invalid rotational axis: " + coreRotationParameters);
+            };
+        } else if (rotationType == 2) {
+            faceToTexLookup = (coreRotationParameters == 0 || coreRotationParameters == 2)
+                    ? (coreRotationParameters == 0 ? defaultFace : defaultFace.getOpposite())
+                    : (coreRotationParameters == 1 ? defaultFace.getRotated90HorizontalFace() : defaultFace.getOpposite().getRotated90HorizontalFace());
+        } else throw new IllegalArgumentException("Rotation of type " + rotationType + " not supported");
+
+        texId = Texture.getTextureIndex(coreBlock, faceToTexLookup);
+
         int ao1 = packedAO & 0x3;
         int ao2 = (packedAO >> 2) & 0x3;
         int ao3 = (packedAO >> 4) & 0x3;
@@ -155,7 +194,7 @@ public abstract class Entity {
         }
     }
 
-    protected static MeshDrawCommand buildBlockMesh(byte blockType, float size) {
+    protected static MeshDrawCommand buildBlockMesh(int fullBlockType, float size) {
         FloatArrayList vBuffer = new FloatArrayList(4*4);
         IntArrayList iBuffer = new IntArrayList(4*4*3);
 
@@ -163,22 +202,22 @@ public abstract class Entity {
         byte fullAO = (byte) 0xFF;
 
         // size. TOP (Y = size, Axis size, backFace = true)
-        addQuad(vBuffer, iBuffer, 0,size,0, size,size,0, 0,size,size, size,size,size, blockType, true, 1, fullAO);
+        addQuad(vBuffer, iBuffer, 0,size,0, size,size,0, 0,size,size, size,size,size, fullBlockType, true, 1, fullAO);
 
         // 2. BOTTOM (Y = 0, Axis size, backFace = false)
-        addQuad(vBuffer, iBuffer, 0,0,0, size,0,0, 0,0,size, size,0,size, blockType, false, 1, fullAO);
+        addQuad(vBuffer, iBuffer, 0,0,0, size,0,0, 0,0,size, size,0,size, fullBlockType, false, 1, fullAO);
 
         // 3. WEST (X = 0, Axis 0, backFace = true)
-        addQuad(vBuffer, iBuffer, 0,0,0, 0,size,0, 0,0,size, 0,size,size, blockType, true, 0, fullAO);
+        addQuad(vBuffer, iBuffer, 0,0,0, 0,size,0, 0,0,size, 0,size,size, fullBlockType, true, 0, fullAO);
 
         // 4. EAST (X = size, Axis 0, backFace = false)
-        addQuad(vBuffer, iBuffer, size,0,0, size,size,0, size,0,size, size,size,size, blockType, false, 0, fullAO);
+        addQuad(vBuffer, iBuffer, size,0,0, size,size,0, size,0,size, size,size,size, fullBlockType, false, 0, fullAO);
 
         // 5. NORTH (Z = 0, Axis 2, backFace = true)
-        addQuad(vBuffer, iBuffer, 0,0,0, size,0,0, 0,size,0, size,size,0, blockType, true, 2, fullAO);
+        addQuad(vBuffer, iBuffer, 0,0,0, size,0,0, 0,size,0, size,size,0, fullBlockType, true, 2, fullAO);
 
         // 6. SOUTH (Z = size, Axis 2, backFace = false)
-        addQuad(vBuffer, iBuffer, 0,0,size, size,0,size, 0,size,size, size,size,size, blockType, false, 2, fullAO);
+        addQuad(vBuffer, iBuffer, 0,0,size, size,0,size, 0,size,size, size,size,size, fullBlockType, false, 2, fullAO);
 
         return generateEAODrawCommand(vBuffer.toFloatArray(), iBuffer.toIntArray(), vBuffer.size()/4, iBuffer.size());
     }
@@ -187,6 +226,11 @@ public abstract class Entity {
         //System.out.println("Entity made at tick " + currentTick);
         this.createdAtTick = currentTick;
         this.entityId = generateUUID();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Entity Type: %s", this.getClass());
     }
 
     public static UUID generateUUID() {

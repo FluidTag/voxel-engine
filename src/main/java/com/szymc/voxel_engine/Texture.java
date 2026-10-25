@@ -40,7 +40,36 @@ enum BLOCK_FACE {
 	WEST,
 	EAST,
 	NORTH,
-	SOUTH,
+	SOUTH;
+
+	private BLOCK_FACE opposite;
+	private BLOCK_FACE rotated90HorizontalFace;
+	private int axis;
+	private boolean isBackFace = false;
+
+	static {
+		NORTH.opposite = SOUTH; SOUTH.opposite = NORTH;
+		EAST.opposite = WEST;   WEST.opposite = EAST;
+		TOP.opposite = BOTTOM;     BOTTOM.opposite = TOP;
+
+		NORTH.axis = 2; SOUTH.axis = 2;
+		EAST.axis = 0; WEST.axis = 0;
+		TOP.axis = 1; BOTTOM.axis = 1;
+
+		BOTTOM.isBackFace = true;
+		WEST.isBackFace = true;
+		SOUTH.isBackFace = true;
+
+		NORTH.rotated90HorizontalFace = EAST;
+		EAST.rotated90HorizontalFace = SOUTH;
+		SOUTH.rotated90HorizontalFace = WEST;
+		WEST.rotated90HorizontalFace = NORTH;
+	}
+
+	public boolean isBackFace() {return this.isBackFace; }
+ 	public int getAxis() {return this.axis; }
+	public BLOCK_FACE getRotated90HorizontalFace() {return this.rotated90HorizontalFace;} // Clockwise
+	public BLOCK_FACE getOpposite() { return this.opposite; }
 }
 
 public class Texture {
@@ -63,6 +92,7 @@ public class Texture {
 	public static final byte[] toolType = new byte[256];
 	public static final float[] toolTargetedDamage = new float[256];
 
+	public static final byte[] rotationBlockTypes = new byte[256];
 	public static final Object2ShortOpenHashMap<String> craftingRecipes = new Object2ShortOpenHashMap<>();
 
 	public static void readInCraftingJson(String path) {
@@ -161,6 +191,17 @@ public class Texture {
 					if (subData.containsKey("targetedStrength")) toolTargetedDamage[blockKey] = (float)((double)subData.get("targetedStrength"));
 					if (subData.containsKey("idealTool")) idealToolType[blockKey] = (byte)((double)subData.get("idealTool"));
 					if (subData.containsKey("drops")) customBlockDrop[blockKey] = (byte)((double)subData.get("drops"));
+					if (subData.containsKey("specialRotation")) {
+						String rot = (String) subData.get("specialRotation");
+						int rotIndex = switch (rot) {
+							case "axis" -> 1;
+							case "lookHorizontal" -> 2;
+							case "lookAll" -> 3;
+							default -> 0;
+						};
+
+						rotationBlockTypes[blockKey] = (byte) rotIndex;
+					}
 
 					textures.forEach((faceName, texPath) -> {
 						if (faceName.equals("DEFAULT")) {

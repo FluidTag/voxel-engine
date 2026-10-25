@@ -158,7 +158,7 @@ public class ChunkColumn {
 	}
 
 	// Also need to set neighboring chunk segments to dirty if its on a border
-	public void setBlockInChunk(int cx, int cy, int cz, short blockType) {
+	public void setBlockInChunk(int cx, int cy, int cz, short blockType, short modifiers) {
 		int sectorI = cy >> 4;
 		ChunkSection section = getSection(sectorI);
 		if (section == null) section = initializeSection(sectorI);
@@ -168,9 +168,10 @@ public class ChunkColumn {
 			old = section.getLocalBlock(cx, cy&15, cz);
 		}
 		
-		section.setBlock(cx, (cy & 15), cz, blockType);
+		section.setBlock(cx, (cy & 15), cz, blockType, modifiers);
+
 		if (Texture.isBlockEntity[blockType]) {
-			worldReference.spawnNewBlockEntity(blockType, worldX*32 + cx, cy, worldZ*32 + cz);
+			worldReference.spawnNewBlockEntity(blockType, modifiers, worldX*32 + cx, cy, worldZ*32 + cz);
 		} else if (eLookup != null && blockType == Blocks.AIR && Texture.isBlockEntity[old]) {
 			Iterator<Entity> it = eLookup.iterator();
 			while (it.hasNext()) {
@@ -221,7 +222,7 @@ public class ChunkColumn {
 	}
 	
 	public ChunkSection initializeSection(int yIndex) {
-		if (yIndex > 15) throw new ArrayIndexOutOfBoundsException("World limit exceeded, attempting init of section index " + yIndex);
+		if (yIndex < 0 || yIndex > 15) throw new ArrayIndexOutOfBoundsException("World limit exceeded, attempting init of section index " + yIndex);
 		sections[yIndex] = new ChunkSection(new short[32*16*32], new byte[32*16*32], worldReference, worldX*32, yIndex*16, worldZ*32);
 
 		byte[] lightingData = sections[yIndex].getLightingData();
@@ -231,7 +232,7 @@ public class ChunkColumn {
 	}
 	
 	public ChunkSection getSection(int yIndex) {
-		if (yIndex > (sections.length-1)) return null;
+		if (yIndex < 0 || yIndex > (sections.length-1)) return null;
 		return sections[yIndex];
 	}
 	
@@ -341,7 +342,7 @@ public class ChunkColumn {
 
 			byte[] lighting = Arrays.copyOfRange(encodedData, offset+264 + 32*16*32, offset+264 + 32*16*32 + 32*16*32);
 
-			byte sourceSize = encodedData[offset+264 + 32*16*32 + 32*16*32];
+			byte sourceSize = (byte) (encodedData[offset+264 + 32*16*32 + 32*16*32] & 0xFF);
 			byte[] sourceData = Arrays.copyOfRange(encodedData, offset + 264 + 32*16*32 + 32*16*32 + 1, offset + 264 + 32*16*32 + 32*16*32 + 1 + sourceSize*4);
 			IntArrayList lightSrcList = new IntArrayList(sourceSize);
 

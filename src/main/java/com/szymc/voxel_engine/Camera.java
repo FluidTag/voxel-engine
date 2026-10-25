@@ -34,6 +34,40 @@ public class Camera {
 		this.pitch = pitch;
 	}
 
+	public BLOCK_FACE getHorizontalAxisDirection() {
+		double x = Math.cos(yaw * Math.PI/180) * Math.cos(pitch * Math.PI/180);
+		double z = Math.sin(yaw * Math.PI/180) * Math.cos(pitch * Math.PI/180);
+
+		double absX = Math.abs(x);
+		double absZ = Math.abs(z);
+
+		if (absX > absZ) {
+			return x > 0 ? BLOCK_FACE.EAST : BLOCK_FACE.WEST;
+		} else {
+			return z > 0 ? BLOCK_FACE.NORTH : BLOCK_FACE.SOUTH;
+		}
+	}
+
+	public BLOCK_FACE getAxisDirection() {
+		double x = Math.cos(yaw * Math.PI/180) * Math.cos(pitch * Math.PI/180);
+		double y = Math.sin(pitch * Math.PI/180);
+		double z = Math.sin(yaw * Math.PI/180) * Math.cos(pitch * Math.PI/180);
+
+		double absX = Math.abs(x);
+		double absY = Math.abs(y);
+		double absZ = Math.abs(z);
+
+		if (absY > absX && absY > absZ) {
+			return y > 0 ? BLOCK_FACE.TOP : BLOCK_FACE.BOTTOM;
+		} else if (absX > absY && absX > absZ) {
+			return x > 0 ? BLOCK_FACE.EAST : BLOCK_FACE.WEST;
+		} else if (absZ > absX && absZ > absY) {
+			return z > 0 ? BLOCK_FACE.NORTH : BLOCK_FACE.SOUTH;
+		}
+
+		return null;
+	}
+
 	public float getYaw() {
 		return this.yaw;
 	}
@@ -83,6 +117,9 @@ public class Camera {
 
 		if (pitch > 89.0f) pitch = 89.0f;
 		if (pitch < -89.0f) pitch = -89.0f;
+
+		if (yaw > 360) yaw = 0;
+		if (yaw < -360) yaw = 0;
 
 		updateCameraVectors();
 	}

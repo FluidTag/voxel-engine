@@ -262,7 +262,7 @@ public class World {
 				byte block = (byte)((change >>> 22) & 0xFF);
 				
 				if (x >= 0 && x < 32 && z >= 0 && z < 32) {
-					task.chunk.setBlockInChunk(x, y, z, block);
+					task.chunk.setBlockInChunk(x, y, z, block, (short) 0);
                 }
 			}
 			
@@ -483,8 +483,8 @@ public class World {
 		return item;
 	}
 
-	public BlockEntity spawnNewBlockEntity(short block, int wx, int wy, int wz) {
-		BlockEntity createdBlockEntity = new BlockEntity(block, tick);
+	public BlockEntity spawnNewBlockEntity(short block, short modifiers, int wx, int wy, int wz) {
+		BlockEntity createdBlockEntity = new BlockEntity(block, modifiers, tick);
 		createdBlockEntity.position.set(wx, wy, wz);
 		createdBlockEntity.previousPosition.set(wx, wy, wz);
 		createdBlockEntity.renderPosition.set(wx, wy, wz);

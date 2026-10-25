@@ -21,7 +21,7 @@ public class ChunkSection {
 		for (int y = 0; y < 16; y++) {
 			for (int z = 0; z < 32; z++) {
 				for (int x = 0; x < 32; x++) {
-					setBlock(x, y, z, data[y*32*32 + z*32 + x]);
+					setBlock(x, y, z, data[y*32*32 + z*32 + x], (short)0);
 				}
 			}
 		}
@@ -45,7 +45,7 @@ public class ChunkSection {
 		this.worldZ = wz;
 	}
 
-	public void setBlock(int x, int y, int z, short block) {
+	public void setBlock(int x, int y, int z, short block, short modifiers) {
 		if (x < 0 || x > 31) throw new IndexOutOfBoundsException();
 		if (y < 0 || y > 15) throw new IndexOutOfBoundsException();
 		if (z < 0 || z > 31) throw new IndexOutOfBoundsException();
@@ -61,7 +61,7 @@ public class ChunkSection {
 			lightBlocks.removeIf(item -> item == data);
 		}
 
-		blockData.writeBlock(x, y, z, block);
+		blockData.writeBlock(x, y, z, block, modifiers);
 	}
 
 	public short getLocalBlock(int x, int y, int z) {
