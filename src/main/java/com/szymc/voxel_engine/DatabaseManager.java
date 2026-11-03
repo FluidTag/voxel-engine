@@ -166,11 +166,11 @@ public class DatabaseManager {
 
             statement.setFloat(5, cam.getYaw());
             statement.setFloat(6, cam.getPitch());
-            ByteBuffer invBuffer = ByteBuffer.allocate(character.getInventory().length * 2);
-            invBuffer.asShortBuffer().put(character.getInventory());
+            ByteBuffer invBuffer = ByteBuffer.allocate(character.getInventory().getSize()*2);
+            invBuffer.asShortBuffer().put(character.getInventory().getRawTypes());
 
             statement.setBytes(7, invBuffer.array());
-            statement.setBytes(8, character.getInventoryAmounts());
+            statement.setBytes(8, character.getInventory().getRawAmounts());
 
             statement.executeUpdate();
         } catch (SQLException e) {

@@ -2,11 +2,7 @@ package com.szymc.voxel_engine;
 
 import org.joml.Vector3f;
 
-import java.util.Arrays;
-
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT;
-import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 
 record RaycastResult(BLOCK_FACE face, int x, int y, int z) {};
 public class PlayerCharacter {
@@ -29,37 +25,8 @@ public class PlayerCharacter {
     private boolean spectatorMode = false;
     private boolean guiInventoryActive = false;
 
-    private byte[] inventoryAmounts = new byte[36+5];
-    private short[] inventory = new short[36+5];
-
-    private short[] craftTableInventory = new short[10];
-    private byte[] craftTableAmounts = new byte[10];
-
-    public void setInventorySlot(byte index, short type, byte amount) {
-        this.inventory[index] = type;
-        this.inventoryAmounts[index] = amount;
-        if (inventoryAmounts[index] == 0) inventory[index] = 0;
-    }
-
-    public short readInventoryType(byte index) {
-        return this.inventory[index];
-    }
-
-    public byte readInventoryAmount(byte index) {
-        return this.inventoryAmounts[index];
-    }
-
-    public short[] getCraftingInv() {
-        return this.craftTableInventory;
-    }
-
-    public byte[] getCraftingAmounts() {
-        return this.craftTableAmounts;
-    }
-
-    public byte[] getInventoryAmounts() {
-        return this.inventoryAmounts;
-    }
+    private ContainerData inventory;
+    private InventoryScreen inventoryScreen;
 
     public boolean getPlayerGuiInventoryActive() {return this.guiInventoryActive;}
 
@@ -163,13 +130,11 @@ public class PlayerCharacter {
         if (guiInventoryActive) {
             glfwSetInputMode(windowReference.getWindowId(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             glfwSetCursorPos(windowReference.getWindowId(), (double) App.WINDOW_WIDTH /2, (double) App.WINDOW_HEIGHT /2);
+            engineAttachment.setActiveGuiScreen(inventoryScreen);
         } else {
             glfwSetInputMode(windowReference.getWindowId(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            engineAttachment.requestDropOfGuiDraggedItem(true);
-            engineAttachment.setActiveInventoryDrag(null, true, true, true);
             firstMouse = true;
-            engineAttachment.flushCraftingGui();
-            engineAttachment.inCraftingTable = false;
+            engineAttachment.setActiveGuiScreen(null);
         }
     }
     private int lastInvIndexClicked = -1;
@@ -178,8 +143,8 @@ public class PlayerCharacter {
     private static final int doubleGrabDelayMs = 164;
 
     public void setInventoryStruct(short[] inv, byte[] amounts) {
-        this.inventory = inv;
-        this.inventoryAmounts = amounts;
+        this.inventory = new ContainerData(inv.length);
+        this.inventoryScreen = new InventoryScreen(this.inventory);
     }
 
     public PlayerCharacter(Camera playerCamera, World worldReference, Window windowReference, Engine engineAttachment) {
@@ -187,6 +152,8 @@ public class PlayerCharacter {
         this.worldReference = worldReference;
         this.windowReference = windowReference;
         this.engineAttachment = engineAttachment;
+        this.inventory = new ContainerData(36);
+        this.inventoryScreen = new InventoryScreen(this.inventory);
 //        inventory[0] = Blocks.TORCH;
 //        inventoryAmounts[0] = 64;
 //
@@ -194,8 +161,7 @@ public class PlayerCharacter {
 //        inventoryAmounts[1] = 64;
 //
 //        inventory[2] = Blocks.CRAFTING_TABLE;
-//        inventoryAmounts[2] = 4;
-
+//        inventoryAmounts[2] =
         glfwSetScrollCallback(windowReference.getWindowId(), (windowHandle, xOffset, yOffset) -> {
             if (guiInventoryActive) return;
             if (yOffset < 0) {
@@ -218,7 +184,7 @@ public class PlayerCharacter {
             }
 
             if (key == GLFW_KEY_Q && action == GLFW_PRESS && !guiInventoryActive) {
-                engineAttachment.requestDropInvIndex((byte) currentHotbarSlot, inventory, inventoryAmounts, ((mods & GLFW_MOD_CONTROL) != 0 ? inventoryAmounts[currentHotbarSlot] : 1));
+                //engineAttachment.requestDropInvIndex((byte) currentHotbarSlot, inventory, inventoryAmounts, ((mods & GLFW_MOD_CONTROL) != 0 ? inventoryAmounts[currentHotbarSlot] : 1));
             }
         });
 
@@ -227,111 +193,15 @@ public class PlayerCharacter {
                 engineAttachment.mouseReleased();
             }
 
-            if (guiInventoryActive && (button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
-                long millsElapsed = (System.nanoTime()-lastClickTime)/1_000_000;
-                lastClickTime = System.nanoTime();
+            double[] tempMposX = new double[1];
+            double[] tempMposY = new double[1];
+            glfwGetCursorPos(windowHandle, tempMposX, tempMposY);
+            double mouseX = tempMposX[0];
+            double mouseY = tempMposY[0];
 
-                int slotSize = 64;
-                int offsetX = (int)((App.WINDOW_WIDTH/2.0f)-(slotSize*4.5f));
-                int topAreaSize = 270;
-                float invPosY = (float) App.WINDOW_HEIGHT / 2 - (float) (slotSize * 4 + 2 + topAreaSize)/2 + topAreaSize;
-
-                int hotbarGap = 12;
-                double[] mxPos = new double[1]; double[] myPos = new double[1];
-
-                int craftXpos = offsetX-2 + (slotSize * 9 + 4) - 2*slotSize - 155;
-                int craftYpos = (int) (invPosY + 65);
-                int resultSlotX = craftXpos+2*slotSize+75;
-                int resultSlotY = (int) (craftYpos + slotSize / 2f - topAreaSize);
-
-                glfwGetCursorPos(windowReference.getWindowId(), mxPos, myPos);
-
-                if (engineAttachment.inCraftingTable) {
-                    int craftTableXpos = offsetX-2 + (slotSize*9 + 4)/2 - (3*slotSize)/2;
-                    int craftTableYpos = (int) (invPosY - topAreaSize + topAreaSize/2f - (3*slotSize)/2f);
-                    int resultTableX = craftTableXpos + 4*slotSize;
-                    int resultTableY = craftTableYpos + (3*slotSize)/2 - slotSize/2;
-
-                    int xClicked = (int) ((mxPos[0]-craftTableXpos+slotSize)/slotSize);
-                    int yClicked = (int) ((myPos[0]-craftTableYpos+slotSize)/slotSize);
-
-                    if (mxPos[0] > resultTableX && mxPos[0] < resultTableX+slotSize && myPos[0] > resultTableY && myPos[0] < resultTableY+slotSize) {
-                        engineAttachment.setActiveInventoryDrag(
-                                new Engine.InventoryActiveItem(craftTableInventory[9], craftTableAmounts[9], xClicked, yClicked, 9, craftTableInventory, craftTableAmounts),
-                                button == GLFW_MOUSE_BUTTON_LEFT, (mods & GLFW_MOD_SHIFT) != 0, false
-                        );
-
-                        return;
-                    }
-
-                    if (xClicked >= 1 && xClicked <= 3 && yClicked >= 1 && yClicked <= 3) {
-                        xClicked--; yClicked--;
-                        yClicked = 2-yClicked;
-                        int ind = xClicked*3 + yClicked;
-                        boolean isDoubleClick = (ind == lastInvIndexClicked && lastInvTypesClicked == craftTableInventory && millsElapsed < doubleGrabDelayMs);
-                        lastInvIndexClicked = ind;
-                        lastInvTypesClicked = craftTableInventory;
-
-                        engineAttachment.setActiveInventoryDrag(
-                                new Engine.InventoryActiveItem(craftTableInventory[ind], craftTableAmounts[ind], xClicked, yClicked, ind, craftTableInventory, craftTableAmounts),
-                                button == GLFW_MOUSE_BUTTON_LEFT, (mods & GLFW_MOD_SHIFT) != 0, isDoubleClick
-                                );
-                        return;
-                    }
-                }
-
-                if (mxPos[0] > resultSlotX && mxPos[0] < resultSlotX+slotSize && myPos[0] > resultSlotY && myPos[0] < resultSlotY+slotSize) {
-                    engineAttachment.setActiveInventoryDrag(
-                            new Engine.InventoryActiveItem(readInventoryType((byte)40), readInventoryAmount((byte)40), 0, 0, 40, inventory, inventoryAmounts),
-                            button == GLFW_MOUSE_BUTTON_LEFT, (mods & GLFW_MOD_SHIFT) != 0, false
-                    );
-                    return;
-                }
-
-                int xSlot = (int) ((mxPos[0] - offsetX + slotSize - 2) / slotSize);
-
-                if (xSlot < 1 || xSlot > 9) {engineAttachment.requestDropOfGuiDraggedItem(button == GLFW_MOUSE_BUTTON_LEFT); return;}
-
-                if ((myPos[0] > invPosY + slotSize*3) && (myPos[0] < invPosY + slotSize*3 + hotbarGap)) return;
-                if (myPos[0] > invPosY + slotSize*3) myPos[0] -= hotbarGap;
-
-                int ySlot = (int) ((myPos[0] - invPosY + slotSize - 2) / slotSize);
-                if (ySlot < 1 || ySlot > 4) {
-                    int checkCx = (int) ((mxPos[0] - craftXpos + slotSize) / slotSize)-1;
-                    int checkCy = (int) ((craftYpos - myPos[0] - slotSize) / slotSize)-1;
-                    if (checkCx < 0 || checkCx > 1 || checkCy < 0 || checkCy > 1) {
-                        engineAttachment.requestDropOfGuiDraggedItem(button == GLFW_MOUSE_BUTTON_LEFT);
-                        return;
-                    };
-
-                    //System.out.println(checkCx + ", " + checkCy);
-                    int adjIndex = 36 + (checkCx)*2 + checkCy;
-                    boolean isDoubleClick = (lastInvIndexClicked == adjIndex && lastInvTypesClicked == inventory && millsElapsed < doubleGrabDelayMs);
-                    lastInvIndexClicked = adjIndex;
-                    lastInvTypesClicked = inventory;
-
-                    engineAttachment.setActiveInventoryDrag(
-                            new Engine.InventoryActiveItem(inventory[adjIndex], inventoryAmounts[adjIndex], xSlot-1, ySlot-1, adjIndex, inventory, inventoryAmounts),
-                            button == GLFW_MOUSE_BUTTON_LEFT,
-                            (mods & GLFW_MOD_SHIFT) != 0, isDoubleClick
-                    );
-                    return;
-                }
-
-                //System.out.println(xSlot + ", " + ySlot);
-
-                int invIndex = (4-ySlot)*9 + (xSlot-1);
-                //System.out.printf("This Index: %d, Last Index: %d, Elapsed: %d%n", invIndex, lastInvIndexClicked, millsElapsed);
-                boolean isDoubleClick = (lastInvIndexClicked == invIndex && lastInvTypesClicked == inventory && millsElapsed < doubleGrabDelayMs);
-                lastInvIndexClicked = invIndex;
-                lastInvTypesClicked = inventory;
-
-                engineAttachment.setActiveInventoryDrag(
-                        new Engine.InventoryActiveItem(inventory[invIndex], inventoryAmounts[invIndex], xSlot-1, ySlot-1, invIndex, inventory, inventoryAmounts),
-                        button == GLFW_MOUSE_BUTTON_LEFT,
-                        (mods & GLFW_MOD_SHIFT) != 0, isDoubleClick
-                );
-                return;
+            if (action == GLFW_PRESS && guiInventoryActive) {
+                System.out.println(mouseX + ", " + mouseY);
+                engineAttachment.handleGuiMouseClick((int) mouseX, (int) mouseY, button, mods);
             }
 
             if (guiInventoryActive) return;
@@ -346,14 +216,14 @@ public class PlayerCharacter {
 
                     int axis = -1;
                     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-                        if (Texture.isItemOnly[inventory[currentHotbarSlot]]) return;
+                        if (Texture.isItemOnly[inventory.readType(currentHotbarSlot)]) return;
                         short lookingAtBlock = worldReference.getLoadedChunkAtPos(x>>5, z>>5).getBlockInChunk(x&31, y, z&31);
-                        if (inventory[currentHotbarSlot] == 0 && lookingAtBlock == Blocks.CRAFTING_TABLE) {
-                            engineAttachment.inCraftingTable = true;
+                        if (inventory.isEmptyAt(currentHotbarSlot) && lookingAtBlock == Blocks.CRAFTING_TABLE) {
+                            //engineAttachment.inCraftingTable = true;
                             if (!guiInventoryActive) toggleInventoryGui();
 
                             return;
-                        } else if (inventory[currentHotbarSlot] == 0) {
+                        } else if (inventory.isEmptyAt(currentHotbarSlot)) {
                             return;
                         }
 
@@ -403,13 +273,13 @@ public class PlayerCharacter {
                         if (block == Blocks.AIR) return;
 
                         engineAttachment.startMining(x, y, z);
-                    } else if (inventory[currentHotbarSlot] != 0 && inventoryAmounts[currentHotbarSlot] > 0) {
-                        int rotationType = Texture.rotationBlockTypes[inventory[currentHotbarSlot]];
+                    } else if (!inventory.isEmptyAt(currentHotbarSlot) && inventory.readAmount(currentHotbarSlot) > 0) {
+                        int rotationType = Texture.rotationBlockTypes[inventory.readType(currentHotbarSlot)];
                         short modifiers = (short) (rotationType & 0x3);
 
-                        if (Texture.rotationBlockTypes[inventory[currentHotbarSlot]] == 1) { // AXIS
+                        if (Texture.rotationBlockTypes[inventory.readType(currentHotbarSlot)] == 1) { // AXIS
                             modifiers |= (short) ((axis & 0x3) << 2);
-                        } else if (Texture.rotationBlockTypes[inventory[currentHotbarSlot]] == 2) { // LOOK HORIZONTAL
+                        } else if (Texture.rotationBlockTypes[inventory.readType(currentHotbarSlot)] == 2) { // LOOK HORIZONTAL
                             System.out.println("Placing block entity at " + playerCamera.getHorizontalAxisDirection());
                             BLOCK_FACE camLookDir = playerCamera.getHorizontalAxisDirection();
 
@@ -422,19 +292,18 @@ public class PlayerCharacter {
                             };
 
                             modifiers |= (short) ((rightAngleRotateAmount & 0x3) << 2);
-                        } else if (Texture.rotationBlockTypes[inventory[currentHotbarSlot]] == 3) { // LOOK ALL
+                        } else if (Texture.rotationBlockTypes[inventory.readType(currentHotbarSlot)] == 3) { // LOOK ALL
                             // Unimplemented but reserved
                         }
 
                         System.out.println(axis + ": " + Integer.toBinaryString(modifiers));
 
-                        chunk.setBlockInChunk(x & 31, y, z & 31, inventory[currentHotbarSlot], modifiers);
-                        inventoryAmounts[currentHotbarSlot]--;
-                        if (inventoryAmounts[currentHotbarSlot] == 0) inventory[currentHotbarSlot] = 0;
+                        chunk.setBlockInChunk(x & 31, y, z & 31, inventory.readType(currentHotbarSlot), modifiers);
+                        inventory.decrementIndex(currentHotbarSlot);
                         chunk.setSectionDirty(y >> 4);
                         chunk.playerModification();
 
-                        worldReference.updateChunk(cx, y, cz, x&31, z&31, true, inventory[currentHotbarSlot]);
+                        worldReference.updateChunk(cx, y, cz, x&31, z&31, true, inventory.readType(currentHotbarSlot));
                     }
                 }
             }
@@ -460,7 +329,7 @@ public class PlayerCharacter {
         });
     }
 
-    public short[] getInventory() {
+    public ContainerData getInventory() {
         return inventory;
     }
 
@@ -534,6 +403,7 @@ public class PlayerCharacter {
 
     @Override
     public String toString() {
-        return "Camera: " + getPlayerCamera() + "\nInventory: " + Arrays.toString(inventory) + "\nInventoryAmounts: " + Arrays.toString(inventoryAmounts);
+        return "Needs adjustment";
+        //return "Camera: " + getPlayerCamera() + "\nInventory: " + Arrays.toString(inventory) + "\nInventoryAmounts: " + Arrays.toString(inventoryAmounts);
     }
 }

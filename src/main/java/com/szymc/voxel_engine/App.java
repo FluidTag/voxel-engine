@@ -155,16 +155,16 @@ public class App {
 							// Locate empty inventory slot
 							byte slot = -1;
 							for (byte i = 0; i < 36; i++) {
-								short inventoryType = character.readInventoryType(i);
+								short inventoryType = character.getInventory().readType(i);
 								if (inventoryType == 0 && slot == -1) slot = i;
-								if (inventoryType == item.item && character.readInventoryAmount(i) < 64) {
+								if (inventoryType == item.item && character.getInventory().readAmount(i) < 64) {
 									slot = i;
 									break;
 								}
 							}
 
 							if (slot != -1) {
-								character.setInventorySlot(slot, item.item, (byte)(character.readInventoryAmount(slot)+1));
+								character.getInventory().set(slot, item.item, (byte)(character.getInventory().readAmount(slot)+1));
 								mainWorld.addEntityIdToDeleteList(item.entityId);
 								if (item.currentChunk != null) item.currentChunk.removeEntityLookup(item);
 							} else System.out.println("Inventory full");

@@ -386,6 +386,18 @@ public class UIRenderer {
         glUniformMatrix4fv(fontShader.proj_loc, false, screenOrtho.get(matrixBuffer));
     }
 
+    public void end() {
+        glBindVertexArray(0);
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0);
+
+        glUseProgram(0);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+    }
+
     public void drawIcon(short blockId, float screenX, float screenY, float width, float height) {
         int tileX = blockId%16;
         int tileY = blockId/16;
@@ -608,18 +620,6 @@ public class UIRenderer {
             glBufferSubData(GL_ARRAY_BUFFER, 0, bufferedElements);
             glDrawArrays(GL_TRIANGLES, 0, verts.size()/4);
         }
-    }
-
-    public void end() {
-        glBindVertexArray(0);
-
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glActiveTexture(GL_TEXTURE0);
-
-        glUseProgram(0);
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
     }
 
     public int compileUIShaders() {
