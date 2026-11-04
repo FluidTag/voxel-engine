@@ -143,8 +143,8 @@ public class PlayerCharacter {
     private static final int doubleGrabDelayMs = 164;
 
     public void setInventoryStruct(short[] inv, byte[] amounts) {
-        this.inventory = new ContainerData(inv.length);
-        this.inventoryScreen = new InventoryScreen(this.inventory);
+        this.inventory = new ContainerData(inv, amounts);
+        this.inventoryScreen = InventoryScreen.create(this.inventory);
     }
 
     public PlayerCharacter(Camera playerCamera, World worldReference, Window windowReference, Engine engineAttachment) {
@@ -153,7 +153,8 @@ public class PlayerCharacter {
         this.windowReference = windowReference;
         this.engineAttachment = engineAttachment;
         this.inventory = new ContainerData(36);
-        this.inventoryScreen = new InventoryScreen(this.inventory);
+        this.inventoryScreen = InventoryScreen.create(this.inventory);
+
 //        inventory[0] = Blocks.TORCH;
 //        inventoryAmounts[0] = 64;
 //

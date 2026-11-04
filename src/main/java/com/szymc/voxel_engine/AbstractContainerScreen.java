@@ -1,12 +1,17 @@
 package com.szymc.voxel_engine;
 
 import java.util.List;
+import java.util.Set;
+
 import static org.lwjgl.glfw.GLFW.*;
 
 public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> extends Screen {
     protected int topPos;
     protected int leftPos;
     protected final T menu;
+    private int lastIndexClicked;
+    private ContainerData lastContainerClicked;
+    private long lastClick;
 
     public record InventoryActiveItem(ContainerData container, int index, short type, byte amount) {}
     private InventoryActiveItem activeInventoryDrag = null;
@@ -18,14 +23,62 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         this.leftPos = 0;
     }
 
-    public void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick, boolean isShiftClick, boolean isDoubleClick) {
+    public void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick, boolean isDoubleClick) {
+        System.out.println(isLeftClick + ", " + isDoubleClick);
+        if (itemData == null) return;
+        // Container sets automatically handle <= 0 amounts
+
+        if (isDoubleClick && isLeftClick) {
+            int amountTaken = activeInventoryDrag == null ? itemData.amount : activeInventoryDrag.amount;
+            short gatherType = activeInventoryDrag == null ? itemData.type : activeInventoryDrag.type;
+            if (gatherType == 0) return;
+            itemData.container.set(itemData.index, 0, 0);
+
+            for (int i = 0; i < itemData.container.getSize(); i++) {
+                if (itemData.container.readType(i) == gatherType) {
+                    int maxCanTake = 64-amountTaken;
+                    int beingTaken = Math.min(itemData.container.readAmount(i), maxCanTake);
+                    itemData.container.set(i, itemData.container.readType(i), itemData.container.readAmount(i)-beingTaken);
+
+                    amountTaken += beingTaken;
+                    if (amountTaken == 64) break;
+                }
+            }
+
+            activeInventoryDrag = new InventoryActiveItem(
+                    activeInventoryDrag == null ? itemData.container : activeInventoryDrag.container,
+                    activeInventoryDrag == null ? itemData.index : activeInventoryDrag.index, gatherType, (byte) amountTaken);
+
+            return;
+        }
+
         if (!itemData.container.isEmptyAt(itemData.index) && activeInventoryDrag == null) {
+            if (!isLeftClick) {
+                if (itemData.amount <= 1) return;
+
+                int half = itemData.amount/2;
+                itemData.container.set(itemData.index, itemData.type, itemData.amount-half);
+                activeInventoryDrag = new InventoryActiveItem(itemData.container, itemData.index, itemData.type, (byte) half);
+                return;
+            }
+
             activeInventoryDrag = itemData;
             itemData.container.set(itemData.index, 0, 0);
             return;
         }
 
         if (activeInventoryDrag != null) {
+            if (!isLeftClick) {
+                if (activeInventoryDrag.amount <= 1 || itemData.amount == 64) return;
+                if (activeInventoryDrag.type != itemData.type && itemData.type != 0) return;
+
+                activeInventoryDrag = new InventoryActiveItem(activeInventoryDrag.container, activeInventoryDrag.index, activeInventoryDrag.type, (byte) (activeInventoryDrag.amount-1));
+                itemData.container.set(itemData.index, activeInventoryDrag.type, itemData.amount+1);
+
+                if (activeInventoryDrag.amount == 0) activeInventoryDrag = null;
+                return;
+            }
+
             if (itemData.container.isEmptyAt(itemData.index)) {
                 itemData.container.set(itemData.index, activeInventoryDrag.type, activeInventoryDrag.amount);
                 activeInventoryDrag = null;
@@ -54,6 +107,42 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         }
 
         // More not shown..
+    }
+
+    public void shiftClickTransfer(InventoryActiveItem itemData) {
+        if (activeInventoryDrag != null) return;
+
+        ContainerData otherContainer = null;
+        for (ContainerData cont : menu.getContainersIncluded()) {
+            if (cont != itemData.container) {
+                otherContainer = cont;
+                break;
+            }
+        }
+
+        if (otherContainer == null) return;
+        int amountRemaining = itemData.amount;
+        for (int i = 0; i < otherContainer.getSize(); i++) {
+            if (otherContainer.readType(i) == itemData.type) {
+                int maxCanBeApplied = 64-otherContainer.readAmount(i);
+                int beingApplied = Math.min(amountRemaining, maxCanBeApplied);
+
+                otherContainer.set(i, itemData.type, otherContainer.readAmount(i)+beingApplied);
+                amountRemaining-=beingApplied;
+            }
+        }
+
+        if (amountRemaining > 0) {
+            for (int i = 0; i < otherContainer.getSize(); i++) {
+                if (otherContainer.isEmptyAt(i)) {
+                    otherContainer.set(i, itemData.type, amountRemaining);
+                    amountRemaining-=amountRemaining;
+                    break;
+                }
+            }
+        }
+
+        itemData.container.set(itemData.index, itemData.type, amountRemaining);
     }
 
     @Override
@@ -94,12 +183,25 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
             return true;
         }
 
+        long elapsed = (System.nanoTime() - lastClick) / 1_000_000;
+        lastClick = System.nanoTime();
+
         for (int i = 0; i < menu.getSlots().size(); i++) {
             // Check if hovering over
             Slot slot = menu.getSlots().get(i);
             if (mouseX >= leftPos + slot.anchorX + slot.x && mouseX <= leftPos + slot.anchorX + slot.x + slot.size
             && mouseY >= topPos + slot.anchorY + slot.y && mouseY <= topPos + slot.anchorY + slot.y + slot.size) {
-                setActiveInventoryDrag(new InventoryActiveItem(slot.container, slot.index, slot.container.readType(slot.index), slot.container.readAmount(slot.index)), button == GLFW_MOUSE_BUTTON_LEFT, (mods & GLFW_MOD_SHIFT) != 0, false);
+                boolean isDoubleClick = (lastContainerClicked == slot.container && lastIndexClicked == slot.index && elapsed < 164);
+                InventoryActiveItem itemData = new InventoryActiveItem(slot.container, slot.index, slot.container.readType(slot.index), slot.container.readAmount(slot.index));
+
+                if ((mods & GLFW_MOD_SHIFT) != 0 && activeInventoryDrag == null) {
+                    shiftClickTransfer(itemData);
+                } else {
+                    setActiveInventoryDrag(itemData, button == GLFW_MOUSE_BUTTON_LEFT, isDoubleClick);
+                }
+
+                lastContainerClicked = slot.container;
+                lastIndexClicked = slot.index;
                 return true;
             }
         };

@@ -166,7 +166,7 @@ public class DatabaseManager {
 
             statement.setFloat(5, cam.getYaw());
             statement.setFloat(6, cam.getPitch());
-            ByteBuffer invBuffer = ByteBuffer.allocate(character.getInventory().getSize()*2);
+            ByteBuffer invBuffer = ByteBuffer.allocate(character.getInventory().getRawAmounts().length*2);
             invBuffer.asShortBuffer().put(character.getInventory().getRawTypes());
 
             statement.setBytes(7, invBuffer.array());
