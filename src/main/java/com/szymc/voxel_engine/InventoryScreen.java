@@ -28,7 +28,7 @@ public class InventoryScreen extends AbstractContainerScreen<InventoryMenu> {
     @Override
     public void shiftClickTransfer(InventoryActiveItem itemData) {
         int startSearch = itemData.index() < 9 ? 9 : 0;
-        int endSearch = itemData.index() < 9 ? 35 : 8;
+        int endSearch = itemData.index() < 9 ? 36 : 8;
 
         int amountRemaining = itemData.amount();
         for (int i = startSearch; i <= endSearch; i++) {
@@ -52,6 +52,53 @@ public class InventoryScreen extends AbstractContainerScreen<InventoryMenu> {
         }
 
         itemData.container().set(itemData.index(), itemData.type(), amountRemaining);
+    }
+
+    private final static int[][] passes = {
+            {9, 35, 0},
+            {0, 8,  0},
+            {9, 35, 1},
+            {0, 8,  1}
+    };
+
+    @Override
+    public InventoryActiveItem doubleClickTransfer(InventoryActiveItem itemData, InventoryActiveItem currentActiveItem) {
+        int amountTaken = currentActiveItem == null ? itemData.amount() : currentActiveItem.amount();
+        short gatherType = currentActiveItem == null ? itemData.type() : currentActiveItem.type();
+        if (gatherType == 0) return null;
+
+        if (currentActiveItem == null) {
+            itemData.container().set(itemData.index(), 0, 0);
+        }
+
+        for (int p = 0; p < passes.length; p++) {
+            int[] dat = passes[p];
+            int startInd = dat[0];
+            int endInd = dat[1];
+            boolean fullStacksOnly = dat[2] == 1;
+            boolean endLoop = false;
+
+            for (int i = startInd; i <= endInd; i++) {
+                if (itemData.container().readType(i) == gatherType) {
+                    if (!fullStacksOnly && itemData.container().readAmount(i) == 64) continue;
+
+                    int maxCanTake = 64-amountTaken;
+                    int beingTaken = Math.min(itemData.container().readAmount(i), maxCanTake);
+                    itemData.container().set(i, itemData.container().readType(i), itemData.container().readAmount(i)-beingTaken);
+
+                    amountTaken += beingTaken;
+                    if (amountTaken == 64) {endLoop = true; break;}
+                }
+            }
+
+            if (endLoop) break;
+        }
+
+        currentActiveItem = new InventoryActiveItem(
+                currentActiveItem == null ? itemData.container() : currentActiveItem.container(),
+                currentActiveItem == null ? itemData.index() : currentActiveItem.index(), gatherType, (byte) amountTaken);
+
+        return currentActiveItem;
     }
 
     @Override

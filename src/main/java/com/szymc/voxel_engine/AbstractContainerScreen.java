@@ -23,34 +23,9 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         this.leftPos = 0;
     }
 
-    public void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick, boolean isDoubleClick) {
-        System.out.println(isLeftClick + ", " + isDoubleClick);
+    public void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick) {
         if (itemData == null) return;
         // Container sets automatically handle <= 0 amounts
-
-        if (isDoubleClick && isLeftClick) {
-            int amountTaken = activeInventoryDrag == null ? itemData.amount : activeInventoryDrag.amount;
-            short gatherType = activeInventoryDrag == null ? itemData.type : activeInventoryDrag.type;
-            if (gatherType == 0) return;
-            itemData.container.set(itemData.index, 0, 0);
-
-            for (int i = 0; i < itemData.container.getSize(); i++) {
-                if (itemData.container.readType(i) == gatherType) {
-                    int maxCanTake = 64-amountTaken;
-                    int beingTaken = Math.min(itemData.container.readAmount(i), maxCanTake);
-                    itemData.container.set(i, itemData.container.readType(i), itemData.container.readAmount(i)-beingTaken);
-
-                    amountTaken += beingTaken;
-                    if (amountTaken == 64) break;
-                }
-            }
-
-            activeInventoryDrag = new InventoryActiveItem(
-                    activeInventoryDrag == null ? itemData.container : activeInventoryDrag.container,
-                    activeInventoryDrag == null ? itemData.index : activeInventoryDrag.index, gatherType, (byte) amountTaken);
-
-            return;
-        }
 
         if (!itemData.container.isEmptyAt(itemData.index) && activeInventoryDrag == null) {
             if (!isLeftClick) {
@@ -97,7 +72,7 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
                 }
 
                 return;
-            } else if (itemData.container.readType(itemData.index) != activeInventoryDrag.type) {
+            } else if (itemData.container.readType(itemData.index) != activeInventoryDrag.type || itemData.container.readAmount(itemData.index) == 64) {
                 int oldType = itemData.container.readType(itemData.index); int oldAmount = itemData.container.readAmount(itemData.index);
 
                 itemData.container.set(itemData.index, activeInventoryDrag.type, activeInventoryDrag.amount);
@@ -107,6 +82,50 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         }
 
         // More not shown..
+    }
+
+    public InventoryActiveItem doubleClickTransfer(InventoryActiveItem itemData, InventoryActiveItem currentActiveItem) {
+        int amountTaken = currentActiveItem == null ? itemData.amount : currentActiveItem.amount;
+        short gatherType = currentActiveItem == null ? itemData.type : currentActiveItem.type;
+        if (gatherType == 0) return null;
+
+        if (currentActiveItem == null) {
+            itemData.container.set(itemData.index, 0, 0);
+        }
+
+        for (int i = 0; i < itemData.container.getSize(); i++) {
+            if (currentActiveItem == null && i == itemData.index) continue;
+
+            if (itemData.container.readType(i) == gatherType && itemData.container.readAmount(i) != 64) {
+                int maxCanTake = 64-amountTaken;
+                int beingTaken = Math.min(itemData.container.readAmount(i), maxCanTake);
+                itemData.container.set(i, itemData.container.readType(i), itemData.container.readAmount(i)-beingTaken);
+
+                amountTaken += beingTaken;
+                if (amountTaken == 64) break;
+            }
+        }
+
+        if (amountTaken < 64) {
+            for (int i = 0; i < itemData.container.getSize(); i++) {
+                if (currentActiveItem == null && i == itemData.index) continue;
+
+                if (itemData.container.readType(i) == gatherType && itemData.container.readAmount(i) == 64) {
+                    int maxCanTake = 64-amountTaken;
+                    int beingTaken = Math.min(itemData.container.readAmount(i), maxCanTake);
+                    itemData.container.set(i, itemData.container.readType(i), itemData.container.readAmount(i)-beingTaken);
+
+                    amountTaken += beingTaken;
+                    if (amountTaken == 64) break;
+                }
+            }
+        }
+
+        currentActiveItem = new InventoryActiveItem(
+                currentActiveItem == null ? itemData.container : currentActiveItem.container,
+                currentActiveItem == null ? itemData.index : currentActiveItem.index, gatherType, (byte) amountTaken);
+
+        return currentActiveItem;
     }
 
     public void shiftClickTransfer(InventoryActiveItem itemData) {
@@ -122,7 +141,7 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
 
         if (otherContainer == null) return;
         int amountRemaining = itemData.amount;
-        for (int i = 0; i < otherContainer.getSize(); i++) {
+        for (int i = otherContainer.getSize(); i >= 0; i--) {
             if (otherContainer.readType(i) == itemData.type) {
                 int maxCanBeApplied = 64-otherContainer.readAmount(i);
                 int beingApplied = Math.min(amountRemaining, maxCanBeApplied);
@@ -133,7 +152,7 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         }
 
         if (amountRemaining > 0) {
-            for (int i = 0; i < otherContainer.getSize(); i++) {
+            for (int i = otherContainer.getSize(); i >= 0; i--) {
                 if (otherContainer.isEmptyAt(i)) {
                     otherContainer.set(i, itemData.type, amountRemaining);
                     amountRemaining-=amountRemaining;
@@ -194,10 +213,15 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
                 boolean isDoubleClick = (lastContainerClicked == slot.container && lastIndexClicked == slot.index && elapsed < 164);
                 InventoryActiveItem itemData = new InventoryActiveItem(slot.container, slot.index, slot.container.readType(slot.index), slot.container.readAmount(slot.index));
 
-                if ((mods & GLFW_MOD_SHIFT) != 0 && activeInventoryDrag == null) {
+                boolean isLeftClick = button == GLFW_MOUSE_BUTTON_1;
+                boolean isShiftClick = (mods & GLFW_MOD_SHIFT) != 0;
+
+                if (isShiftClick && activeInventoryDrag == null) {
                     shiftClickTransfer(itemData);
+                } else if (isDoubleClick && isLeftClick) {
+                    activeInventoryDrag = doubleClickTransfer(itemData, activeInventoryDrag);
                 } else {
-                    setActiveInventoryDrag(itemData, button == GLFW_MOUSE_BUTTON_LEFT, isDoubleClick);
+                    setActiveInventoryDrag(itemData, isLeftClick);
                 }
 
                 lastContainerClicked = slot.container;
