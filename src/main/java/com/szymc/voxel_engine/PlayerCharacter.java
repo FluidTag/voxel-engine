@@ -1,5 +1,6 @@
 package com.szymc.voxel_engine;
 
+import com.szymc.gui.InventoryScreen;
 import org.joml.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.*;

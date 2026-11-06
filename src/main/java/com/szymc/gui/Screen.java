@@ -1,4 +1,6 @@
-package com.szymc.voxel_engine;
+package com.szymc.gui;
+
+import com.szymc.voxel_engine.UIRenderer;
 
 import java.util.ArrayList;
 import java.util.List;

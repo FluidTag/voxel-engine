@@ -552,7 +552,7 @@ public class UIRenderer {
         fontShader.stop();
     }
 
-    enum TextAlignment {
+    public enum TextAlignment {
         LEFT,
         CENTER,
         RIGHT

@@ -1,4 +1,4 @@
-package com.szymc.voxel_engine;
+package com.szymc.gui;
 
 public interface GuiEventListener {
     boolean mouseButtonClick(int screenX, int screenY, int button, int mods);

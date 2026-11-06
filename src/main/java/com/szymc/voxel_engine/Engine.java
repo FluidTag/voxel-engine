@@ -1,4 +1,5 @@
 package com.szymc.voxel_engine;
+import com.szymc.gui.Screen;
 import com.szymc.localShaders.EntityShader;
 import com.szymc.localShaders.OutlineShader;
 
@@ -6,10 +7,7 @@ import com.szymc.localShaders.OutlineShader;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL32.*;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import org.lwjgl.system.MemoryStack;
 
 

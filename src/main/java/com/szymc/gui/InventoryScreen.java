@@ -1,4 +1,8 @@
-package com.szymc.voxel_engine;
+package com.szymc.gui;
+
+import com.szymc.voxel_engine.App;
+import com.szymc.voxel_engine.ContainerData;
+import com.szymc.voxel_engine.UIRenderer;
 
 public class InventoryScreen extends AbstractContainerScreen<InventoryMenu> {
     private final static int padding = 16;

@@ -1,7 +1,10 @@
-package com.szymc.voxel_engine;
+package com.szymc.gui;
+
+import com.szymc.voxel_engine.App;
+import com.szymc.voxel_engine.ContainerData;
+import com.szymc.voxel_engine.UIRenderer;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.lwjgl.glfw.GLFW.*;
 
@@ -23,7 +26,7 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         this.leftPos = 0;
     }
 
-    public void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick) {
+    private void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick) {
         if (itemData == null) return;
         // Container sets automatically handle <= 0 amounts
 
@@ -84,7 +87,7 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         // More not shown..
     }
 
-    public InventoryActiveItem doubleClickTransfer(InventoryActiveItem itemData, InventoryActiveItem currentActiveItem) {
+    protected InventoryActiveItem doubleClickTransfer(InventoryActiveItem itemData, InventoryActiveItem currentActiveItem) {
         int amountTaken = currentActiveItem == null ? itemData.amount : currentActiveItem.amount;
         short gatherType = currentActiveItem == null ? itemData.type : currentActiveItem.type;
         if (gatherType == 0) return null;
@@ -128,7 +131,7 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         return currentActiveItem;
     }
 
-    public void shiftClickTransfer(InventoryActiveItem itemData) {
+    protected void shiftClickTransfer(InventoryActiveItem itemData) {
         if (activeInventoryDrag != null) return;
 
         ContainerData otherContainer = null;

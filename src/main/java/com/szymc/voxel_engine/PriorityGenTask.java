@@ -1,4 +1,5 @@
 package com.szymc.voxel_engine;
+
 public class PriorityGenTask implements Runnable, Prioritizable {
 	private final Runnable internalTask;
 	private int priority;
