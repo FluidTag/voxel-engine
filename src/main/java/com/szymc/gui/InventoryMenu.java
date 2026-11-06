@@ -11,10 +11,12 @@ public class InventoryMenu extends AbstractContainerMenu {
 
         for (int y = 0; y < 2; y++) {
             for (int x = 0; x < 2; x++) {
-                int index = 36 + (1-y)*2 + x;
-                this.addSlot(new Slot(playerInv, index, 6*64, 64-hotbarGap, 64*x, 64*y, 64));
+                int index = 36 + y*2 + x;
+                this.addSlot(new Slot(playerInv, index, 4*64, 64-hotbarGap, 64*x, 64*y, 64));
             }
         }
+
+        this.addSlot(new Slot(playerInv, 40, 7*64, 64-hotbarGap + 32, 0, 0, 64).setOutputOnly());
 
         for (int y = 0; y < 4; y++) {
             for (int x = 0; x < 9; x++) {

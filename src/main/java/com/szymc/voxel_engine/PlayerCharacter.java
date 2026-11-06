@@ -153,7 +153,7 @@ public class PlayerCharacter {
         this.worldReference = worldReference;
         this.windowReference = windowReference;
         this.engineAttachment = engineAttachment;
-        this.inventory = new ContainerData(40);
+        this.inventory = new ContainerData(41);
         this.inventoryScreen = InventoryScreen.create(this.inventory);
 
 //        inventory[0] = Blocks.TORCH;

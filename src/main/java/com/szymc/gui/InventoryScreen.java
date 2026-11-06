@@ -2,6 +2,7 @@ package com.szymc.gui;
 
 import com.szymc.voxel_engine.App;
 import com.szymc.voxel_engine.ContainerData;
+import com.szymc.voxel_engine.Texture;
 import com.szymc.voxel_engine.UIRenderer;
 
 public class InventoryScreen extends AbstractContainerScreen<InventoryMenu> {
@@ -27,6 +28,65 @@ public class InventoryScreen extends AbstractContainerScreen<InventoryMenu> {
     protected void renderBg(UIRenderer graphics) {
         graphics.beginUiRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
         graphics.drawRect(this.leftPos-(padding/2), this.topPos-(padding/2), this.width+padding, this.height+padding, 0.6f, 0.6f, 0.6f, 1f);
+    }
+
+    public String extractCraftInput(short[] iTypes, byte[] iAmounts, int indOffset, int boundXind, int boundYind) {
+        StringBuilder result = new StringBuilder();
+        int minX = 999; int maxX = -999;
+        int minY = 999; int maxY = -999;
+        boolean isEmpty = true;
+
+        //System.out.println(Arrays.toString(iTypes));
+        //System.out.println("Range/Last index: " + boundXind + ", " + boundYind);
+        for (int y = 0; y <= boundYind; y++) {
+            for (int x = 0; x <= boundXind; x++) {
+                byte ind = (byte) (indOffset + y*(boundXind+1)+x);
+                short itemType = iTypes[ind];
+                //System.out.printf("ind: %d (%d, %d) : item %d%n", ind, x, y, itemType);
+                if (itemType != 0) {
+                    isEmpty = false;
+                    minX = Math.min(x, minX);
+                    maxX = Math.max(x, maxX);
+                    minY = Math.min(y, minY);
+                    maxY = Math.max(y, maxY);
+                }
+            }
+        }
+
+        if (isEmpty) return null;
+
+        for (int y = minY; y <= maxY; y++) {
+            for (int x = minX; x <= maxX; x++) {
+                byte ind = (byte) (indOffset + y*(boundXind+1)+x);
+                short itemType = iTypes[ind];
+
+                result.append(itemType);
+                result.append('.');
+            }
+            result.append('/');
+        }
+
+        //System.out.printf("xMin: %d, xMax: %d, yMin: %d, yMax: %d\n", minX, maxX, minY, maxY);
+        //System.out.println(result);
+
+        return result.toString();
+    }
+
+    @Override
+    protected void onContainerOperation(InventoryActiveItem itemData, InventoryActiveItem currentActiveItem) {
+        String crafted = extractCraftInput(playerInv.getRawTypes(), playerInv.getRawAmounts(), 36, 1, 1);
+        short matchesRecipe = Texture.craftingRecipes.getShort(crafted);
+        byte block = (byte) (matchesRecipe & 0xFF);
+        byte amount = (byte) ((matchesRecipe >>> 8) & 0xFF);
+
+        playerInv.set(40, block, amount);
+        if (itemData.index() == 40 && amount > 0 && (currentActiveItem == null || currentActiveItem.type() == itemData.type())) {
+            for (int i = 36; i < 40; i++) {
+                if (!playerInv.isEmptyAt(i)) playerInv.decrementIndex(i);
+            }
+
+            onContainerOperation(new InventoryActiveItem(itemData.container(), 0, (short) 0, (byte) 0), null); // Dummy call to recheck craft state
+        }
     }
 
     @Override
@@ -59,9 +119,9 @@ public class InventoryScreen extends AbstractContainerScreen<InventoryMenu> {
     }
 
     private final static int[][] passes = {
-            {9, 35, 0},
+            {9, 39, 0},
             {0, 8,  0},
-            {9, 35, 1},
+            {9, 39, 1},
             {0, 8,  1}
     };
 

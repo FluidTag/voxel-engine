@@ -26,8 +26,9 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         this.leftPos = 0;
     }
 
-    private void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick) {
+    private void setActiveInventoryDrag(InventoryActiveItem itemData, boolean isLeftClick, boolean isOutputOnly) {
         if (itemData == null) return;
+        System.out.println(isOutputOnly);
         // Container sets automatically handle <= 0 amounts
 
         if (!itemData.container.isEmptyAt(itemData.index) && activeInventoryDrag == null) {
@@ -45,7 +46,7 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
             return;
         }
 
-        if (activeInventoryDrag != null) {
+        if (activeInventoryDrag != null && !isOutputOnly) {
             if (!isLeftClick) {
                 if (activeInventoryDrag.amount <= 1 || itemData.amount == 64) return;
                 if (activeInventoryDrag.type != itemData.type && itemData.type != 0) return;
@@ -82,6 +83,10 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
                 activeInventoryDrag = new InventoryActiveItem(itemData.container, itemData.index, (short) oldType, (byte) oldAmount);
                 return;
             }
+        }
+
+        if (activeInventoryDrag != null && isOutputOnly && activeInventoryDrag.type == itemData.type && activeInventoryDrag.amount+itemData.amount <= 64) {
+            activeInventoryDrag = new InventoryActiveItem(activeInventoryDrag.container, activeInventoryDrag.index, activeInventoryDrag.type, (byte) (activeInventoryDrag.amount+itemData.amount));
         }
 
         // More not shown..
@@ -167,6 +172,9 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
         itemData.container.set(itemData.index, itemData.type, amountRemaining);
     }
 
+    // Able to be overwritten for additional capabilities on an operation
+    protected void onContainerOperation(InventoryActiveItem clicked, InventoryActiveItem currentlyHeld) {}
+
     @Override
     public void render(UIRenderer graphics, int mouseX, int mouseY) {
         this.renderBg(graphics);
@@ -218,14 +226,17 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
 
                 boolean isLeftClick = button == GLFW_MOUSE_BUTTON_1;
                 boolean isShiftClick = (mods & GLFW_MOD_SHIFT) != 0;
+                InventoryActiveItem oldActiveItem = activeInventoryDrag;
 
                 if (isShiftClick && activeInventoryDrag == null) {
                     shiftClickTransfer(itemData);
                 } else if (isDoubleClick && isLeftClick) {
                     activeInventoryDrag = doubleClickTransfer(itemData, activeInventoryDrag);
                 } else {
-                    setActiveInventoryDrag(itemData, isLeftClick);
+                    setActiveInventoryDrag(itemData, isLeftClick, slot.isOutputOnly);
                 }
+
+                onContainerOperation(itemData, oldActiveItem);
 
                 lastContainerClicked = slot.container;
                 lastIndexClicked = slot.index;
