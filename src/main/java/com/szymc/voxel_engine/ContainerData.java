@@ -1,5 +1,9 @@
 package com.szymc.voxel_engine;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
 public class ContainerData {
     private short[] typeSource;
     private byte[] amountSource;
@@ -40,6 +44,8 @@ public class ContainerData {
             this.typeSource[index] = 0;
             this.amountSource[index] = 0;
         }
+
+        notifyChanged(index);
     }
 
     public void incrementIndex(int index) {
@@ -63,5 +69,25 @@ public class ContainerData {
 
     public boolean isEmptyAt(int index) {
         return this.typeSource[index] == 0;
+    }
+
+    public record Change(int index) {}
+
+    private final List<Consumer<Change>> listeners = new ArrayList<>();
+
+    public void addListener(Consumer<Change> listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(Consumer<Change> listener) {
+        listeners.remove(listener);
+    }
+
+    private void notifyChanged(int index) {
+        Change change = new Change(index);
+
+        for (Consumer<Change> listener : List.copyOf(listeners)) {
+            listener.accept(change);
+        }
     }
 }
