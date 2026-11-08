@@ -353,6 +353,30 @@ public class Engine {
 				mainShader.setCamera(camera.getProjectionMatrix(), camera.getViewMatrix(), matrixBuffer);
 			}
 
+			uiRenderer.beginUiRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
+			float crossX = (App.WINDOW_WIDTH/2.0f) - 8.0f;
+			float crossY = (App.WINDOW_HEIGHT/2.0f) - 8.0f;
+
+			uiRenderer.drawTexture(crosshairTexture, crossX, crossY, 16, 16);
+			int slotSize = 64;
+			int offsetX = (int)((App.WINDOW_WIDTH/2.0f)-(slotSize*4.5f));
+			uiRenderer.drawRect(offsetX-2, App.WINDOW_HEIGHT - 80-2, slotSize*9 + 4, slotSize + 4, 0.7f, 0.7f, 0.7f, 0.8f);
+			short[] inventory = player.getInventory().getRawTypes();
+
+			for (int i = 0; i < 9; i++) {
+				float color = player.currentHotbarSlot == i ? 0.45f : 0.2f;
+				uiRenderer.drawRect(offsetX + (slotSize*i) + 2, App.WINDOW_HEIGHT - 80+2, slotSize-4, slotSize-4, color, color, color, 0.6f);
+				short item = inventory[i];
+				if (item != 0) uiRenderer.drawIcon(item, offsetX + (slotSize*i), App.WINDOW_HEIGHT - 80, slotSize, slotSize);
+			}
+
+			uiRenderer.beginTextRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
+			for (byte i = 0; i < 9; i++) {
+				if (player.getInventory().readType(i) != 0) {
+					uiRenderer.renderFont(Integer.toString(player.getInventory().readAmount(i)), offsetX + (slotSize*i) + (slotSize-4), App.WINDOW_HEIGHT - 80-4+slotSize, UIRenderer.TextAlignment.RIGHT);
+				}
+			}
+
 			if (activeGuiScreen != null) {
 				activeGuiScreen.render(uiRenderer, mouseX, mouseY);
 			}
