@@ -28,6 +28,7 @@ public class InventoryScreen extends AbstractContainerScreen<InventoryMenu> {
     protected void renderBg(UIRenderer graphics) {
         graphics.beginUiRendering(App.WINDOW_WIDTH, App.WINDOW_HEIGHT);
         graphics.drawRect(this.leftPos-(padding/2), this.topPos-(padding/2), this.width+padding, this.height+padding, 0.6f, 0.6f, 0.6f, 1f);
+        graphics.end();
     }
 
     @Override

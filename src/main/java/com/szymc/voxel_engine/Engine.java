@@ -53,6 +53,10 @@ public class Engine {
 		activeGuiScreen = screen;
 	}
 
+	public Screen getActiveGuiScreen() {
+		return this.activeGuiScreen;
+	}
+
 	public void handleGuiMouseClick(int mouseX, int mouseY, int button, int mods) {
 		if (activeGuiScreen != null) {
 			activeGuiScreen.mouseClick(mouseX, mouseY, button, mods);

@@ -1,6 +1,8 @@
 package com.szymc.voxel_engine;
 
 import com.szymc.gui.InventoryScreen;
+import com.szymc.gui.Screen;
+import com.szymc.gui.TableCraftScreen;
 import org.joml.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -28,6 +30,8 @@ public class PlayerCharacter {
 
     private ContainerData inventory;
     private InventoryScreen inventoryScreen;
+
+    private TableCraftScreen craftingTableScreen;
 
     public boolean getPlayerGuiInventoryActive() {return this.guiInventoryActive;}
 
@@ -126,12 +130,12 @@ public class PlayerCharacter {
         return null;
     }
 
-    private void toggleInventoryGui() {
+    private void toggleInventoryGui(Screen screen) {
         guiInventoryActive = !guiInventoryActive;
         if (guiInventoryActive) {
             glfwSetInputMode(windowReference.getWindowId(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             glfwSetCursorPos(windowReference.getWindowId(), (double) App.WINDOW_WIDTH /2, (double) App.WINDOW_HEIGHT /2);
-            engineAttachment.setActiveGuiScreen(inventoryScreen);
+            engineAttachment.setActiveGuiScreen(screen);
         } else {
             glfwSetInputMode(windowReference.getWindowId(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             firstMouse = true;
@@ -146,6 +150,7 @@ public class PlayerCharacter {
     public void setInventoryStruct(short[] inv, byte[] amounts) {
         this.inventory = new ContainerData(inv, amounts);
         this.inventoryScreen = InventoryScreen.create(this.inventory);
+        this.craftingTableScreen = TableCraftScreen.create(this.inventory);
     }
 
     public PlayerCharacter(Camera playerCamera, World worldReference, Window windowReference, Engine engineAttachment) {
@@ -155,7 +160,7 @@ public class PlayerCharacter {
         this.engineAttachment = engineAttachment;
         this.inventory = new ContainerData(41);
         this.inventoryScreen = InventoryScreen.create(this.inventory);
-
+        this.craftingTableScreen = TableCraftScreen.create(this.inventory);
 //        inventory[0] = Blocks.TORCH;
 //        inventoryAmounts[0] = 64;
 //
@@ -182,7 +187,7 @@ public class PlayerCharacter {
             }
 
             if (key == GLFW_KEY_E && action == GLFW_PRESS) {
-                toggleInventoryGui();
+                toggleInventoryGui(inventoryScreen);
             }
 
             if (key == GLFW_KEY_Q && action == GLFW_PRESS && !guiInventoryActive) {
@@ -221,8 +226,8 @@ public class PlayerCharacter {
                         if (Texture.isItemOnly[inventory.readType(currentHotbarSlot)]) return;
                         short lookingAtBlock = worldReference.getLoadedChunkAtPos(x>>5, z>>5).getBlockInChunk(x&31, y, z&31);
                         if (inventory.isEmptyAt(currentHotbarSlot) && lookingAtBlock == Blocks.CRAFTING_TABLE) {
-                            //engineAttachment.inCraftingTable = true;
-                            if (!guiInventoryActive) toggleInventoryGui();
+                            engineAttachment.setActiveGuiScreen(craftingTableScreen);
+                            if (!guiInventoryActive) toggleInventoryGui(craftingTableScreen);
 
                             return;
                         } else if (inventory.isEmptyAt(currentHotbarSlot)) {

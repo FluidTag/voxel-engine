@@ -29,7 +29,7 @@ public class CraftingContext {
 
         if (isEmpty) return null;
 
-        for (int y = minY; y <= maxY; y++) {
+        for (int y = maxY; y >= minY; y--) {
             for (int x = minX; x <= maxX; x++) {
                 byte ind = (byte) (indOffset + y*(boundXind+1)+x);
                 short itemType = iTypes[ind];
@@ -40,7 +40,7 @@ public class CraftingContext {
             result.append('/');
         }
 
-        //System.out.printf("xMin: %d, xMax: %d, yMin: %d, yMax: %d\n", minX, maxX, minY, maxY);
+        System.out.printf("xMin: %d, xMax: %d, yMin: %d, yMax: %d\n", minX, maxX, minY, maxY);
         //System.out.println(result);
 
         return result.toString();
@@ -69,6 +69,7 @@ public class CraftingContext {
         short result = Texture.craftingRecipes.getShort(recipe);
         short type = (short) (result & 0xFF);
         byte amount = (byte) ((result >>> 8) & 0xFF);
+        System.out.println("Updated craft context: " + recipe + " makes "+type+" (Amount " + amount);
 
         craftingInventory.silentSet(0, type, amount);
     }
