@@ -1,6 +1,7 @@
 package com.szymc.gui;
 
 import com.szymc.voxel_engine.ContainerData;
+import org.lwjgl.system.macosx.MacOSXLibraryDL;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -61,6 +62,8 @@ public class AbstractContainerMenu {
     private int collectFromContainers(int currentAmountTaken, short gatherType, boolean allowFullStacks) {
         for (Slot slot : slots) {
             if (slot.readType() == gatherType && (slot.readAmount() != 64 || allowFullStacks)) {
+                if (!slot.canQuickCollect()) continue;
+
                 int maxCanTake = 64-currentAmountTaken;
                 int beingTaken = Math.min(slot.readAmount(), maxCanTake);
                 slot.set(slot.readType(), (byte) (slot.readAmount()-beingTaken));
@@ -94,13 +97,26 @@ public class AbstractContainerMenu {
     // On Click
     public ItemStack getNewActiveItemStack(Slot slotData, ItemStack activeItemStack, ClickContext clickContext) {
         if (slotData == null) return activeItemStack;
-        System.out.println(slotData);
-        System.out.println(activeItemStack);
-        System.out.println(clickContext);
+//        System.out.println(slotData);
+//        System.out.println(activeItemStack);
+//        System.out.println(clickContext);
         // Container sets automatically handle <= 0 amounts
+
+        if (!slotData.isEmpty() && activeItemStack != null && slotData.mayPickup() && slotData.isSourceSlot()) {
+            if (activeItemStack.amount() + slotData.readAmount() > 64) return activeItemStack;
+            if (activeItemStack.type() != slotData.readType()) return activeItemStack;
+
+            slotData.onPickup(clickContext);
+            activeItemStack = new ItemStack(slotData.readType(), (byte) (activeItemStack.amount() + slotData.readAmount()));
+            if (slotData.isSourceSlot()) slotData.updateSlotContexts();
+
+            return activeItemStack;
+        }
 
         if (!slotData.isEmpty() && activeItemStack == null && slotData.mayPickup()) {
             if (!clickContext.isLeftClick()) { // Right click
+                if (!slotData.maySplitAndPickup()) return activeItemStack;
+                if (slotData.isSourceSlot()) return activeItemStack;
                 if (slotData.readAmount() <= 1) return activeItemStack;
 
                 int half = slotData.readAmount() / 2;
@@ -109,8 +125,15 @@ public class AbstractContainerMenu {
                 return new ItemStack(slotData.readType(), (byte) half);
             }
 
+            slotData.onPickup(clickContext);
             activeItemStack = new ItemStack(slotData.readType(), slotData.readAmount());
-            slotData.set((short) 0, (byte) 0);
+
+            if (!slotData.isSourceSlot()) {
+                slotData.set((short) 0, (byte) 0);
+            } else {
+                slotData.updateSlotContexts();
+            }
+
             return activeItemStack;
         }
 

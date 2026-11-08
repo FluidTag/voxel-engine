@@ -16,7 +16,6 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
     private ContainerData lastContainerClicked;
     private long lastClick;
 
-    public record InventoryActiveItem(ContainerData container, int index, short type, byte amount) {}
     private ItemStack activeInventoryDrag;
 
     public AbstractContainerScreen(int width, int height, T menu) {
@@ -73,20 +72,19 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
             if (mouseX >= leftPos + slot.anchorX + slot.x && mouseX <= leftPos + slot.anchorX + slot.x + slot.size
             && mouseY >= topPos + slot.anchorY + slot.y && mouseY <= topPos + slot.anchorY + slot.y + slot.size) {
                 boolean isDoubleClick = (lastContainerClicked == slot.container && lastIndexClicked == slot.index && elapsed < 164);
-                InventoryActiveItem itemData = new InventoryActiveItem(slot.container, slot.index, slot.container.readType(slot.index), slot.container.readAmount(slot.index));
-
                 boolean isLeftClick = button == GLFW_MOUSE_BUTTON_1;
                 boolean isShiftClick = (mods & GLFW_MOD_SHIFT) != 0;
                 ClickContext clickContext = new ClickContext(isLeftClick, isShiftClick);
 
-                if (isShiftClick && activeInventoryDrag == null) {
+                if (isShiftClick) {
+                    slot.onPickup(clickContext);
                     menu.shiftClickTransfer(slot);
-                } else if (isDoubleClick && isLeftClick) {
+                } else if (isDoubleClick && isLeftClick && slot.canQuickCollect()) {
                     activeInventoryDrag = menu.doubleClickTransfer(slot, activeInventoryDrag, clickContext);
                 } else {
-                    System.out.println("Before: " + activeInventoryDrag);
+                    //System.out.println("Before: " + activeInventoryDrag);
                     activeInventoryDrag = menu.getNewActiveItemStack(slot, activeInventoryDrag, clickContext);
-                    System.out.println("After: " + activeInventoryDrag);
+                    //System.out.println("After: " + activeInventoryDrag);
                 }
 
                 lastContainerClicked = slot.container;

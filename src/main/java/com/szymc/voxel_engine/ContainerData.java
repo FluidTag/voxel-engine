@@ -48,6 +48,17 @@ public class ContainerData {
         notifyChanged(index);
     }
 
+    // DOES NOT FIRE LISTENERS, used locally in these listeners so there isn't an infinite loop. Listeners don't need to listen to themselves
+    public void silentSet(int index, int type, int amount) {
+        this.typeSource[index] = (short) type;
+        this.amountSource[index] = (byte) amount;
+
+        if (this.amountSource[index] <= 0) {
+            this.typeSource[index] = 0;
+            this.amountSource[index] = 0;
+        }
+    }
+
     public void incrementIndex(int index) {
         this.amountSource[index]++;
     }

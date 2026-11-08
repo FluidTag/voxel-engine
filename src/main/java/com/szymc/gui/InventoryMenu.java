@@ -6,19 +6,21 @@ import java.awt.event.ItemEvent;
 
 public class InventoryMenu extends AbstractContainerMenu {
     private ContainerData playerInv;
+    private CraftingContext craftingContext;
     private static final int hotbarGap = 15;
 
     public InventoryMenu(ContainerData playerInv) {
         this.playerInv = playerInv;
+        this.craftingContext = new CraftingContext(2, 2);
 
         for (int y = 0; y < 2; y++) {
             for (int x = 0; x < 2; x++) {
-                int index = 36 + y*2 + x;
-                this.addSlot(new Slot(playerInv, index, 4*64, 64-hotbarGap, 64*x, 64*y, 64));
+                int index = 1 + y*2 + x;
+                this.addSlot(new Slot(craftingContext.getCraftingInventory(), index, 4*64, 64-hotbarGap, 64*x, 64*y, 64));
             }
         }
 
-        this.addSlot(new Slot(playerInv, 40, 7*64, 64-hotbarGap + 32, 0, 0, 64).setOutputOnly());
+        this.addSlot(new ResultSlot(craftingContext.getCraftingInventory(), 0, 7*64, 64-hotbarGap + 32, 0, 0, 64, craftingContext));
 
         for (int y = 0; y < 4; y++) {
             for (int x = 0; x < 9; x++) {
@@ -39,7 +41,7 @@ public class InventoryMenu extends AbstractContainerMenu {
     public void shiftClickTransfer(Slot slotData) {
         int startSearch = slotData.index < 9 ? 9 : 0;
         int endSearch = slotData.index < 9 ? 36 : 8;
-
+        System.out.println(slotData);
         int amountRemaining = slotData.readAmount();
         for (int i = startSearch; i <= endSearch; i++) {
             if (playerInv.readType(i) == slotData.readType()) {
@@ -61,43 +63,6 @@ public class InventoryMenu extends AbstractContainerMenu {
             }
         }
 
-        playerInv.set(slotData.index, slotData.readType(), amountRemaining);
-    }
-
-    @Override
-    public ItemStack doubleClickTransfer(Slot slotData, ItemStack currentActiveItem, ClickContext context) {
-        int amountTaken = currentActiveItem == null ? slotData.readAmount() : currentActiveItem.amount();
-        short gatherType = currentActiveItem == null ? slotData.readType() : currentActiveItem.type();
-        if (gatherType == 0) return null;
-
-        if (currentActiveItem == null) {
-            playerInv.set(slotData.index, 0, 0);
-        }
-
-        for (int p = 0; p < passes.length; p++) {
-            int[] dat = passes[p];
-            int startInd = dat[0];
-            int endInd = dat[1];
-            boolean fullStacksOnly = dat[2] == 1;
-            boolean endLoop = false;
-
-            for (int i = startInd; i <= endInd; i++) {
-                if (playerInv.readType(i) == gatherType) {
-                    if (!fullStacksOnly && playerInv.readAmount(i) == 64) continue;
-
-                    int maxCanTake = 64-amountTaken;
-                    int beingTaken = Math.min(playerInv.readAmount(i), maxCanTake);
-                    playerInv.set(i, playerInv.readType(i), playerInv.readAmount(i)-beingTaken);
-
-                    amountTaken += beingTaken;
-                    if (amountTaken == 64) {endLoop = true; break;}
-                }
-            }
-
-            if (endLoop) break;
-        }
-
-        currentActiveItem = new ItemStack(gatherType, (byte) amountTaken);
-        return currentActiveItem;
+        slotData.set(slotData.readType(), (byte) amountRemaining);
     }
 }

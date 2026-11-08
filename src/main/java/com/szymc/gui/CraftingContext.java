@@ -1,6 +1,7 @@
 package com.szymc.gui;
 
 import com.szymc.voxel_engine.ContainerData;
+import com.szymc.voxel_engine.Texture;
 
 public class CraftingContext {
     private String extractCraftInput(short[] iTypes, byte[] iAmounts, int indOffset, int boundXind, int boundYind) {
@@ -46,13 +47,55 @@ public class CraftingContext {
     }
 
     private ContainerData craftingInventory;
+    private final int width;
+    private final int height;
+
     public CraftingContext(int width, int height) {
         craftingInventory = new ContainerData(1 + width*height);
+        this.width = width;
+        this.height = height;
 
         craftingInventory.addListener(change -> update(change.index()));
     }
 
-    private void update(int index) {
+    public ContainerData getCraftingInventory() {
+        return this.craftingInventory;
+    }
 
+    private void update(int index) {
+        //if (index == 0) return;
+
+        String recipe = extractCraftInput(craftingInventory.getRawTypes(), craftingInventory.getRawAmounts(), 1, width-1, height-1);
+        short result = Texture.craftingRecipes.getShort(recipe);
+        short type = (short) (result & 0xFF);
+        byte amount = (byte) ((result >>> 8) & 0xFF);
+
+        craftingInventory.silentSet(0, type, amount);
+    }
+
+    public boolean canCraft() {
+        update(-1);
+        return craftingInventory.readType(0) != 0;
+    }
+
+    public byte craft(boolean makeMaximum) {
+        if (!canCraft()) return 0;
+
+        int beingMade = 1;
+        if (makeMaximum) {
+            beingMade = Integer.MAX_VALUE;
+            for (int i = 1; i < craftingInventory.getSize(); i++) {
+                if (!craftingInventory.isEmptyAt(i)) beingMade = Math.min(craftingInventory.readAmount(i), beingMade);
+            }
+        }
+
+        for (int i = 1; i < craftingInventory.getSize(); i++) {
+            if (!craftingInventory.isEmptyAt(i)) craftingInventory.silentSet(i, craftingInventory.readType(i), craftingInventory.readAmount(i)-beingMade);
+        }
+
+        byte initialRecipeAmount = craftingInventory.readAmount(0);
+
+        update(-1);
+        return (byte) (initialRecipeAmount * beingMade);
     }
 }

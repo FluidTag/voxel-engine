@@ -13,7 +13,6 @@ public class Slot {
     public int x;
     public int y;
     public int size;
-    public boolean isOutputOnly = false;
 
     public Slot(ContainerData container, int index, int anchorX, int anchorY, int x, int y, int size) {
         this.container = container;
@@ -43,16 +42,9 @@ public class Slot {
         return this.container.readAmount(index);
     }
 
-    public Slot setOutputOnly() {
-        Slot newSlot = new Slot(this.container, this.index, this.anchorX, this.anchorY, this.x, this.y, this.size);
-        newSlot.isOutputOnly = true;
-
-        return newSlot;
-    }
-
     // Whether you can place the cursor item into a slot
     public boolean mayPlace(short itemType) {
-        return !isOutputOnly;
+        return true;
     }
 
     // Determines whether you can pick it up into your cursor
@@ -60,8 +52,37 @@ public class Slot {
         return true;
     }
 
+    // Whether you can pick up half into your cursor from right click
+    public boolean maySplitAndPickup() {return true;}
+
+    // Not decremented when picked up, used for crafting primarily
+    public boolean isSourceSlot() {return false;}
+
     // Can be considered in double click gather all
     public boolean canQuickCollect() {
         return true;
     }
+
+    // Whether you can use shift click to transfer
+    public boolean canShiftTransfer() {return true; }
+
+    // Additional
+    public void onPickup(ClickContext context) {}
+
+    public void updateSlotContexts() {}
+
+    @Override
+    public String toString() {
+        return String.format(
+                "Slot[idx=%d, pos=(%d,%d), anchor=(%d,%d), size=%d, item=%dx%d, c=%s, flags=%s%s%s%s%s]",
+                index, x, y, anchorX, anchorY, size, readType(), readAmount(),
+                container != null ? container.getClass().getSimpleName() : "null",
+                isSourceSlot() ? "S" : "-",
+                canQuickCollect() ? "Q" : "-",
+                canShiftTransfer() ? "T" : "-",
+                mayPickup() ? "P" : "-",
+                mayPlace((short) 0) ? "L" : "-"
+        );
+    }
+
 }
