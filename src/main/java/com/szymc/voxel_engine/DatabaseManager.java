@@ -20,7 +20,7 @@ public class DatabaseManager {
                 );
             """);
 
-            //statement.execute("DROP TABLE players");
+            statement.execute("DROP TABLE players");
             statement.execute("""
                 CREATE TABLE IF NOT EXISTS players (
                     world_id INTEGER,
@@ -36,7 +36,7 @@ public class DatabaseManager {
                     FOREIGN KEY (world_id) REFERENCES worlds(world_id) ON DELETE CASCADE
                 );
             """);
-            //statement.execute("DROP TABLE chunks");
+            statement.execute("DROP TABLE chunks");
             statement.execute("""
                 CREATE TABLE IF NOT EXISTS chunks (
                     world_id INTEGER,
@@ -47,7 +47,7 @@ public class DatabaseManager {
                     FOREIGN KEY (world_id) REFERENCES worlds(world_id) ON DELETE CASCADE
                 ) WITHOUT ROWID;
             """);
-            //statement.execute("DROP TABLE entities");
+            statement.execute("DROP TABLE entities");
             statement.execute("""
                 CREATE TABLE IF NOT EXISTS entities (
                     world_id INTEGER,

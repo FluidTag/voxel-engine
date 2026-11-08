@@ -20,20 +20,33 @@ import org.joml.Vector3f;
 
 public class Mesh {
 	private int vao, vbo, ebo, indexCount;
+
+	// Only used for staging, uploads are only on the main thread, this is fine
 	private static IntBuffer vertBuf = MemoryUtil.memAllocInt(1024*1024);
 	private static IntBuffer intBuf = MemoryUtil.memAllocInt(1024*1024);
 
-	public Mesh(int[] verticies, int[] indicies, int numVerts, int numIndicies) {
-		this.indexCount = numIndicies;
+	private int numVerts;
+	private int numIndices;
+
+	private int selfAllocatedVertSize;
+	private int selfAllocatedIndexSize;
+
+	public Mesh(int[] verticies, int[] indicies, int numVerts, int numIndices) {
+		this.indexCount = numIndices;
+		this.numVerts = numVerts;
+		this.numIndices = numIndices;
+
+		this.selfAllocatedVertSize = numVerts;
+		this.selfAllocatedIndexSize = numIndices;
 		
 		if (numVerts > vertBuf.capacity()) {
 			MemoryUtil.memFree(vertBuf);
 			vertBuf = MemoryUtil.memAllocInt(numVerts * 2);
 		}
 		
-		if (numIndicies > intBuf.capacity()) {
+		if (numIndices > intBuf.capacity()) {
 			MemoryUtil.memFree(intBuf);
-			intBuf = MemoryUtil.memAllocInt(numIndicies * 2);
+			intBuf = MemoryUtil.memAllocInt(numIndices * 2);
 		}
 		
 		vertBuf.clear();
@@ -41,7 +54,7 @@ public class Mesh {
 		vertBuf.flip();
 		
 		intBuf.clear();
-		intBuf.put(indicies, 0, numIndicies);
+		intBuf.put(indicies, 0, numIndices);
 		intBuf.flip();
 		
 		vao = glGenVertexArrays();
@@ -49,11 +62,11 @@ public class Mesh {
 		
 		vbo = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, vertBuf, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, vertBuf, GL_DYNAMIC_DRAW);
 		
 		ebo = glGenBuffers();
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, intBuf, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, intBuf, GL_DYNAMIC_DRAW);
 		
 		// 18 for position
 		// 6 bits posX
@@ -69,6 +82,58 @@ public class Mesh {
 		glEnableVertexAttribArray(0);
 		
 		glBindVertexArray(0);
+	}
+
+	public void updateMesh(int[] newVerts, int[] newInidices, int newVCount, int newICount) {
+		// Setup staging/upload buffers
+		// They wont grow more than 2x on an update
+		if (newVCount > vertBuf.capacity()) {
+			int expandedSize = vertBuf.capacity()*2;
+			while (newVCount > expandedSize) expandedSize*=2;
+
+			MemoryUtil.memFree(vertBuf);
+			vertBuf = MemoryUtil.memAllocInt(expandedSize);
+		}
+
+		if (newICount > intBuf.capacity()) {
+			int expandedSize = intBuf.capacity()*2;
+			while (newICount > expandedSize) expandedSize*=2;
+
+			MemoryUtil.memFree(intBuf);
+			intBuf = MemoryUtil.memAllocInt(expandedSize);
+		}
+
+		glBindVertexArray(vao);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		vertBuf.clear();
+		vertBuf.put(newVerts, 0, newVCount);
+		vertBuf.flip();
+		if (newVCount > this.selfAllocatedVertSize) {
+			while (newVCount > this.selfAllocatedVertSize) this.selfAllocatedVertSize *= 2;
+
+			glBufferData(GL_ARRAY_BUFFER, this.selfAllocatedVertSize * 4L, GL_DYNAMIC_DRAW);
+		}
+
+		glBufferData(GL_ARRAY_BUFFER, (long) this.selfAllocatedVertSize * Integer.BYTES, GL_DYNAMIC_DRAW); // Orphan Buffer
+		glBufferSubData(GL_ARRAY_BUFFER, 0, vertBuf);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+		intBuf.clear();
+		intBuf.put(newInidices, 0, newICount);
+		intBuf.flip();
+		if (newICount > this.selfAllocatedIndexSize) {
+			while (newICount > this.selfAllocatedIndexSize) this.selfAllocatedIndexSize *= 2;
+
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, this.selfAllocatedIndexSize * 4L, GL_DYNAMIC_DRAW);
+		}
+
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, (long) this.selfAllocatedIndexSize * Integer.BYTES, GL_DYNAMIC_DRAW);
+		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, intBuf);
+
+		this.indexCount = newICount;
+		this.numVerts = newVCount;
+		this.numIndices = newICount;
 	}
 	
 	public void render() {

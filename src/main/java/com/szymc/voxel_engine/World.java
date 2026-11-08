@@ -320,11 +320,21 @@ public class World {
 				if (sec == null) continue;
 				
 				if (sec.meshResult != null) {
-					sec.setMesh(new Mesh(sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount));
+					Mesh currentOpaqueMesh = sec.getMesh();
+					if (currentOpaqueMesh == null) {
+						sec.setMesh(new Mesh(sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount));
+					} else {
+						currentOpaqueMesh.updateMesh(sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount);
+					}
 				}
 
 				if (sec.meshResult != null && sec.meshResult.waterVertices != null) {
-					sec.setWaterMesh(new Mesh(sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount));
+					Mesh currentWaterMesh = sec.getWaterMesh();
+					if (currentWaterMesh == null) {
+						sec.setWaterMesh(new Mesh(sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount));
+					} else {
+						currentWaterMesh.updateMesh(sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount);
+					}
 				}
 			}
 			
