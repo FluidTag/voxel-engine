@@ -46,14 +46,16 @@ public class World {
 
 	private final HashMap<UUID, Entity> entityMap = new HashMap<>();
 
-	private final int renderDistance = 15;
+	private final int renderDistance = 12;
 	private final long winId;
 	private final int worldId;
+	private final MeshArena meshArena;
 	
-	public World(long winId, int worldId) {
+	public World(long winId, int worldId, MeshArena arena) {
 		System.out.println(threads);
 		this.winId = winId;
 		this.worldId = worldId;
+		this.meshArena = arena;
 	}
 	
 	private final int threads = Runtime.getRuntime().availableProcessors()-1;
@@ -320,20 +322,20 @@ public class World {
 				if (sec == null) continue;
 				
 				if (sec.meshResult != null) {
-					Mesh currentOpaqueMesh = sec.getMesh();
+					SectionMeshDrawCommand currentOpaqueMesh = sec.getMesh();
 					if (currentOpaqueMesh == null) {
-						sec.setMesh(new Mesh(sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount));
+						sec.setMesh(meshArena.addChunk(sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount));
 					} else {
-						currentOpaqueMesh.updateMesh(sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount);
+						meshArena.updateChunk(currentOpaqueMesh, sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount);
 					}
 				}
 
 				if (sec.meshResult != null && sec.meshResult.waterVertices != null) {
-					Mesh currentWaterMesh = sec.getWaterMesh();
+					SectionMeshDrawCommand currentWaterMesh = sec.getWaterMesh();
 					if (currentWaterMesh == null) {
-						sec.setWaterMesh(new Mesh(sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount));
+						sec.setWaterMesh(meshArena.addChunk(sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount));
 					} else {
-						currentWaterMesh.updateMesh(sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount);
+						meshArena.updateChunk(currentWaterMesh, sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount);
 					}
 				}
 			}

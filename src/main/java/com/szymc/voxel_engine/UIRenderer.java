@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.*;
@@ -143,7 +142,7 @@ public class UIRenderer {
         }
     }
 
-    private static Mesh buildBlockMesh(short blockType) {
+    private static MeshContainer buildBlockMesh(short blockType) {
         IntArrayList vBuffer = new IntArrayList(48); // 24 vertices * 2 ints
         IntArrayList iBuffer = new IntArrayList(36); // 6 faces * 6 indices
 
@@ -168,7 +167,7 @@ public class UIRenderer {
         // 6. SOUTH (Z = 1, Axis 2, backFace = false)
         addQuad(vBuffer, iBuffer, 0,0,1, 1,0,1, 0,1,1, 1,1,1, 1, 1, blockType, false, 2, fullAO, false, false);
 
-        return new Mesh(vBuffer.toIntArray(), iBuffer.toIntArray(), vBuffer.size(), iBuffer.size());
+        return new MeshContainer(vBuffer.toIntArray(), iBuffer.toIntArray(), vBuffer.size(), iBuffer.size());
     }
 
     private static final WorldShader cubeShader = new WorldShader();
@@ -204,7 +203,7 @@ public class UIRenderer {
             cubeShader.setModel(model, matrixBuffer);
 
             // Render cube
-            Mesh cube = buildBlockMesh(blockType);
+            MeshContainer cube = buildBlockMesh(blockType);
             cube.render();
             cube.cleanup();
         }

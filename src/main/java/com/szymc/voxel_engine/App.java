@@ -1,8 +1,5 @@
 package com.szymc.voxel_engine;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
-import org.joml.Vector3f;
-
 import java.lang.management.ManagementFactory;
 import java.util.UUID;
 import java.util.ArrayList;
@@ -53,11 +50,12 @@ public class App {
 		Camera camera = new Camera();
 		Window window = new Window(App.WINDOW_WIDTH, App.WINDOW_HEIGHT, "Voxel-Engine");
 
-		World mainWorld = new World(window.getWindowId(), 0);
+		MeshArena meshArena = new MeshArena();
+		World mainWorld = new World(window.getWindowId(), 0, meshArena);
 		TerrainTask.initNoise();
 
 		window.attachCamera(camera);
-		Engine engine = new Engine(mainWorld, camera);
+		Engine engine = new Engine(mainWorld, camera, meshArena);
 
 		PlayerCharacter savedChar = DatabaseManager.getPlayer(0, mainWorld, window, engine, camera);
 		System.out.println(savedChar);
@@ -194,7 +192,7 @@ public class App {
 				short block = -1;
 				int palSize = -1;
 				ChunkColumn c = mainWorld.getLoadedChunkAtPos(wx>>5, wz>>5);
-				Mesh mesh = null;
+				SectionMeshDrawCommand mesh = null;
 
 				if (c != null) {
 					ChunkSection sec = c.getSection(wy>>4);

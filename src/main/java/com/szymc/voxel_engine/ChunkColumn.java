@@ -1,12 +1,10 @@
 package com.szymc.voxel_engine;
 
 
-import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -241,16 +239,16 @@ public class ChunkColumn {
 			ChunkSection sec = sections[i];
 			if (sec == null) continue;
 			
-			Mesh mainMesh = sec.getMesh();
-			Mesh waterMesh = sec.getWaterMesh();
+			SectionMeshDrawCommand mainMesh = sec.getMesh();
+			SectionMeshDrawCommand waterMesh = sec.getWaterMesh();
 			
 			if (mainMesh != null) {
-				mainMesh.cleanup();
+				//mainMesh.cleanup();
 				sec.setMesh(null);
 			}
 			
 			if (waterMesh != null) {
-				waterMesh.cleanup();
+				//waterMesh.cleanup();
 				sec.setWaterMesh(null);
 			}
  		}

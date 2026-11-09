@@ -8,8 +8,8 @@ public class ChunkSection {
 	private byte[] lightLevels;
 	private final int worldX, worldY, worldZ;
 	private World worldReference;
-	private Mesh mesh = null;
-	private Mesh waterMesh = null;
+	private SectionMeshDrawCommand mesh = null;
+	private SectionMeshDrawCommand waterMesh = null;
 	private final IntArrayList lightBlocks;
 	private final IntArrayList lBlockRemovals = new IntArrayList();
 
@@ -104,7 +104,7 @@ public class ChunkSection {
 		meshResult = GreedyMesher.generateMeshData(this, ctx);
 	}
 
-	public Mesh getMesh() {
+	public SectionMeshDrawCommand getMesh() {
 		return this.mesh;
 	}
 
@@ -114,15 +114,15 @@ public class ChunkSection {
 	// Cache nearby for meshing / face visibility
 	// References passed in
 
-	public void setMesh(Mesh mesh) {
+	public void setMesh(SectionMeshDrawCommand mesh) {
 		this.mesh = mesh;
 	}
 
-	public void setWaterMesh(Mesh mesh) {
+	public void setWaterMesh(SectionMeshDrawCommand mesh) {
 		this.waterMesh = mesh;
 	}
 
-	public Mesh getWaterMesh() {
+	public SectionMeshDrawCommand getWaterMesh() {
 		return this.waterMesh;
 	}
 }

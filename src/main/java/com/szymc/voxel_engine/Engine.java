@@ -139,9 +139,11 @@ public class Engine {
 		isLeftMouseHeld = false;
 	}
 
-	public Engine(World world, Camera camera) {
+	private MeshArena meshArena;
+	public Engine(World world, Camera camera, MeshArena meshArena) {
 		this.worldScene = world;
 		this.camera = camera;
+		this.meshArena = meshArena;
 
 		this.debugger = new DebugManager(world, camera);
 		this.mainShader = new WorldShader();
@@ -229,7 +231,15 @@ public class Engine {
 					modelVec.translation(tempModel);
 					mainShader.setModel(modelVec, matrixBuffer);
 
-					section.getMesh().render();
+					SectionMeshDrawCommand m = section.getMesh();
+					MeshPage page = meshArena.getPage(m.pageIndex);
+					glBindVertexArray(page.getVao());
+
+					int baseVertex = (int) (
+							m.vertexRange.valueByteOffset() / (2L * Integer.BYTES)
+					);
+
+					glDrawElementsBaseVertex(GL_TRIANGLES, (int)m.indexRange.count(), GL_UNSIGNED_INT, m.indexRange.valueByteOffset(), baseVertex);
 				}
 			});
 
@@ -312,7 +322,15 @@ public class Engine {
 					modelVec.translation(tempModel);
 					mainShader.setModel(modelVec, matrixBuffer);
 
-					section.getWaterMesh().render();
+					SectionMeshDrawCommand m = section.getWaterMesh();
+					MeshPage page = meshArena.getPage(m.pageIndex);
+					glBindVertexArray(page.getVao());
+
+					int baseVertex = (int) (
+							m.vertexRange.valueByteOffset() / (2L * Integer.BYTES)
+					);
+
+					glDrawElementsBaseVertex(GL_TRIANGLES, (int)m.indexRange.count(), GL_UNSIGNED_INT, m.indexRange.valueByteOffset(), baseVertex);
 				}
 			});
 
