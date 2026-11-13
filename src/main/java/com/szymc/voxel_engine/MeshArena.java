@@ -16,9 +16,18 @@ public class MeshArena {
         return pages.get(index);
     }
 
+    public List<MeshPage> getAllPages() {
+        return this.pages;
+    }
+
     public MeshArena() {
         this.pages = new ArrayList<>(1000);
         addPage();
+    }
+
+    public void removeChunk(SectionMeshDrawCommand prevDat) {
+        MeshPage pg = pages.get(prevDat.pageIndex);
+        pg.removeChunk(prevDat.vertexRange, prevDat.indexRange);
     }
 
     public SectionMeshDrawCommand updateChunk(SectionMeshDrawCommand prevDat, int[] vertices, int[] indices, int vCount, int iCount) {

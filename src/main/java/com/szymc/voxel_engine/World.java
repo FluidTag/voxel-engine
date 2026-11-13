@@ -232,6 +232,12 @@ public class World {
 			System.out.println("Loaded Column Count: " + loadedColumns.size() + " | Rendered Column Count: " + renderedColumns.size());
 			System.out.println("Total Entity Count: " + entityMap.size());
 			System.out.println("_______________");
+
+			for (MeshPage p : meshArena.getAllPages()) {
+				System.out.println("Page: " + p.getPageIndex());
+				System.out.println("Vao: " + p.getVao());
+				System.out.println("Data: " + p.debugData());
+			}
 		}
 		
 		while (!completedTerrain.isEmpty()) {
@@ -326,7 +332,8 @@ public class World {
 					if (currentOpaqueMesh == null) {
 						sec.setMesh(meshArena.addChunk(sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount));
 					} else {
-						meshArena.updateChunk(currentOpaqueMesh, sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount);
+						SectionMeshDrawCommand updatedCommand = meshArena.updateChunk(currentOpaqueMesh, sec.meshResult.vertices, sec.meshResult.indices, sec.meshResult.vCount, sec.meshResult.iCount);
+						sec.setMesh(updatedCommand);
 					}
 				}
 
@@ -335,7 +342,8 @@ public class World {
 					if (currentWaterMesh == null) {
 						sec.setWaterMesh(meshArena.addChunk(sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount));
 					} else {
-						meshArena.updateChunk(currentWaterMesh, sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount);
+						SectionMeshDrawCommand updatedCommand = meshArena.updateChunk(currentWaterMesh, sec.meshResult.waterVertices, sec.meshResult.waterIndices, sec.meshResult.wvCount, sec.meshResult.wiCount);
+						sec.setWaterMesh(updatedCommand);
 					}
 				}
 			}
@@ -476,7 +484,19 @@ public class World {
 				renderedColumns.remove(key);
 
 				if (!val.isHasBeenPlayerModified() && (xDist > renderDistance+2 || zDist > renderDistance+2)) {
-					val.cleanupMeshes();
+					for (int i = 0; i < 16; i++) {
+						ChunkSection sec = val.getSection(i);
+						if (sec != null) {
+							SectionMeshDrawCommand mesh = sec.getMesh();
+							SectionMeshDrawCommand waterMesh = sec.getWaterMesh();
+
+							if (mesh != null) meshArena.removeChunk(mesh);
+							if (waterMesh != null) meshArena.removeChunk(waterMesh);
+
+							sec.setMesh(null);
+							sec.setWaterMesh(null);
+						}
+					}
 					iter.remove();
 				}
 			}

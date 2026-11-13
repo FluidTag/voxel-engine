@@ -234,26 +234,6 @@ public class ChunkColumn {
 		return sections[yIndex];
 	}
 	
-	public void cleanupMeshes() {
-		for (int i = 0; i < 16; i++) {
-			ChunkSection sec = sections[i];
-			if (sec == null) continue;
-			
-			SectionMeshDrawCommand mainMesh = sec.getMesh();
-			SectionMeshDrawCommand waterMesh = sec.getWaterMesh();
-			
-			if (mainMesh != null) {
-				//mainMesh.cleanup();
-				sec.setMesh(null);
-			}
-			
-			if (waterMesh != null) {
-				//waterMesh.cleanup();
-				sec.setWaterMesh(null);
-			}
- 		}
-	}
-	
 	public ChunkColumn(World worldReference, int worldX, int worldZ) {
 		this.worldReference = worldReference;
 		this.worldX = worldX;

@@ -23,8 +23,9 @@ public class MeshPage {
         this.chunksAllowed = chunksAllowed;
 
         int allocationByteSize = (chunksAllowed * (32*32*32)) * 2 * Integer.BYTES; // For the entire range
-        this.vertexSpaceAllocator = new FreeRangeMeshAllocator(allocationByteSize);
-        this.indexSpaceAllocator = new FreeRangeMeshAllocator(allocationByteSize);
+        this.vertexSpaceAllocator = new FreeRangeMeshAllocator(allocationByteSize, 8);
+        this.indexSpaceAllocator = new FreeRangeMeshAllocator(allocationByteSize, 4);
+        System.out.println("Page " + pageIndex + " meshPage created.");
 
         vao = glGenVertexArrays();
         glBindVertexArray(vao);
@@ -46,12 +47,20 @@ public class MeshPage {
         glBindVertexArray(0);
     }
 
+    public void removeChunk(AllocatorSegment vSegment, AllocatorSegment iSegment) {
+        vertexSpaceAllocator.freeAllocation(vSegment);
+        indexSpaceAllocator.freeAllocation(iSegment);
+    }
+
     public SectionMeshDrawCommand updateChunk(AllocatorSegment vSegment, AllocatorSegment iSegment, int[] vertices, int[] indices, int vCount, int iCount) {
+        // Allocators return null if cannot handle update, if successful it already frees the old range and gives the newly allocated segment
         AllocatorSegment givenVSegment = vertexSpaceAllocator.requestNewRange(vSegment, vCount * Integer.BYTES, vCount);
         AllocatorSegment givenISegment = indexSpaceAllocator.requestNewRange(iSegment, iCount * Integer.BYTES, iCount);
+
+        // Note this is correct rollback behavior, returning null means it is going to remove this mesh data from this page and add it into another
         if (givenVSegment == null || givenISegment == null) {
-            if (givenVSegment != null) vertexSpaceAllocator.freeAllocation(givenVSegment);
-            if (givenISegment != null) indexSpaceAllocator.freeAllocation(givenISegment);
+            if (givenVSegment != null) vertexSpaceAllocator.freeAllocation(givenVSegment); else vertexSpaceAllocator.freeAllocation(vSegment);
+            if (givenISegment != null) indexSpaceAllocator.freeAllocation(givenISegment); else indexSpaceAllocator.freeAllocation(iSegment);
 
             return null;
         }
@@ -80,6 +89,10 @@ public class MeshPage {
         mappedEBOByteBuffer.put(indices, 0, iCount);
 
         return new SectionMeshDrawCommand(givenVSegment, givenISegment, this.pageIndex);
+    }
+
+    public String debugData() {
+        return String.format("Vertex Allocator: Total Free: %d bytes%nLargest Free Byte Range Size: %d bytes%nAmount of Free Ranges: %d%n%nIndex Allocator: Total Free: %d bytes%nLargest Free Byte Range Size %d bytes%nAmount of free ranges: %d%n", vertexSpaceAllocator.getTotalFreeSpace(), vertexSpaceAllocator.getLargestFreeRange(), vertexSpaceAllocator.getNumberOfFreeSpaces(), indexSpaceAllocator.getTotalFreeSpace(), indexSpaceAllocator.getLargestFreeRange(), indexSpaceAllocator.getNumberOfFreeSpaces());
     }
 
     public int getVao() {
