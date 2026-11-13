@@ -6,8 +6,11 @@ import com.szymc.localShaders.OutlineShader;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL32.*;
+import static org.lwjgl.opengl.GL46.*;
 
+import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.system.MemoryStack;
 
 
@@ -18,9 +21,9 @@ import static org.lwjgl.system.MemoryStack.*;
 
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 
 import org.joml.Matrix4f;
@@ -176,10 +179,115 @@ public class Engine {
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glLineWidth(2);
 		//glEnable(GL11.GL_BLEND);
+
+		createCPUBuffers(10000);
+		createDrawBuffers(10000);
 	}
 
 	private Vector3f tempModel = new Vector3f();
 	private Matrix4f modelVec = new Matrix4f();
+
+	private record IndirectDrawCommand(
+			int count,
+			int instanceCount,
+			int firstIndex,
+			int baseVertex,
+			int baseInstance
+	) {
+		public static final int SIZE_BYTES = 5 * Integer.BYTES;
+	}
+
+	public static IndirectDrawCommand from(SectionMeshDrawCommand mesh) {
+		return new IndirectDrawCommand(
+				(int) mesh.indexRange.count(),
+				1,
+				(int) (mesh.indexRange.valueByteOffset() / Integer.BYTES),
+				(int) (mesh.vertexRange.valueByteOffset() / 8),
+				0
+		);
+	}
+
+	private final class MeshPageBatch {
+		public final int pageIndex;
+
+		public final List<IndirectDrawCommand> commands =
+				new ArrayList<>();
+
+		public final List<Matrix4f> models =
+				new ArrayList<>();
+
+		public MeshPageBatch(int pageIndex) {
+			this.pageIndex = pageIndex;
+		}
+
+		public void clear() {
+			commands.clear();
+			models.clear();
+		}
+
+		public void add(
+				SectionMeshDrawCommand mesh,
+				Matrix4f model
+		) {
+			commands.add(from(mesh));
+			models.add(new Matrix4f(model));
+		}
+	}
+
+	private ByteBuffer commandData;
+	private FloatBuffer modelData;
+	private void createCPUBuffers(int maxDraws) {
+		commandData = BufferUtils.createByteBuffer(maxDraws * IndirectDrawCommand.SIZE_BYTES);
+
+		modelData = BufferUtils.createFloatBuffer(maxDraws * 16);
+	}
+
+	private int indirectBuffer;
+	private int modelBuffer;
+
+	private void createDrawBuffers(int maxDraws) {
+		indirectBuffer = glGenBuffers();
+		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+		glBufferData(GL_DRAW_INDIRECT_BUFFER, (long)maxDraws * IndirectDrawCommand.SIZE_BYTES, GL_STREAM_DRAW);
+
+		modelBuffer = glGenBuffers();
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelBuffer);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, (long)maxDraws * 16 * Float.BYTES, GL_STREAM_DRAW);
+
+		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	}
+
+	private void uploadBatch(MeshPageBatch batch) {
+		commandData.clear();
+		modelData.clear();
+
+		for (int i = 0; i < batch.commands.size(); i++) {
+			IndirectDrawCommand cmd = batch.commands.get(i);
+
+			commandData.putInt(cmd.count());
+			commandData.putInt(cmd.instanceCount());
+			commandData.putInt(cmd.firstIndex());
+			commandData.putInt(cmd.baseVertex());
+			commandData.putInt(cmd.baseInstance());
+
+			batch.models.get(i).get(modelData);
+			modelData.position(modelData.position() + 16);
+		}
+
+		commandData.flip();
+		modelData.flip();
+
+		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+		glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commandData);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelBuffer);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, modelData);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelBuffer);
+	}
+
+	private Map<Integer, MeshPageBatch> batches = new HashMap<>();
 
 	public void render() {
 		glClearColor(0.5f, 0.6f, 0.8f, 1.0f); // Sky Blue
@@ -202,6 +310,10 @@ public class Engine {
 
 			debugger.renderDebug(matrixBuffer);
 			mainShader.start();
+
+			for (MeshPageBatch batch : batches.values()) {
+				batch.clear();
+			}
 
 			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
 				ChunkColumn chunk = entry.getValue();
@@ -229,19 +341,32 @@ public class Engine {
 
 					tempModel.set((float) minX, (float) minY, (float) minZ);
 					modelVec.translation(tempModel);
-					mainShader.setModel(modelVec, matrixBuffer);
 
 					SectionMeshDrawCommand m = section.getMesh();
-					MeshPage page = meshArena.getPage(m.pageIndex);
-					glBindVertexArray(page.getVao());
+					MeshPageBatch batch =  batches.computeIfAbsent(m.pageIndex, MeshPageBatch::new);
 
-					int baseVertex = (int) (
-							m.vertexRange.valueByteOffset() / (2L * Integer.BYTES)
-					);
-
-					glDrawElementsBaseVertex(GL_TRIANGLES, (int)m.indexRange.count(), GL_UNSIGNED_INT, m.indexRange.valueByteOffset(), baseVertex);
+					batch.add(m, new Matrix4f().translation(minX, minY, minZ));
 				}
 			});
+
+			for (MeshPageBatch batch : batches.values()) {
+				if (batch.commands.isEmpty()) continue;
+				MeshPage page = meshArena.getPage(batch.pageIndex);
+				uploadBatch(batch);
+				glBindVertexArray(page.getVao());
+
+				glMultiDrawElementsIndirect(
+						GL_TRIANGLES,
+						GL_UNSIGNED_INT,
+						0L,
+						batch.commands.size(),
+						0
+				);
+
+				glBindVertexArray(0);
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+			}
 
 			mainShader.stop();
 			entityShader.start();
@@ -293,46 +418,46 @@ public class Engine {
 			glEnable(GL_BLEND);
 			glDepthMask(true);
 
-			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
-				ChunkColumn chunk = entry.getValue();
-				if (chunk == null) return;
-
-				if (!camera.frustumInt.testAab(chunk.getWorldX()*32, 0, chunk.getWorldZ()*32, chunk.getWorldX()*32+32, 256, chunk.getWorldZ()*32+32)) {
-					return;
-				}
-
-				for (int s = 0; s < 16; s++) {
-					ChunkSection section = chunk.getSection(s);
-					if (section == null) continue;
-					if (section.getWaterMesh() == null) continue;
-
-					int minX = section.getWorldX();
-					int minY = section.getWorldY();
-					int minZ = section.getWorldZ();
-					int maxX = section.getWorldX() + 32;
-					int maxY = section.getWorldY() + 16;
-					int maxZ = section.getWorldZ() + 32;
-
-
-					if (!camera.frustumInt.testAab(minX, minY, minZ, maxX, maxY, maxZ)) {
-						continue;
-					}
-
-					tempModel.set((float) minX, (float) minY, (float) minZ);
-					modelVec.translation(tempModel);
-					mainShader.setModel(modelVec, matrixBuffer);
-
-					SectionMeshDrawCommand m = section.getWaterMesh();
-					MeshPage page = meshArena.getPage(m.pageIndex);
-					glBindVertexArray(page.getVao());
-
-					int baseVertex = (int) (
-							m.vertexRange.valueByteOffset() / (2L * Integer.BYTES)
-					);
-
-					glDrawElementsBaseVertex(GL_TRIANGLES, (int)m.indexRange.count(), GL_UNSIGNED_INT, m.indexRange.valueByteOffset(), baseVertex);
-				}
-			});
+//			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
+//				ChunkColumn chunk = entry.getValue();
+//				if (chunk == null) return;
+//
+//				if (!camera.frustumInt.testAab(chunk.getWorldX()*32, 0, chunk.getWorldZ()*32, chunk.getWorldX()*32+32, 256, chunk.getWorldZ()*32+32)) {
+//					return;
+//				}
+//
+//				for (int s = 0; s < 16; s++) {
+//					ChunkSection section = chunk.getSection(s);
+//					if (section == null) continue;
+//					if (section.getWaterMesh() == null) continue;
+//
+//					int minX = section.getWorldX();
+//					int minY = section.getWorldY();
+//					int minZ = section.getWorldZ();
+//					int maxX = section.getWorldX() + 32;
+//					int maxY = section.getWorldY() + 16;
+//					int maxZ = section.getWorldZ() + 32;
+//
+//
+//					if (!camera.frustumInt.testAab(minX, minY, minZ, maxX, maxY, maxZ)) {
+//						continue;
+//					}
+//
+//					tempModel.set((float) minX, (float) minY, (float) minZ);
+//					modelVec.translation(tempModel);
+//					mainShader.setModel(modelVec, matrixBuffer);
+//
+//					SectionMeshDrawCommand m = section.getWaterMesh();
+//					MeshPage page = meshArena.getPage(m.pageIndex);
+//					glBindVertexArray(page.getVao());
+//
+//					int baseVertex = (int) (
+//							m.vertexRange.valueByteOffset() / (2L * Integer.BYTES)
+//					);
+//
+//					glDrawElementsBaseVertex(GL_TRIANGLES, (int)m.indexRange.count(), GL_UNSIGNED_INT, m.indexRange.valueByteOffset(), baseVertex);
+//				}
+//			});
 
 			if (outlineLoc != null) {
 				outlineShader.start();

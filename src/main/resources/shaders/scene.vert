@@ -1,13 +1,20 @@
-#version 330 core
+#version 460 core
+#extension GL_ARB_shader_draw_parameters : enable
 layout (location = 0) in ivec2 packedData;
+layout (std430, binding = 0) readonly buffer ModelMatrices {
+    mat4 models[];
+};
+
 out vec3 TexCoord;
 out float vAoFactor;
 out float lightFactor;
 
-uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+
 void main() {
+    mat4 model = models[gl_DrawID];
+
 	int dat1 = packedData.x;
 	int dat2 = packedData.y;
 	
