@@ -18,6 +18,8 @@ public class FreeRangeMeshAllocator {
     }
 
     public boolean canInsert(int sizeOfBytesNeeded) {
+        sizeOfBytesNeeded = (sizeOfBytesNeeded + alignment - 1) & ~(alignment - 1);;
+
         for (AllocatorSegment segment : rangeAllocations) {
             if (segment.valueByteAllocationSize >= sizeOfBytesNeeded) {
                 return true;
@@ -32,6 +34,7 @@ public class FreeRangeMeshAllocator {
 
         ListIterator<AllocatorSegment> it = rangeAllocations.listIterator();
         AllocatorSegment givenSegment = null;
+        sizeOfBytesNeeded = (sizeOfBytesNeeded + alignment - 1) & ~(alignment - 1);;
 
         while (it.hasNext()) {
             AllocatorSegment segment = it.next();
@@ -140,6 +143,9 @@ public class FreeRangeMeshAllocator {
     }
 
     public AllocatorSegment requestNewRange(AllocatorSegment oldAllocatedSegment, int requestedSizeOfBytes, int newIntCount) {
+        requestedSizeOfBytes =
+                (requestedSizeOfBytes + alignment - 1) & ~(alignment - 1);
+
         if (requestedSizeOfBytes <= 0) throw new IllegalArgumentException("sizeOfBytesNeeded needs to be greater than zero");
 
         if (requestedSizeOfBytes == oldAllocatedSegment.valueByteAllocationSize) return new AllocatorSegment(false, oldAllocatedSegment.valueByteOffset, oldAllocatedSegment.valueByteAllocationSize, newIntCount);
@@ -173,7 +179,7 @@ public class FreeRangeMeshAllocator {
             if (segment.valueByteAllocationSize >= requestedSizeOfBytes) {
                 long extraSpace = segment.valueByteAllocationSize - requestedSizeOfBytes;
                 long extraTaken = Math.min(extraSpace, EXPAND_SEGMENT_BYTE_VALUE);
-                extraTaken -= extraTaken % alignment;
+                extraTaken -= (extraTaken % alignment);
 
                 long allocationSize = requestedSizeOfBytes+extraTaken;
                 long remainder = segment.valueByteAllocationSize - allocationSize;
@@ -224,7 +230,7 @@ public class FreeRangeMeshAllocator {
             // Take only whats needed plus some extra if possible
             long extraSpace = allocatedSize - requestedSizeOfBytes;
             long extraTaken = Math.min(extraSpace, EXPAND_SEGMENT_BYTE_VALUE);
-            long beingTaken = requestedSizeOfBytes + extraTaken - (extraTaken & alignment);
+            long beingTaken = requestedSizeOfBytes + extraTaken - (extraTaken % alignment);
 
             long remainder = allocatedSize - beingTaken;
 

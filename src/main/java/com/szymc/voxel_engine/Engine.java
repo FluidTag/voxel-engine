@@ -66,8 +66,6 @@ public class Engine {
 		}
 	}
 
-	// Engine is begging for a refactor bro, fix ts, maybe consider moving the ui to another class
-
 	private int mouseX, mouseY;
 	public void setMousePosition(int x, int y) {
 		this.mouseX = x;
@@ -180,8 +178,8 @@ public class Engine {
 		glLineWidth(2);
 		//glEnable(GL11.GL_BLEND);
 
-		createCPUBuffers(10000);
-		createDrawBuffers(10000);
+		createCPUBuffers(1000000);
+		createDrawBuffers(1000000);
 	}
 
 	private Vector3f tempModel = new Vector3f();
@@ -202,7 +200,7 @@ public class Engine {
 				(int) mesh.indexRange.count(),
 				1,
 				(int) (mesh.indexRange.valueByteOffset() / Integer.BYTES),
-				(int) (mesh.vertexRange.valueByteOffset() / 8),
+				(int) (mesh.vertexRange.valueByteOffset() / (2 * Integer.BYTES)),
 				0
 		);
 	}
@@ -279,9 +277,19 @@ public class Engine {
 		modelData.flip();
 
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+		glBufferData(
+				GL_DRAW_INDIRECT_BUFFER,
+				(long) commandData.capacity(),
+				GL_STREAM_DRAW
+		);
 		glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commandData);
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelBuffer);
+		glBufferData(
+				GL_SHADER_STORAGE_BUFFER,
+				(long) modelData.capacity(),
+				GL_STREAM_DRAW
+		);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, modelData);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelBuffer);
@@ -339,9 +347,6 @@ public class Engine {
 						continue;
 					}
 
-					tempModel.set((float) minX, (float) minY, (float) minZ);
-					modelVec.translation(tempModel);
-
 					SectionMeshDrawCommand m = section.getMesh();
 					MeshPageBatch batch =  batches.computeIfAbsent(m.pageIndex, MeshPageBatch::new);
 
@@ -350,6 +355,7 @@ public class Engine {
 			});
 
 			for (MeshPageBatch batch : batches.values()) {
+				//if (batch.pageIndex == 0) continue; // d1
 				if (batch.commands.isEmpty()) continue;
 				MeshPage page = meshArena.getPage(batch.pageIndex);
 				uploadBatch(batch);
@@ -362,10 +368,12 @@ public class Engine {
 						batch.commands.size(),
 						0
 				);
+				//glFinish();
 
 				glBindVertexArray(0);
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+				//break; // d2
 			}
 
 			mainShader.stop();
@@ -418,46 +426,63 @@ public class Engine {
 			glEnable(GL_BLEND);
 			glDepthMask(true);
 
-//			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
-//				ChunkColumn chunk = entry.getValue();
-//				if (chunk == null) return;
-//
-//				if (!camera.frustumInt.testAab(chunk.getWorldX()*32, 0, chunk.getWorldZ()*32, chunk.getWorldX()*32+32, 256, chunk.getWorldZ()*32+32)) {
-//					return;
-//				}
-//
-//				for (int s = 0; s < 16; s++) {
-//					ChunkSection section = chunk.getSection(s);
-//					if (section == null) continue;
-//					if (section.getWaterMesh() == null) continue;
-//
-//					int minX = section.getWorldX();
-//					int minY = section.getWorldY();
-//					int minZ = section.getWorldZ();
-//					int maxX = section.getWorldX() + 32;
-//					int maxY = section.getWorldY() + 16;
-//					int maxZ = section.getWorldZ() + 32;
-//
-//
-//					if (!camera.frustumInt.testAab(minX, minY, minZ, maxX, maxY, maxZ)) {
-//						continue;
-//					}
-//
-//					tempModel.set((float) minX, (float) minY, (float) minZ);
-//					modelVec.translation(tempModel);
-//					mainShader.setModel(modelVec, matrixBuffer);
-//
-//					SectionMeshDrawCommand m = section.getWaterMesh();
-//					MeshPage page = meshArena.getPage(m.pageIndex);
-//					glBindVertexArray(page.getVao());
-//
-//					int baseVertex = (int) (
-//							m.vertexRange.valueByteOffset() / (2L * Integer.BYTES)
-//					);
-//
-//					glDrawElementsBaseVertex(GL_TRIANGLES, (int)m.indexRange.count(), GL_UNSIGNED_INT, m.indexRange.valueByteOffset(), baseVertex);
-//				}
-//			});
+			for (MeshPageBatch batch : batches.values()) {
+				batch.clear();
+			}
+
+			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
+				ChunkColumn chunk = entry.getValue();
+				if (chunk == null) return;
+
+				if (!camera.frustumInt.testAab(chunk.getWorldX()*32, 0, chunk.getWorldZ()*32, chunk.getWorldX()*32+32, 256, chunk.getWorldZ()*32+32)) {
+					return;
+				}
+
+				for (int s = 0; s < 16; s++) {
+					ChunkSection section = chunk.getSection(s);
+					if (section == null) continue;
+					if (section.getWaterMesh() == null) continue;
+
+					int minX = section.getWorldX();
+					int minY = section.getWorldY();
+					int minZ = section.getWorldZ();
+					int maxX = section.getWorldX() + 32;
+					int maxY = section.getWorldY() + 16;
+					int maxZ = section.getWorldZ() + 32;
+
+
+					if (!camera.frustumInt.testAab(minX, minY, minZ, maxX, maxY, maxZ)) {
+						continue;
+					}
+
+					SectionMeshDrawCommand m = section.getWaterMesh();
+					MeshPageBatch batch =  batches.computeIfAbsent(m.pageIndex, MeshPageBatch::new);
+
+					batch.add(m, new Matrix4f().translation(minX, minY, minZ));
+				}
+			});
+
+			for (MeshPageBatch batch : batches.values()) {
+				//if (batch.pageIndex == 0) continue; // d1
+				if (batch.commands.isEmpty()) continue;
+				MeshPage page = meshArena.getPage(batch.pageIndex);
+				uploadBatch(batch);
+				glBindVertexArray(page.getVao());
+
+				glMultiDrawElementsIndirect(
+						GL_TRIANGLES,
+						GL_UNSIGNED_INT,
+						0L,
+						batch.commands.size(),
+						0
+				);
+				//glFinish();
+
+				glBindVertexArray(0);
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+				//break; // d2
+			}
 
 			if (outlineLoc != null) {
 				outlineShader.start();
