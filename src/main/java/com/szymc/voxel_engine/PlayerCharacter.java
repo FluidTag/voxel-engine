@@ -150,8 +150,34 @@ public class PlayerCharacter {
 
     public void setInventoryStruct(short[] inv, byte[] amounts) {
         this.inventory = new ContainerData(inv, amounts);
-        this.inventoryScreen = InventoryScreen.create(this.inventory);
-        this.craftingTableScreen = TableCraftScreen.create(this.inventory);
+        this.inventoryScreen = InventoryScreen.create(this);
+        this.craftingTableScreen = TableCraftScreen.create(this);
+    }
+
+    public void directDropItem(short type, int amount) {
+        Vector3f lookDir = playerCamera.getLookUnitNormal().normalize();
+
+        for (int i = 0; i < amount; i++) {
+            EntityItem createdEntity = worldReference.spawnNewItemEntity(type, 0, 0, 0, true);
+            createdEntity.position.set(playerCamera.cameraPos.x + lookDir.x*2, playerCamera.cameraPos.y + lookDir.y*2, playerCamera.cameraPos.z + lookDir.z*2 );
+        }
+    }
+
+    public void dropItem(ContainerData source, int index, int amount) {
+        if (amount < 0) throw new IllegalArgumentException("Cannot drop negative items");
+        if (amount > source.readAmount(index)) return;
+
+        short type = source.readType(index);
+        if (type == 0) return;
+
+        Vector3f lookDir = playerCamera.getLookUnitNormal().normalize();
+
+        for (int i = 0; i < amount; i++) {
+            EntityItem createdEntity = worldReference.spawnNewItemEntity(type, 0, 0, 0, true);
+            createdEntity.position.set(playerCamera.cameraPos.x + lookDir.x*2, playerCamera.cameraPos.y + lookDir.y*2, playerCamera.cameraPos.z + lookDir.z*2 );
+        }
+
+        source.set(index, type, source.readAmount(index)-amount);
     }
 
     public PlayerCharacter(Camera playerCamera, World worldReference, Window windowReference, Engine engineAttachment) {
@@ -160,8 +186,8 @@ public class PlayerCharacter {
         this.windowReference = windowReference;
         this.engineAttachment = engineAttachment;
         this.inventory = new ContainerData(41);
-        this.inventoryScreen = InventoryScreen.create(this.inventory);
-        this.craftingTableScreen = TableCraftScreen.create(this.inventory);
+        this.inventoryScreen = InventoryScreen.create(this);
+        this.craftingTableScreen = TableCraftScreen.create(this);
 //        inventory[0] = Blocks.TORCH;
 //        inventoryAmounts[0] = 64;
 //
@@ -192,7 +218,17 @@ public class PlayerCharacter {
             }
 
             if (key == GLFW_KEY_Q && action == GLFW_PRESS && !guiInventoryActive) {
-                //engineAttachment.requestDropInvIndex((byte) currentHotbarSlot, inventory, inventoryAmounts, ((mods & GLFW_MOD_CONTROL) != 0 ? inventoryAmounts[currentHotbarSlot] : 1));
+                dropItem(inventory, currentHotbarSlot, ((mods & GLFW_MOD_CONTROL) != 0 ? inventory.readAmount(currentHotbarSlot) : 1));
+            }
+
+            if (action == GLFW_PRESS) {
+                double[] tempMposX = new double[1];
+                double[] tempMposY = new double[1];
+                glfwGetCursorPos(windowHandle, tempMposX, tempMposY);
+                int mouseX = (int) tempMposX[0];
+                int mouseY = (int) tempMposY[0];
+
+                engineAttachment.handleGuiKeyPress(mouseX, mouseY, key, mods);
             }
         });
 
@@ -208,7 +244,6 @@ public class PlayerCharacter {
             double mouseY = tempMposY[0];
 
             if (action == GLFW_PRESS && guiInventoryActive) {
-                System.out.println(mouseX + ", " + mouseY);
                 engineAttachment.handleGuiMouseClick((int) mouseX, (int) mouseY, button, mods);
             }
 
@@ -244,7 +279,7 @@ public class PlayerCharacter {
                             }
 
                             if (targetedBlockEntity == null) throw new IllegalStateException("The block entity was unable to be located for the targeted chest");
-                            ChestScreen chestScreen = ChestScreen.create(this.inventory, targetedBlockEntity.getContainer());
+                            ChestScreen chestScreen = ChestScreen.create(this, targetedBlockEntity.getContainer());
 
                             engineAttachment.setActiveGuiScreen(chestScreen);
                             if (!guiInventoryActive) toggleInventoryGui(chestScreen);

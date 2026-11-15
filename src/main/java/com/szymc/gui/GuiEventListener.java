@@ -1,6 +1,6 @@
 package com.szymc.gui;
 
 public interface GuiEventListener {
-    boolean mouseButtonClick(int screenX, int screenY, int button, int mods);
-    boolean mouseHover(int screenX, int screenY);
+    boolean mouseButtonClick(int mouseX, int mouseY, int button, int mods);
+    boolean keyPress(int mouseX, int mouseY, int key, int mods);
 }

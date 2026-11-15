@@ -1,27 +1,21 @@
 package com.szymc.gui;
 
-import com.szymc.voxel_engine.App;
-import com.szymc.voxel_engine.ContainerData;
-import com.szymc.voxel_engine.Texture;
-import com.szymc.voxel_engine.UIRenderer;
+import com.szymc.voxel_engine.*;
 
 public class InventoryScreen extends AbstractContainerScreen<InventoryMenu> {
     private final static int padding = 16;
-    private final InventoryMenu menu;
-    private final ContainerData playerInv;
 
-    private InventoryScreen(ContainerData playerInv, InventoryMenu menu) {
-        super(9*64, 4*64 + 4*64, menu);
+    private InventoryScreen(InventoryMenu inventoryMenu, PlayerCharacter player) {
+        super(9*64, 4*64 + 4*64, inventoryMenu, player);
 
-        this.playerInv = playerInv;
-        this.menu = menu;
         this.topPos = (App.WINDOW_HEIGHT - this.height)/2;
         this.leftPos = (App.WINDOW_WIDTH - this.width)/2;
     }
 
-    public static InventoryScreen create(ContainerData playerInv) {
-        InventoryMenu menu = new InventoryMenu(playerInv);
-        return new InventoryScreen(playerInv, menu);
+    public static InventoryScreen create(PlayerCharacter player) {
+        InventoryMenu menu = new InventoryMenu(player.getInventory());
+
+        return new InventoryScreen(menu, player);
     }
 
     @Override

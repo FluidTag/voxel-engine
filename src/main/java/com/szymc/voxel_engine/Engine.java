@@ -8,7 +8,6 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL32.*;
 import static org.lwjgl.opengl.GL46.*;
 
-import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import org.lwjgl.BufferUtils;
@@ -47,13 +46,13 @@ public class Engine {
 
 	public void setActiveGuiScreen(Screen screen) {
 		if (activeGuiScreen != null) {
-			activeGuiScreen.removal();
+			activeGuiScreen.closeScreen();
 			activeGuiScreen = null;
 		}
 
 		if (screen == null) return;
 
-		screen.init();
+		screen.openScreen();
 		activeGuiScreen = screen;
 	}
 
@@ -64,6 +63,12 @@ public class Engine {
 	public void handleGuiMouseClick(int mouseX, int mouseY, int button, int mods) {
 		if (activeGuiScreen != null) {
 			activeGuiScreen.mouseClick(mouseX, mouseY, button, mods);
+		}
+	}
+
+	public void handleGuiKeyPress(int mouseX, int mouseY, int key, int mods) {
+		if (activeGuiScreen != null) {
+			activeGuiScreen.keyPress(mouseX, mouseY, key, mods);
 		}
 	}
 

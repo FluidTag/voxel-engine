@@ -2,22 +2,22 @@ package com.szymc.gui;
 
 import com.szymc.voxel_engine.App;
 import com.szymc.voxel_engine.ContainerData;
+import com.szymc.voxel_engine.PlayerCharacter;
 import com.szymc.voxel_engine.UIRenderer;
 
 public class TableCraftScreen extends AbstractContainerScreen<TableCraftMenu> {
     private final static int padding = 16;
-    private final TableCraftMenu menu;
 
-    private TableCraftScreen(TableCraftMenu menu) {
-        super(9*64, 4*64 + 4*64, menu);
-        this.menu = menu;
+    private TableCraftScreen(TableCraftMenu menu, PlayerCharacter character) {
+        super(9*64, 4*64 + 4*64, menu, character);
         this.topPos = (App.WINDOW_HEIGHT - this.height)/2;
         this.leftPos = (App.WINDOW_WIDTH - this.width)/2;
     }
 
-    public static TableCraftScreen create(ContainerData playerInv) {
-        TableCraftMenu menu = new TableCraftMenu(playerInv);
-        return new TableCraftScreen(menu);
+    public static TableCraftScreen create(PlayerCharacter player) {
+        TableCraftMenu menu = new TableCraftMenu(player.getInventory());
+
+        return new TableCraftScreen(menu, player);
     }
 
     @Override

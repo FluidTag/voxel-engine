@@ -2,24 +2,23 @@ package com.szymc.gui;
 
 import com.szymc.voxel_engine.App;
 import com.szymc.voxel_engine.ContainerData;
+import com.szymc.voxel_engine.PlayerCharacter;
 import com.szymc.voxel_engine.UIRenderer;
 
 public class ChestScreen extends AbstractContainerScreen<ChestMenu> {
-    private ContainerData playerInv;
-    private ContainerData chestInv;
     private final static int padding = 16;
 
-    private ChestScreen(ContainerData playerInv, ContainerData chestInv, ChestMenu menu) {
-        super(9*64, 9*64, menu);
+    private ChestScreen(ChestMenu chestMenu, PlayerCharacter character) {
+        super(9*64, 9*64, chestMenu, character);
         this.topPos = (App.WINDOW_HEIGHT - this.height)/2;
         this.leftPos = (App.WINDOW_WIDTH - this.width)/2;
-        this.playerInv = playerInv;
-        this.chestInv = chestInv;
     }
 
-    public static ChestScreen create(ContainerData invData, ContainerData chestData) {
-        ChestMenu menu = new ChestMenu(invData, chestData);
-        return new ChestScreen(invData, chestData, menu);
+    public static ChestScreen create(PlayerCharacter player, ContainerData chestInv) {
+        ContainerData playerInv = player.getInventory();
+        ChestMenu chestMenu = new ChestMenu(playerInv, chestInv);
+
+        return new ChestScreen(chestMenu, player);
     }
 
     @Override

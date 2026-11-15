@@ -2,6 +2,7 @@ package com.szymc.gui;
 
 import com.szymc.voxel_engine.App;
 import com.szymc.voxel_engine.ContainerData;
+import com.szymc.voxel_engine.PlayerCharacter;
 import com.szymc.voxel_engine.UIRenderer;
 
 import java.util.List;
@@ -18,8 +19,8 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
 
     private ItemStack activeInventoryDrag;
 
-    public AbstractContainerScreen(int width, int height, T menu) {
-        super(width, height);
+    public AbstractContainerScreen(int width, int height, T menu, PlayerCharacter player) {
+        super(width, height, player);
         this.menu = menu;
         this.topPos = 0;
         this.leftPos = 0;
@@ -58,9 +59,48 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
     protected abstract void renderBg(UIRenderer graphics);
 
     @Override
+    public void closeScreen() {
+        if (activeInventoryDrag != null) {
+            this.player.directDropItem(activeInventoryDrag.type(), activeInventoryDrag.amount());
+            this.activeInventoryDrag = null;
+        }
+    }
+
+    @Override
+    public void openScreen() {}
+
+    @Override
+    public boolean keyPress(int mouseX, int mouseY, int key, int mods) {
+        if (key == GLFW_KEY_Q && (mods & GLFW_MOD_CONTROL) != 0) {
+            for (int i = 0; i < menu.getSlots().size(); i++) {
+                Slot slot = menu.getSlots().get(i);
+                if (mouseX >= leftPos + slot.anchorX + slot.x && mouseX <= leftPos + slot.anchorX + slot.x + slot.size
+                        && mouseY >= topPos + slot.anchorY + slot.y && mouseY <= topPos + slot.anchorY + slot.y + slot.size) {
+                    this.player.dropItem(slot.container, slot.index, slot.readAmount());
+                }
+            }
+
+        }
+
+        return false;
+    }
+
+    @Override
     public boolean mouseClick(int mouseX, int mouseY, int button, int mods) {
         if (super.mouseClick(mouseX, mouseY, button, mods)) {
             return true;
+        }
+
+        // Check if it is an out of container right click drop
+        if ((mouseX < this.leftPos || mouseX > this.leftPos + this.width) || (mouseY < this.topPos || mouseY > this.topPos + this.height)) {
+            if (activeInventoryDrag != null && button == GLFW_MOUSE_BUTTON_RIGHT) {
+                this.player.directDropItem(activeInventoryDrag.type(), 1);
+                this.activeInventoryDrag = activeInventoryDrag.amount() > 1 ? new ItemStack(activeInventoryDrag.type(), (byte) (activeInventoryDrag.amount()-1)) : null;
+
+            } else if (activeInventoryDrag != null && button == GLFW_MOUSE_BUTTON_LEFT) {
+                this.player.directDropItem(activeInventoryDrag.type(), activeInventoryDrag.amount());
+                this.activeInventoryDrag = null;
+            }
         }
 
         long elapsed = (System.nanoTime() - lastClick) / 1_000_000;
