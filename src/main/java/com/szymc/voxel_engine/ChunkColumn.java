@@ -169,7 +169,7 @@ public class ChunkColumn {
 		section.setBlock(cx, (cy & 15), cz, blockType, modifiers);
 
 		if (Texture.isBlockEntity[blockType]) {
-			worldReference.spawnNewBlockEntity(blockType, modifiers, worldX*32 + cx, cy, worldZ*32 + cz);
+			worldReference.spawnNewBlockEntity(blockType, modifiers, worldX*32 + cx, cy, worldZ*32 + cz, Texture.blockEntityInventorySize[blockType]);
 		} else if (eLookup != null && blockType == Blocks.AIR && Texture.isBlockEntity[old]) {
 			Iterator<Entity> it = eLookup.iterator();
 			while (it.hasNext()) {

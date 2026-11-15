@@ -135,7 +135,7 @@ public class DatabaseManager {
                         createdEntity = new EntityItem((short) (item&0xFFFF), 0, true);
                     } else if (type == 1) {
                         System.out.println("Got modifiers: " + Integer.toBinaryString((item >>> 16) & 0xFFFF));
-                        createdEntity = new BlockEntity((short) (item&0xFFFF), (short) ((item >>> 16) & 0xFFFF), 0);
+                        createdEntity = new BlockEntity((short) (item&0xFFFF), (short) ((item >>> 16) & 0xFFFF), 0, Texture.blockEntityInventorySize[(item&0xFFFF)]);
                     }
 
                     assert createdEntity != null;

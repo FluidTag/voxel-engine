@@ -515,8 +515,8 @@ public class World {
 		return item;
 	}
 
-	public BlockEntity spawnNewBlockEntity(short block, short modifiers, int wx, int wy, int wz) {
-		BlockEntity createdBlockEntity = new BlockEntity(block, modifiers, tick);
+	public BlockEntity spawnNewBlockEntity(short block, short modifiers, int wx, int wy, int wz, int inventorySize) {
+		BlockEntity createdBlockEntity = new BlockEntity(block, modifiers, tick, inventorySize);
 		createdBlockEntity.position.set(wx, wy, wz);
 		createdBlockEntity.previousPosition.set(wx, wy, wz);
 		createdBlockEntity.renderPosition.set(wx, wy, wz);

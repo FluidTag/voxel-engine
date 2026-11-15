@@ -1,5 +1,6 @@
 package com.szymc.voxel_engine;
 
+import com.szymc.gui.ChestScreen;
 import com.szymc.gui.InventoryScreen;
 import com.szymc.gui.Screen;
 import com.szymc.gui.TableCraftScreen;
@@ -228,6 +229,25 @@ public class PlayerCharacter {
                         if (inventory.isEmptyAt(currentHotbarSlot) && lookingAtBlock == Blocks.CRAFTING_TABLE) {
                             engineAttachment.setActiveGuiScreen(craftingTableScreen);
                             if (!guiInventoryActive) toggleInventoryGui(craftingTableScreen);
+
+                            return;
+                        } else if (inventory.isEmptyAt(currentHotbarSlot) && lookingAtBlock == Blocks.CHEST) {
+                            BlockEntity targetedBlockEntity = null;
+
+                            for (Entity e : worldReference.getLoadedChunkAtPos(x >> 5, z >> 5).readEntityLookup()) {
+                                if (e instanceof BlockEntity bEntity) {
+                                    if ((int)bEntity.position.x == x && (int)bEntity.position.y == y && (int)bEntity.position.z == z) {
+                                        targetedBlockEntity = bEntity;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (targetedBlockEntity == null) throw new IllegalStateException("The block entity was unable to be located for the targeted chest");
+                            ChestScreen chestScreen = ChestScreen.create(this.inventory, targetedBlockEntity.getContainer());
+
+                            engineAttachment.setActiveGuiScreen(chestScreen);
+                            if (!guiInventoryActive) toggleInventoryGui(chestScreen);
 
                             return;
                         } else if (inventory.isEmptyAt(currentHotbarSlot)) {

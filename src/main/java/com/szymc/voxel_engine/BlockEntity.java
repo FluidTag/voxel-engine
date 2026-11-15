@@ -1,9 +1,7 @@
 package com.szymc.voxel_engine;
 
 public class BlockEntity extends Entity {
-    private int sizeOfInv = 36;
-    private byte[] inventory;
-    private byte[] inventoryAmounts;
+    private ContainerData container;
 
     // BlockEntity index format
     // 256 + (itemId * 16) for alloted space per block entity in the cache
@@ -34,7 +32,7 @@ public class BlockEntity extends Entity {
 
     public short blockType;
     public short blockModifiers;
-    public BlockEntity(short item, short modifiers, int currentTick) {
+    public BlockEntity(short item, short modifiers, int currentTick, int inventorySize) {
         super(currentTick);
         int rotationType = (modifiers & 0x3);
         int coreRotationParameters = (modifiers >>> 2) & 0x3;
@@ -51,5 +49,10 @@ public class BlockEntity extends Entity {
 
         this.blockType = item;
         this.blockModifiers = modifiers;
+        if (inventorySize > 0) this.container = new ContainerData(inventorySize);
+    }
+
+    public ContainerData getContainer() {
+        return this.container;
     }
 }

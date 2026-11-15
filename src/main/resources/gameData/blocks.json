@@ -664,6 +664,7 @@
   "71": {
     "name": "CHEST",
     "isBlockEntity": true,
+    "blockEntityInventorySize": 36,
     "hardness": 1.4,
     "idealTool": 3,
     "specialRotation": "lookHorizontal",
