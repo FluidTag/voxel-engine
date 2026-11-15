@@ -47,6 +47,7 @@ public class DatabaseManager {
                     FOREIGN KEY (world_id) REFERENCES worlds(world_id) ON DELETE CASCADE
                 ) WITHOUT ROWID;
             """);
+
             //statement.execute("DROP TABLE entities");
             statement.execute("""
                 CREATE TABLE IF NOT EXISTS entities (
@@ -55,6 +56,8 @@ public class DatabaseManager {
                     entity_id_low INTEGER,
                     item INTEGER,
                     type INTEGER NOT NULL CHECK (type in (0, 1, 2)),
+                    inventory BLOB,
+                    inventoryAmounts BlOB,
                     x REAL,
                     y REAL,
                     z REAL,
@@ -82,7 +85,7 @@ public class DatabaseManager {
     }
 
     public static void uploadEntity(int worldId, Entity e) {
-        String sql = "INSERT OR REPLACE INTO entities (world_id, entity_id_high, entity_id_low, item, type, x, y, z, xVel, yVel, zVel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT OR REPLACE INTO entities (world_id, entity_id_high, entity_id_low, item, type, inventory, inventoryAmounts, x, y, z, xVel, yVel, zVel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DriverManager.getConnection(URL); PreparedStatement statement = conn.prepareStatement(sql)) {
             statement.setInt(1, worldId);
             statement.setLong(2, e.entityId.getMostSignificantBits());
@@ -92,16 +95,24 @@ public class DatabaseManager {
                 statement.setInt(5, 0); // Entity Type 0: Item
             } else if (e instanceof BlockEntity blockEntity) {
                 statement.setInt(4, (blockEntity.blockType & 0xFFFF) | ((blockEntity.blockModifiers & 0xFFFF) << 16));
-                System.out.println("Saved modifiers: " + Integer.toBinaryString((blockEntity.blockModifiers & 0xFFFF)));
                 statement.setInt(5, 1); // Entity Type 1: Block
+
+                ContainerData container = blockEntity.getContainer();
+                if (container != null) {
+                    ByteBuffer invBuffer = ByteBuffer.allocate(container.getRawTypes().length * 2);
+                    invBuffer.asShortBuffer().put(container.getRawTypes());
+
+                    statement.setBytes(6, invBuffer.array());
+                    statement.setBytes(7, container.getRawAmounts());
+                }
             }
 
-            statement.setFloat(6, e.position.x);
-            statement.setFloat(7, e.position.y);
-            statement.setFloat(8, e.position.z);
-            statement.setFloat(9, e.velocity.x);
-            statement.setFloat(10, e.velocity.y);
-            statement.setFloat(11, e.velocity.z);
+            statement.setFloat(8, e.position.x);
+            statement.setFloat(9, e.position.y);
+            statement.setFloat(10, e.position.z);
+            statement.setFloat(11, e.velocity.x);
+            statement.setFloat(12, e.velocity.y);
+            statement.setFloat(13, e.velocity.z);
 
             System.out.println(e.entityId + ": " + e.position.x + ", " + e.position.y + ", " + e.position.z);
             statement.executeUpdate();
@@ -123,6 +134,17 @@ public class DatabaseManager {
                     long idLow = resultSet.getLong("entity_id_low");
                     int item = resultSet.getInt("item");
                     int type = resultSet.getInt("type");
+
+                    ContainerData associatedContainer = null;
+                    if (resultSet.getBytes("inventory") != null) {
+                        ShortBuffer invBuffer = ByteBuffer.wrap(resultSet.getBytes("inventory")).asShortBuffer();
+                        short[] invPrim = new short[invBuffer.remaining()];
+                        invBuffer.get(invPrim);
+
+                        byte[] inventoryAmounts = resultSet.getBytes("inventoryAmounts");
+                        associatedContainer = new ContainerData(invPrim, inventoryAmounts);
+                    }
+
                     float x = resultSet.getFloat("x");
                     float y = resultSet.getFloat("y");
                     float z = resultSet.getFloat("z");
@@ -136,6 +158,7 @@ public class DatabaseManager {
                     } else if (type == 1) {
                         System.out.println("Got modifiers: " + Integer.toBinaryString((item >>> 16) & 0xFFFF));
                         createdEntity = new BlockEntity((short) (item&0xFFFF), (short) ((item >>> 16) & 0xFFFF), 0, Texture.blockEntityInventorySize[(item&0xFFFF)]);
+                        ((BlockEntity) createdEntity).setContainerDirect(associatedContainer);
                     }
 
                     assert createdEntity != null;
@@ -166,7 +189,7 @@ public class DatabaseManager {
 
             statement.setFloat(5, cam.getYaw());
             statement.setFloat(6, cam.getPitch());
-            ByteBuffer invBuffer = ByteBuffer.allocate(character.getInventory().getRawAmounts().length*2);
+            ByteBuffer invBuffer = ByteBuffer.allocate(character.getInventory().getRawTypes().length*2);
             invBuffer.asShortBuffer().put(character.getInventory().getRawTypes());
 
             statement.setBytes(7, invBuffer.array());

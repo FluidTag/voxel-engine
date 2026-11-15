@@ -52,6 +52,10 @@ public class BlockEntity extends Entity {
         if (inventorySize > 0) this.container = new ContainerData(inventorySize);
     }
 
+    public void setContainerDirect(ContainerData container) {
+        this.container = container;
+    }
+
     public ContainerData getContainer() {
         return this.container;
     }

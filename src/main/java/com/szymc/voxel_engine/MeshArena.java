@@ -7,7 +7,7 @@ public class MeshArena {
     private List<MeshPage> pages;
     private int count = 0;
     private MeshPage addPage() {
-        MeshPage pg = new MeshPage(count++, 200);
+        MeshPage pg = new MeshPage(count++, 400);
         pages.add(pg);
         return pg;
     }
@@ -21,7 +21,7 @@ public class MeshArena {
     }
 
     public MeshArena() {
-        this.pages = new ArrayList<>(1000);
+        this.pages = new ArrayList<>(100);
         addPage();
     }
 

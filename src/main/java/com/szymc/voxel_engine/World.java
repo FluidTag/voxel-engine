@@ -46,7 +46,7 @@ public class World {
 
 	private final HashMap<UUID, Entity> entityMap = new HashMap<>();
 
-	private final int renderDistance = 12;
+	private final int renderDistance = 16;
 	private final long winId;
 	private final int worldId;
 	private final MeshArena meshArena;

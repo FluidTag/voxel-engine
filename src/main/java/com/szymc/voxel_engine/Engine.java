@@ -336,7 +336,7 @@ public class Engine {
 			glEnable(GL_DEPTH_TEST);
 			glEnable(GL_CULL_FACE);
 
-			debugger.renderDebug(matrixBuffer);
+			//debugger.renderDebug(matrixBuffer);
 			mainShader.start();
 
 			usedPages.clear();
