@@ -490,16 +490,17 @@ public class DecorationTask {
 				int surfaceHeight = TerrainTask.getNoiseHeight(trunkWx, trunkWz);
 				Biome currentBiome = BiomeRegistry.get(TerrainTask.getBiomeType(surfaceHeight, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz),
 						TerrainTask.getContinental(trunkWx, trunkWz), TerrainTask.getErosion(trunkWx, trunkWz),  TerrainTask.getWeirdness(trunkWx, trunkWz) ));
-				
-				if (treeRng.nextFloat() > currentBiome.treeDensity) continue;
+
 				float treeVariantNum = treeRng.nextFloat();
+				float secondaryTreeVariantNum = treeRng.nextFloat();
+				if (treeRng.nextFloat() > currentBiome.treeDensity) continue;
 
 				short surfaceBlock = TerrainTask.noiseGetBlock(surfaceHeight, trunkWx, surfaceHeight, trunkWz, currentBiome, TerrainTask.getTemp(trunkWx, trunkWz), TerrainTask.getMoist(trunkWx, trunkWz));
 
 				if (surfaceHeight <= 64) continue;
 				if (surfaceBlock != Blocks.GRASS && surfaceBlock != Blocks.BIRCH_GRASS &&
 						surfaceBlock != Blocks.FOREST_GRASS && surfaceBlock != Blocks.JUNGLE_GRASS &&
-						surfaceBlock != Blocks.TAIGA_GRASS && surfaceBlock != Blocks.TUNDRA_GRASS
+						surfaceBlock != Blocks.TAIGA_GRASS && surfaceBlock != Blocks.TUNDRA_GRASS && surfaceBlock != Blocks.AUTUMN_GRASS && surfaceBlock != Blocks.COARSE_DIRT
 						&& surfaceBlock != Blocks.SAVANNA_GRASS && surfaceBlock != Blocks.SAND && surfaceBlock != Blocks.SNOW && surfaceBlock != Blocks.SWAMP_GRASS && surfaceBlock != Blocks.RED_DIRT
 						) continue;
 				
@@ -520,6 +521,9 @@ public class DecorationTask {
 					darkOakTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else if (currentBiome.type == BiomeType.REDWOOD_FOREST) {
 					if (treeVariantNum < 0.6f) {redwoodTreeAlt(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);} else redwoodTree(trunkWx, trunkWz, surfaceHeight, Blocks.RED_WOOD, Blocks.SPRUCE_LEAVES, edits);
+				} else if (currentBiome.type == BiomeType.AUTUMN_FOREST)  {
+					leaveType = secondaryTreeVariantNum > 0.35f && secondaryTreeVariantNum < 0.7f ? Blocks.AUTUMN_RED_LEAF : (secondaryTreeVariantNum <= 0.35f ? Blocks.AUTUMN_ORANGE_LEAF : Blocks.AUTUMN_YELLOW_LEAF);
+					if (treeVariantNum < 0.6f) {regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);} else spruceTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				} else {
 					regularTree(trunkWx, trunkWz, surfaceHeight, woodType, leaveType, edits);
 				}

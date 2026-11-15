@@ -375,7 +375,6 @@ public class Engine {
 					usedDrawCommands.add(m);
 
 					MeshPageBatch batch =  batches.computeIfAbsent(m.pageIndex, MeshPageBatch::new);
-
 					batch.add(m, minX, minY, minZ);
 				}
 			});

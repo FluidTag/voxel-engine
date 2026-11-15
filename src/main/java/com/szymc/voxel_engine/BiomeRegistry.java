@@ -46,6 +46,9 @@ public class BiomeRegistry {
 		register(new Biome(BiomeType.SNOWY_MOUNTAIN, "Snowy Mountain", Blocks.SNOW, Blocks.STONE,
 				Blocks.OAK_WOOD, Blocks.OAK_LEAVES, 0f, 0.06f, null, null));
 
+		register(new Biome(BiomeType.AUTUMN_FOREST, "Autumn Forest", Blocks.AUTUMN_GRASS, Blocks.DIRT,
+				Blocks.OAK_WOOD, Blocks.AUTUMN_RED_LEAF, 0.72f, 0.06f, new short[] {Blocks.GRASS_DECORATION, Blocks.RED_FLOWER, Blocks.YELLOW_FLOWER, Blocks.RED_MUSHROOM_SMALL, Blocks.BROWN_MUSHROOM_SMALL}, new GroundLayer[]{new GroundLayer(Blocks.COARSE_DIRT, 0.03f, 0.3f), new GroundLayer(Blocks.GRAVEL, 0.03f, 0.6f)}));
+
 		register(new Biome(BiomeType.TAIGA, "Taiga", Blocks.TAIGA_GRASS, Blocks.DIRT,
 				Blocks.SPRUCE_LOG, Blocks.SPRUCE_LEAVES, 0.55f, 0.06f, new short[] {Blocks.GRASS_DECORATION, Blocks.RED_MUSHROOM_SMALL, Blocks.BROWN_MUSHROOM_SMALL, Blocks.RED_FLOWER}, new GroundLayer[]{new GroundLayer(Blocks.COARSE_DIRT, 0.01f, 0.6f)}));
 

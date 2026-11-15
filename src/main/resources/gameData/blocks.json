@@ -674,5 +674,43 @@
       "NORTH": "chestFront.png",
       "DEFAULT": "chestSide.png"
     }
+  },
+  "72": {
+    "name": "AUTUMN_RED_LEAF",
+    "hardness": 0.7,
+    "idealTool": 3,
+    "isLeaves": true,
+    "textures": {
+      "DEFAULT": "autumnRedLeaf.png"
+    }
+  },
+  "73": {
+    "name": "AUTUMN_ORANGE_LEAF",
+    "hardness": 0.7,
+    "idealTool": 3,
+    "isLeaves": true,
+    "textures": {
+      "DEFAULT": "autumnOrangeLeaf.png"
+    }
+  },
+  "74": {
+    "name": "AUTUMN_YELLOW_LEAF",
+    "hardness": 0.7,
+    "idealTool": 3,
+    "isLeaves": true,
+    "textures": {
+      "DEFAULT": "autumnYellowLeaf.png"
+    }
+  },
+  "75": {
+    "name": "AUTUMN_GRASS",
+    "hardness": 1.0,
+    "idealTool": 4,
+    "drops": 2,
+    "textures": {
+      "DEFAULT": "autumnGrassSide.png",
+      "TOP": "autumnGrass.png",
+      "BOTTOM": "dirtTex.png"
+    }
   }
 }

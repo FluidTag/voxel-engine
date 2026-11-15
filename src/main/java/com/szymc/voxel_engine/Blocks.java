@@ -72,4 +72,8 @@ public class Blocks {
 	public static final short REDWOOD_PLANKS = 69;
 	public static final short ACACIA_PLANKS = 70;
 	public static final short CHEST = 71;
+	public static final short AUTUMN_RED_LEAF = 72;
+	public static final short AUTUMN_ORANGE_LEAF = 73;
+	public static final short AUTUMN_YELLOW_LEAF = 74;
+	public static final short AUTUMN_GRASS = 75;
 }

@@ -219,7 +219,7 @@ public class EntityItem extends Entity {
     public float xWidth, zWidth;
 
     public static void generateStaticItemMeshes() {
-        for (byte item = 1; item <= 71; item++) {
+        for (byte item = 1; item <= 75; item++) {
             if (Texture.itemTexturePaths[item] != -1) {
                 ByteBuffer pixels = blockTextures.getLayer(Texture.itemTexturePaths[item]);
 
