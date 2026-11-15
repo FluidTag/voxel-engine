@@ -27,12 +27,13 @@ public class MeshArena {
 
     public void removeChunk(SectionMeshDrawCommand prevDat) {
         MeshPage pg = pages.get(prevDat.pageIndex);
-        pg.removeChunk(prevDat.vertexRange, prevDat.indexRange);
+        pg.removeChunk(prevDat.vertexRange, prevDat.indexRange, prevDat.lastUseFence);
+        prevDat.clearLastUsedFence();
     }
 
     public SectionMeshDrawCommand updateChunk(SectionMeshDrawCommand prevDat, int[] vertices, int[] indices, int vCount, int iCount) {
         MeshPage pg = pages.get(prevDat.pageIndex);
-        SectionMeshDrawCommand updatedResult = pg.updateChunk(prevDat.vertexRange, prevDat.indexRange, vertices, indices, vCount, iCount);
+        SectionMeshDrawCommand updatedResult = pg.updateChunk(prevDat.vertexRange, prevDat.indexRange, prevDat.lastUseFence, vertices, indices, vCount, iCount);
 
         if (updatedResult == null) {
             for (int i = 0; i < pages.size(); i++) {

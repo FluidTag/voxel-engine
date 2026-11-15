@@ -9,6 +9,7 @@ import static org.lwjgl.opengl.GL32.*;
 import static org.lwjgl.opengl.GL46.*;
 
 import it.unimi.dsi.fastutil.BigArrays;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.system.MemoryStack;
@@ -211,8 +212,8 @@ public class Engine {
 		public final List<IndirectDrawCommand> commands =
 				new ArrayList<>();
 
-		public final List<Matrix4f> models =
-				new ArrayList<>();
+		public final IntArrayList models =
+				new IntArrayList();
 
 		public MeshPageBatch(int pageIndex) {
 			this.pageIndex = pageIndex;
@@ -225,10 +226,12 @@ public class Engine {
 
 		public void add(
 				SectionMeshDrawCommand mesh,
-				Matrix4f model
+				int x, int y, int z
 		) {
 			commands.add(from(mesh));
-			models.add(new Matrix4f(model));
+			models.add(x);
+			models.add(y);
+			models.add(z);
 		}
 	}
 
@@ -260,6 +263,8 @@ public class Engine {
 		commandData.clear();
 		modelData.clear();
 
+		int mBaseIndex = 0;
+		IntArrayList mMatrixValues = batch.models;
 		for (int i = 0; i < batch.commands.size(); i++) {
 			IndirectDrawCommand cmd = batch.commands.get(i);
 
@@ -269,11 +274,24 @@ public class Engine {
 			commandData.putInt(cmd.baseVertex());
 			commandData.putInt(cmd.baseInstance());
 
-			batch.models.get(i).get(modelData);
-			modelData.position(modelData.position() + 16);
+			float x = mMatrixValues.getInt(mBaseIndex);
+			float y = mMatrixValues.getInt(mBaseIndex+1);
+			float z = mMatrixValues.getInt(mBaseIndex+2);
+			int base = i*16;
+			modelData.put(base + 0, 1);
+			modelData.put(base + 5, 1);
+			modelData.put(base + 10, 1);
+			modelData.put(base + 15, 1);
+
+			modelData.put(base + 12, x);
+			modelData.put(base + 13, y);
+			modelData.put(base + 14, z);
+
+			mBaseIndex += 3;
 		}
 
 		commandData.flip();
+		modelData.position(batch.models.size()/3 * 16);
 		modelData.flip();
 
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
@@ -296,6 +314,8 @@ public class Engine {
 	}
 
 	private Map<Integer, MeshPageBatch> batches = new HashMap<>();
+	private Set<MeshPage> usedPages = new HashSet<>();
+	private Set<SectionMeshDrawCommand> usedDrawCommands = new HashSet<>();
 
 	public void render() {
 		glClearColor(0.5f, 0.6f, 0.8f, 1.0f); // Sky Blue
@@ -319,10 +339,14 @@ public class Engine {
 			debugger.renderDebug(matrixBuffer);
 			mainShader.start();
 
+			usedPages.clear();
+			usedDrawCommands.clear();
+
 			for (MeshPageBatch batch : batches.values()) {
 				batch.clear();
 			}
 
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelBuffer);
 			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
 				ChunkColumn chunk = entry.getValue();
 				if (chunk == null) return;
@@ -348,9 +372,11 @@ public class Engine {
 					}
 
 					SectionMeshDrawCommand m = section.getMesh();
+					usedDrawCommands.add(m);
+
 					MeshPageBatch batch =  batches.computeIfAbsent(m.pageIndex, MeshPageBatch::new);
 
-					batch.add(m, new Matrix4f().translation(minX, minY, minZ));
+					batch.add(m, minX, minY, minZ);
 				}
 			});
 
@@ -360,6 +386,7 @@ public class Engine {
 				MeshPage page = meshArena.getPage(batch.pageIndex);
 				uploadBatch(batch);
 				glBindVertexArray(page.getVao());
+				usedPages.add(page);
 
 				glMultiDrawElementsIndirect(
 						GL_TRIANGLES,
@@ -456,9 +483,11 @@ public class Engine {
 					}
 
 					SectionMeshDrawCommand m = section.getWaterMesh();
+					usedDrawCommands.add(m);
+
 					MeshPageBatch batch =  batches.computeIfAbsent(m.pageIndex, MeshPageBatch::new);
 
-					batch.add(m, new Matrix4f().translation(minX, minY, minZ));
+					batch.add(m, minX, minY, minZ);
 				}
 			});
 
@@ -468,6 +497,7 @@ public class Engine {
 				MeshPage page = meshArena.getPage(batch.pageIndex);
 				uploadBatch(batch);
 				glBindVertexArray(page.getVao());
+				usedPages.add(page);
 
 				glMultiDrawElementsIndirect(
 						GL_TRIANGLES,
@@ -476,12 +506,23 @@ public class Engine {
 						batch.commands.size(),
 						0
 				);
-				//glFinish();
 
 				glBindVertexArray(0);
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 				//break; // d2
+			}
+
+			for (MeshPage p : usedPages) {
+				p.setLastFence();
+			}
+
+			for (SectionMeshDrawCommand command : usedDrawCommands) {
+				command.markUsed(meshArena.getPage(command.pageIndex).getLastFenceUsed());
+			}
+
+			for (MeshPage p : meshArena.getAllPages()) {
+				p.flushRetireList();
 			}
 
 			if (outlineLoc != null) {

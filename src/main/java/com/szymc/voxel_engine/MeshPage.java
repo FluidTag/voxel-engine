@@ -1,5 +1,9 @@
 package com.szymc.voxel_engine;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*; // VBO functions (glGenBuffers)
@@ -12,6 +16,24 @@ public class MeshPage {
     private int vao, vbo, ebo;
     private final int pageIndex;
     private final int chunksAllowed;
+    private PageFence lastFenceUsed = null;
+    public class PageFence {
+        public long fenceId;
+        public int references = 0;
+        public PageFence() {
+            this.fenceId = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+
+            if (fenceId == 0L) {
+                throw new IllegalStateException("Failed to create GPU fence");
+            }
+        }
+
+        public void retain() {
+            references++;
+        }
+    };
+
+    private record RetiredMesh(AllocatorSegment vertexRange, AllocatorSegment indexRange, PageFence fence) {};
 
     private FreeRangeMeshAllocator vertexSpaceAllocator;
     private FreeRangeMeshAllocator indexSpaceAllocator;
@@ -47,21 +69,118 @@ public class MeshPage {
         glBindVertexArray(0);
     }
 
-    public void removeChunk(AllocatorSegment vSegment, AllocatorSegment iSegment) {
-        vertexSpaceAllocator.freeAllocation(vSegment);
-        indexSpaceAllocator.freeAllocation(iSegment);
+    public PageFence getLastFenceUsed() {
+        return this.lastFenceUsed;
     }
 
-    public SectionMeshDrawCommand updateChunk(AllocatorSegment vSegment, AllocatorSegment iSegment, int[] vertices, int[] indices, int vCount, int iCount) {
-        // Allocators return null if cannot handle update, if successful it already frees the old range and gives the newly allocated segment
+    public void setLastFence() {
+        PageFence previous = this.lastFenceUsed;
+        this.lastFenceUsed = new PageFence();
+
+        if (previous != null && previous.references == 0) {
+            glDeleteSync(previous.fenceId);
+        }
+    }
+
+    private List<RetiredMesh> retireList = new ArrayList<>();
+    public void removeChunk(AllocatorSegment vSegment, AllocatorSegment iSegment, PageFence fenceUsed) {
+        retireAllocation(vSegment, iSegment, fenceUsed);
+    }
+
+    public void releaseFenceReference(PageFence fence) {
+        fence.references--;
+
+        if (fence.references < 0) {
+            throw new IllegalStateException("Negative fence reference count");
+        }
+
+        if (fence.references == 0 && fence != this.lastFenceUsed) {
+            glDeleteSync(fence.fenceId);
+        }
+    }
+
+    public boolean isFenceSignaled(PageFence fence) {
+        if (fence == null) return true;
+
+        int state = glClientWaitSync(fence.fenceId, 0, 0L);
+        if (state == GL_ALREADY_SIGNALED || state == GL_CONDITION_SATISFIED) {
+            return true;
+        }
+
+        if (state == GL_TIMEOUT_EXPIRED) {
+            return false;
+        }
+
+        if (state == GL_WAIT_FAILED) {
+            int error = glGetError();
+
+            throw new IllegalStateException(
+                    "GPU fence wait failed. Fence ID: " +
+                            fence.fenceId +
+                            ", GL error: 0x" +
+                            Integer.toHexString(error)
+            );
+        }
+
+        throw new IllegalStateException(
+                "Unexpected glClientWaitSync result: " + state
+        );
+    }
+
+    public void flushRetireList() {
+        Iterator<RetiredMesh> it = retireList.iterator();
+
+        while (it.hasNext()) {
+            RetiredMesh m = it.next();
+            PageFence fence = m.fence;
+
+            if (isFenceSignaled(fence)) {
+                vertexSpaceAllocator.freeAllocation(m.vertexRange);
+                indexSpaceAllocator.freeAllocation(m.indexRange);
+
+                releaseFenceReference(fence);
+                it.remove();
+            }
+        }
+    }
+
+    private void retireAllocation(AllocatorSegment vSegment, AllocatorSegment iSegment, PageFence fenceUsed) {
+        if (fenceUsed == null) {
+            vertexSpaceAllocator.freeAllocation(vSegment);
+            indexSpaceAllocator.freeAllocation(iSegment);
+            return;
+        }
+
+        fenceUsed.references++;
+        retireList.add(new RetiredMesh(vSegment, iSegment, fenceUsed));
+    }
+
+    public SectionMeshDrawCommand updateChunk(AllocatorSegment vSegment, AllocatorSegment iSegment, PageFence lastSectionUsedFence, int[] vertices, int[] indices, int vCount, int iCount) {
+        // request new range only gives a new range from strictly free memory and does not free old segment
+        // resizeAllocationInPlace modifies the range of potentially being used data
+
         AllocatorSegment givenVSegment = vertexSpaceAllocator.requestNewRange(vSegment, vCount * Integer.BYTES, vCount);
         AllocatorSegment givenISegment = indexSpaceAllocator.requestNewRange(iSegment, iCount * Integer.BYTES, iCount);
+        if (givenVSegment != null && givenISegment != null) {
+            retireAllocation(vSegment, iSegment, lastSectionUsedFence);
+        } else {
+            if (givenVSegment != null) vertexSpaceAllocator.freeAllocation(givenVSegment);
+            if (givenISegment != null) indexSpaceAllocator.freeAllocation(givenISegment);
+        }
 
-        // Note this is correct rollback behavior, returning null means it is going to remove this mesh data from this page and add it into another
+        if ((givenVSegment == null || givenISegment == null) && isFenceSignaled(lastSectionUsedFence)) {
+            boolean canResizeVertex = vertexSpaceAllocator.canResizeInPlace(vSegment, vCount * Integer.BYTES);
+            boolean canResizeIndex = indexSpaceAllocator.canResizeInPlace(iSegment, iCount * Integer.BYTES);
+
+            if (canResizeVertex && canResizeIndex) {
+                //System.out.println("Successful resize");
+                givenVSegment = vertexSpaceAllocator.resizeAllocationInPlace(vSegment, vCount * Integer.BYTES, vCount);
+                givenISegment = indexSpaceAllocator.resizeAllocationInPlace(iSegment, iCount * Integer.BYTES, iCount);
+            }
+        }
+
         if (givenVSegment == null || givenISegment == null) {
-            if (givenVSegment != null) vertexSpaceAllocator.freeAllocation(givenVSegment); else vertexSpaceAllocator.freeAllocation(vSegment);
-            if (givenISegment != null) indexSpaceAllocator.freeAllocation(givenISegment); else indexSpaceAllocator.freeAllocation(iSegment);
-
+            retireAllocation(vSegment, iSegment, lastSectionUsedFence);
             return null;
         }
 
@@ -71,7 +190,7 @@ public class MeshPage {
         mappedEBOByteBuffer.position((int) (givenISegment.valueByteOffset()) / Integer.BYTES);
         mappedEBOByteBuffer.put(indices, 0, iCount);
 
-        return new SectionMeshDrawCommand(givenVSegment, givenISegment, this.pageIndex);
+        return new SectionMeshDrawCommand(givenVSegment, givenISegment, this);
     }
 
     public SectionMeshDrawCommand addChunk(int[] vertices, int[] indices, int vCount, int iCount) {
@@ -88,7 +207,7 @@ public class MeshPage {
         mappedEBOByteBuffer.position((int) (givenISegment.valueByteOffset()) / Integer.BYTES);
         mappedEBOByteBuffer.put(indices, 0, iCount);
 
-        return new SectionMeshDrawCommand(givenVSegment, givenISegment, this.pageIndex);
+        return new SectionMeshDrawCommand(givenVSegment, givenISegment, this);
     }
 
     public String debugData() {

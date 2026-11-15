@@ -349,7 +349,7 @@ public class PlayerCharacter {
         }
 
         ChunkColumn parentColumn = worldReference.getLoadedChunkAtPos((int)Math.floor(playerCamera.cameraPos.x) >> 5, (int)Math.floor(playerCamera.cameraPos.z) >> 5);
-        if (parentColumn == null || !parentColumn.state.isAtleast(ChunkColumn.ChunkState.MESHED)) return;
+        if (parentColumn == null || !parentColumn.state.isAtleast(ChunkColumn.ChunkState.DECORATED)) return;
 
         if (!keysPressed[GLFW_KEY_PAGE_UP] && glfwGetKey(windowReference.getWindowId(), GLFW_KEY_PAGE_UP) == GLFW_PRESS) {
             spectatorMode = !spectatorMode;

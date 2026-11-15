@@ -5,10 +5,37 @@ public class SectionMeshDrawCommand {
 	public AllocatorSegment vertexRange;
 	public AllocatorSegment indexRange;
 	public int pageIndex;
+	public MeshPage.PageFence lastUseFence;
+	private MeshPage page;
 
-	public SectionMeshDrawCommand(AllocatorSegment vertexRange, AllocatorSegment indexRange, int pageIndex) {
+	public SectionMeshDrawCommand(AllocatorSegment vertexRange, AllocatorSegment indexRange, MeshPage pageUsed) {
 		this.vertexRange = vertexRange;
 		this.indexRange = indexRange;
-		this.pageIndex = pageIndex;
+		this.pageIndex = pageUsed.getPageIndex();
+		this.page = pageUsed;
+		this.lastUseFence = null;
+	}
+
+	public void markUsed(MeshPage.PageFence newFence) {
+		if (newFence == lastUseFence) {
+			return;
+		}
+
+		if (newFence != null) {
+			newFence.retain();
+		}
+
+		if (lastUseFence != null) {
+			page.releaseFenceReference(lastUseFence);
+		}
+
+		this.lastUseFence = newFence;
+	}
+
+	public void clearLastUsedFence() {
+		if (lastUseFence != null) {
+			page.releaseFenceReference(lastUseFence);
+			lastUseFence = null;
+		}
 	}
 }

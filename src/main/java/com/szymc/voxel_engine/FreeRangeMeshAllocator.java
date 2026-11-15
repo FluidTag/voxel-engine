@@ -10,7 +10,7 @@ public class FreeRangeMeshAllocator {
     private final static int EXPAND_SEGMENT_BYTE_VALUE = 500;
     private final static int MINIMUM_USEFUL_SEGMENT_BYTE_SIZE = 10000;
 
-    private int alignment;
+    private final int alignment;
     public FreeRangeMeshAllocator(int initialMaxFreeSpaceBytes, int alignment) {
         this.rangeAllocations = new ArrayList<>();
         this.alignment = alignment;
@@ -77,7 +77,6 @@ public class FreeRangeMeshAllocator {
         return givenSegment;
     }
 
-    // LIST MUST BE SORTED ON BYTE OFFSET BEFORE CALL
     private int findByteOffsetIndexGreaterThan(long byteOffsetTarget) {
         int low = 0;
         int high = rangeAllocations.size()-1;
@@ -142,14 +141,40 @@ public class FreeRangeMeshAllocator {
         rangeAllocations.add(insertionIndex, new AllocatorSegment(true, startOfFreedSpace, allocationSize, -1));
     }
 
-    public AllocatorSegment requestNewRange(AllocatorSegment oldAllocatedSegment, int requestedSizeOfBytes, int newIntCount) {
+    public boolean canResizeInPlace(AllocatorSegment oldAllocatedSegment, int requestedSizeOfBytes) {
+        if (requestedSizeOfBytes <= oldAllocatedSegment.valueByteAllocationSize) return true;
+
+        int greaterFreeIndex = findByteOffsetIndexGreaterThan(oldAllocatedSegment.valueByteOffset);
+        int lessFreeIndex = findByteOffsetIndexLessThan(oldAllocatedSegment.valueByteOffset);
+
+        long createdByteStart = oldAllocatedSegment.valueByteOffset;
+        long allocatedSize = oldAllocatedSegment.valueByteAllocationSize;
+
+        AllocatorSegment prev = lessFreeIndex != -1 ? rangeAllocations.get(lessFreeIndex) : null;
+        AllocatorSegment next = greaterFreeIndex != -1 ? rangeAllocations.get(greaterFreeIndex) : null;
+
+        if (next != null && createdByteStart + allocatedSize == next.valueByteOffset) {
+            allocatedSize += next.valueByteAllocationSize;
+        }
+
+        if (allocatedSize < requestedSizeOfBytes && prev != null && prev.valueByteOffset + prev.valueByteAllocationSize == createdByteStart) {
+            allocatedSize += prev.valueByteAllocationSize;
+        }
+
+        if (allocatedSize >= requestedSizeOfBytes) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public AllocatorSegment resizeAllocationInPlace(AllocatorSegment oldAllocatedSegment, int requestedSizeOfBytes, int newIntCount) {
+        if (requestedSizeOfBytes <= 0) throw new IllegalArgumentException("sizeOfBytesNeeded needs to be greater than zero");
         requestedSizeOfBytes =
                 (requestedSizeOfBytes + alignment - 1) & ~(alignment - 1);
 
-        if (requestedSizeOfBytes <= 0) throw new IllegalArgumentException("sizeOfBytesNeeded needs to be greater than zero");
-
-        if (requestedSizeOfBytes == oldAllocatedSegment.valueByteAllocationSize) return new AllocatorSegment(false, oldAllocatedSegment.valueByteOffset, oldAllocatedSegment.valueByteAllocationSize, newIntCount);
-        if (requestedSizeOfBytes < oldAllocatedSegment.valueByteAllocationSize) {
+        // Downsize in place
+        if (requestedSizeOfBytes <= oldAllocatedSegment.valueByteAllocationSize) {
             // Simply free the excess space, check for combining of this free space to the right and return the new smaller segment
             // Since the list is sorted and index is found before any modifications, it is fine to modify here
             if (oldAllocatedSegment.valueByteAllocationSize - requestedSizeOfBytes < MINIMUM_USEFUL_SEGMENT_BYTE_SIZE) return new AllocatorSegment(false, oldAllocatedSegment.valueByteOffset, oldAllocatedSegment.valueByteAllocationSize, newIntCount);
@@ -171,44 +196,14 @@ public class FreeRangeMeshAllocator {
             return new AllocatorSegment(false, oldAllocatedSegment.valueByteOffset, requestedSizeOfBytes, newIntCount);
         }
 
-        // First search for any range simply big enough
-        // Ill give them like 500? extra bytes than they need for expansion room
-        ListIterator<AllocatorSegment> it = rangeAllocations.listIterator();
-        while (it.hasNext()) {
-            AllocatorSegment segment = it.next();
-            if (segment.valueByteAllocationSize >= requestedSizeOfBytes) {
-                long extraSpace = segment.valueByteAllocationSize - requestedSizeOfBytes;
-                long extraTaken = Math.min(extraSpace, EXPAND_SEGMENT_BYTE_VALUE);
-                extraTaken -= (extraTaken % alignment);
+        // Upsize in place [left, currentOccupied, right]
 
-                long allocationSize = requestedSizeOfBytes+extraTaken;
-                long remainder = segment.valueByteAllocationSize - allocationSize;
-
-                it.remove();
-                if (remainder > MINIMUM_USEFUL_SEGMENT_BYTE_SIZE) {
-                    it.add(new AllocatorSegment(true, segment.valueByteOffset + allocationSize, remainder, -1));
-                } else {
-                    allocationSize += remainder;
-                }
-
-                AllocatorSegment givenSegment = new AllocatorSegment(false, segment.valueByteOffset, allocationSize, newIntCount);
-
-                // Release old allocated segment that is elsewhere
-                // Coalesce old release to left and right
-                freeAllocation(oldAllocatedSegment);
-
-                return givenSegment;
-            }
-        }
-
-        // Then Ill try to merge the old space with previous or next
         int greaterFreeIndex = findByteOffsetIndexGreaterThan(oldAllocatedSegment.valueByteOffset);
         int lessFreeIndex = findByteOffsetIndexLessThan(oldAllocatedSegment.valueByteOffset);
 
         long createdByteStart = oldAllocatedSegment.valueByteOffset;
         long allocatedSize = oldAllocatedSegment.valueByteAllocationSize;
 
-        // If the index is -1, the last free-range is the last free-range in the allocation list
         AllocatorSegment prev = lessFreeIndex != -1 ? rangeAllocations.get(lessFreeIndex) : null;
         AllocatorSegment next = greaterFreeIndex != -1 ? rangeAllocations.get(greaterFreeIndex) : null;
         boolean usedPrev = false, usedNext = false;
@@ -251,19 +246,42 @@ public class FreeRangeMeshAllocator {
         return null;
     }
 
-    public void logSanityCheck() {
-        for (AllocatorSegment s1 : rangeAllocations) {
-            for (AllocatorSegment s2 : rangeAllocations) {
-                if (s1 == s2) continue;
+    public AllocatorSegment requestNewRange(AllocatorSegment oldAllocatedSegment, int requestedSizeOfBytes, int newIntCount) {
+        if (requestedSizeOfBytes <= 0) throw new IllegalArgumentException("sizeOfBytesNeeded needs to be greater than zero");
+        requestedSizeOfBytes =
+                (requestedSizeOfBytes + alignment - 1) & ~(alignment - 1);
 
-                // Check for overlapping
-                if ((s1.valueByteOffset < s2.valueByteOffset + s2.valueByteAllocationSize) &&
-                        (s1.valueByteOffset + s1.valueByteAllocationSize > s2.valueByteOffset)) {
-                    System.out.println(s1);
-                    System.out.println(s2);
+        // First search for any range simply big enough it can relocate to
+        ListIterator<AllocatorSegment> it = rangeAllocations.listIterator();
+        while (it.hasNext()) {
+            AllocatorSegment segment = it.next();
+            if (segment.valueByteAllocationSize >= requestedSizeOfBytes) {
+                long extraSpace = segment.valueByteAllocationSize - requestedSizeOfBytes;
+                long extraTaken = Math.min(extraSpace, EXPAND_SEGMENT_BYTE_VALUE);
+                extraTaken -= (extraTaken % alignment);
+
+                long allocationSize = requestedSizeOfBytes+extraTaken;
+                long remainder = segment.valueByteAllocationSize - allocationSize;
+
+                it.remove();
+                if (remainder > MINIMUM_USEFUL_SEGMENT_BYTE_SIZE) {
+                    it.add(new AllocatorSegment(true, segment.valueByteOffset + allocationSize, remainder, -1));
+                } else {
+                    allocationSize += remainder;
                 }
+
+                AllocatorSegment givenSegment = new AllocatorSegment(false, segment.valueByteOffset, allocationSize, newIntCount);
+
+                // Release old allocated segment that is elsewhere
+                // Coalesce old release to left and right
+                // Updated: Giving freeing rights to MeshPage for synchronization
+                // freeAllocation(oldAllocatedSegment);
+
+                return givenSegment;
             }
         }
+
+        return null;
     }
 
     public long getTotalFreeSpace() {
