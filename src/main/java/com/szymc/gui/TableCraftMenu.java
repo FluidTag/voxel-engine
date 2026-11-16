@@ -30,24 +30,35 @@ public class TableCraftMenu extends AbstractContainerMenu {
 
     @Override
     public void shiftClickTransfer(Slot slotData) {
-        int startSearch = slotData.index < 9 ? 9 : 0;
-        int endSearch = slotData.index < 9 ? 36 : 8;
+        ContainerData contTarget = slotData.container == playerInv ? craftingContext.getCraftingInventory() : playerInv;
+        int startSearch;
+        int endSearch;
+        if (slotData.container == playerInv) {
+            startSearch = 1;
+            endSearch = 9;
+        } else {
+            startSearch = 9;
+            endSearch = 36;
+        }
+
         System.out.println(slotData);
         int amountRemaining = slotData.readAmount();
         for (int i = startSearch; i <= endSearch; i++) {
-            if (playerInv.readType(i) == slotData.readType()) {
-                int maxCanBeApplied = 64-playerInv.readAmount(i);
+            if (contTarget.readType(i) == slotData.readType()) {
+                int maxCanBeApplied = 64-contTarget.readAmount(i);
                 int beingApplied = Math.min(amountRemaining, maxCanBeApplied);
 
-                playerInv.set(i, slotData.readType(), playerInv.readAmount(i)+beingApplied);
-                amountRemaining-=beingApplied;
+                contTarget.set(i, slotData.readType(), contTarget.readAmount(i)+beingApplied);
+                amountRemaining -= beingApplied;
+
+                if (amountRemaining == 0) break;
             }
         }
 
         if (amountRemaining > 0) {
             for (int i = startSearch; i <= endSearch; i++) {
-                if (playerInv.isEmptyAt(i)) {
-                    playerInv.set(i, slotData.readType(), amountRemaining);
+                if (contTarget.isEmptyAt(i)) {
+                    contTarget.set(i, slotData.readType(), amountRemaining);
                     amountRemaining = 0;
                     break;
                 }
@@ -55,5 +66,12 @@ public class TableCraftMenu extends AbstractContainerMenu {
         }
 
         slotData.set(slotData.readType(), (byte) amountRemaining);
+    }
+
+    @Override
+    public void onCloseScreenHandle() {
+        for (int i = 0; i < 9; i++) {
+            this.flushSlotFromCraftIntoInventory(getSlots().get(i));
+        }
     }
 }

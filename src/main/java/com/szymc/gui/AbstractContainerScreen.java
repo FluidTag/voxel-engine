@@ -64,6 +64,8 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
             this.player.directDropItem(activeInventoryDrag.type(), activeInventoryDrag.amount());
             this.activeInventoryDrag = null;
         }
+
+        menu.onCloseScreenHandle();
     }
 
     @Override
@@ -118,7 +120,7 @@ public abstract class AbstractContainerScreen<T extends AbstractContainerMenu> e
 
                 if (isShiftClick) {
                     slot.onPickup(clickContext);
-                    menu.shiftClickTransfer(slot);
+                    if (slot.isResultSlot()) menu.transferResultSlotIntoInventory(slot); else menu.shiftClickTransfer(slot);
                 } else if (isDoubleClick && isLeftClick && slot.canQuickCollect()) {
                     activeInventoryDrag = menu.doubleClickTransfer(slot, activeInventoryDrag, clickContext);
                 } else {

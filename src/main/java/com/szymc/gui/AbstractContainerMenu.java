@@ -1,6 +1,7 @@
 package com.szymc.gui;
 
 import com.szymc.voxel_engine.ContainerData;
+import com.szymc.voxel_engine.PlayerCharacter;
 import org.lwjgl.system.macosx.MacOSXLibraryDL;
 
 import java.util.ArrayList;
@@ -21,6 +22,100 @@ public class AbstractContainerMenu {
         return this.slots;
     }
     public Set<ContainerData> getContainersIncluded() {return this.containersIncluded;}
+
+    public void transferResultSlotIntoInventory(Slot slotData) {
+        ContainerData playerInv = null;
+        for (ContainerData cont : containersIncluded) {
+            if (cont != slotData.container) {
+                playerInv = cont;
+                break;
+            }
+        }
+
+        if (playerInv == null) return;
+
+        int amountRemaining = slotData.readAmount();
+        short type = slotData.readType();
+
+        for (int y = 3; y >= 0; y--) {
+            for (int x = 8; x >= 0; x--) {
+                int index = (y == 3 ? 0 : y+1)*9 + x;
+                if (playerInv.readType(index) == type) {
+                    int beingApplied = Math.min(amountRemaining, 64-playerInv.readAmount(index));
+                    playerInv.set(index, type, playerInv.readAmount(index)+beingApplied);
+                    amountRemaining-=beingApplied;
+                    if (amountRemaining == 0) break;
+                }
+            }
+
+            if (amountRemaining == 0) break;
+        }
+
+        if (amountRemaining > 0) {
+            for (int y = 3; y >= 0; y--) {
+                for (int x = 8; x >= 0; x--) {
+                    int index = (y == 3 ? 0 : y + 1)*9 + x;
+                    if (playerInv.isEmptyAt(index)) {
+                        playerInv.set(index, type, amountRemaining);
+                        amountRemaining = 0;
+                        break;
+                    }
+                }
+
+                if (amountRemaining == 0) break;
+            }
+        }
+
+        slotData.set(slotData.readType(), (byte) amountRemaining);
+    };
+
+    public void flushSlotFromCraftIntoInventory(Slot slotData) {
+        ContainerData playerInv = null;
+        for (ContainerData cont : containersIncluded) {
+            if (cont != slotData.container) {
+                playerInv = cont;
+                break;
+            }
+        }
+
+        if (playerInv == null) return;
+
+        int amountRemaining = slotData.readAmount();
+        short type = slotData.readType();
+
+        for (int y = 3; y >= 0; y--) {
+            for (int x = 0; x < 9; x++) {
+                int index = (y == 3 ? 0 : y+1)*9 + x;
+                if (playerInv.readType(index) == type) {
+                    int beingApplied = Math.min(amountRemaining, 64-playerInv.readAmount(index));
+                    playerInv.set(index, type, playerInv.readAmount(index)+beingApplied);
+                    amountRemaining-=beingApplied;
+                    if (amountRemaining == 0) break;
+                }
+            }
+
+            if (amountRemaining == 0) break;
+        }
+
+        if (amountRemaining > 0) {
+            for (int y = 3; y >= 0; y--) {
+                for (int x = 0; x < 9; x++) {
+                    int index = (y == 3 ? 0 : y + 1)*9 + x;
+                    if (playerInv.isEmptyAt(index)) {
+                        playerInv.set(index, type, amountRemaining);
+                        amountRemaining = 0;
+                        break;
+                    }
+                }
+
+                if (amountRemaining == 0) break;
+            }
+        }
+
+        slotData.set(slotData.readType(), (byte) amountRemaining);
+    }
+
+    public void onCloseScreenHandle() {};
 
     public void shiftClickTransfer(Slot slot) {
         // Generic transfer implementation

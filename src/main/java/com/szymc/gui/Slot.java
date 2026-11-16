@@ -57,6 +57,7 @@ public class Slot {
 
     // Not decremented when picked up, used for crafting primarily
     public boolean isSourceSlot() {return false;}
+    public boolean isResultSlot() {return  false;}
 
     // Can be considered in double click gather all
     public boolean canQuickCollect() {

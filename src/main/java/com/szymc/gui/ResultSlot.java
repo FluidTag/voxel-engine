@@ -30,6 +30,9 @@ public class ResultSlot extends Slot {
     @Override
     public boolean isSourceSlot() {return true;}
 
+    @Override
+    public boolean isResultSlot() {return true;}
+
     // Intercepts pickup before interacted with
     @Override
     public void onPickup(ClickContext context) {

@@ -65,4 +65,11 @@ public class InventoryMenu extends AbstractContainerMenu {
 
         slotData.set(slotData.readType(), (byte) amountRemaining);
     }
+
+    @Override
+    public void onCloseScreenHandle() {
+        for (int i = 0; i < 4; i++) {
+            this.flushSlotFromCraftIntoInventory(getSlots().get(i));
+        }
+    }
 }

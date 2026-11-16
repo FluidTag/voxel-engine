@@ -75,6 +75,7 @@ public class App {
 		}
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			engine.setActiveGuiScreen(null);
 			HashSet<ChunkColumn> toSerialize = mainWorld.getPendingChunkSerializations();
 			System.out.println("Saving " + toSerialize.size() + " chunks to database disk.");
 			long start = System.nanoTime();
