@@ -4,6 +4,7 @@ import com.szymc.gui.ChestScreen;
 import com.szymc.gui.InventoryScreen;
 import com.szymc.gui.Screen;
 import com.szymc.gui.TableCraftScreen;
+import org.joml.Random;
 import org.joml.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -21,6 +22,7 @@ public class PlayerCharacter {
 
     private double velocityY = 0;
     private boolean isGrounded = false;
+
     private static final float PLAYER_HEIGHT = 1.8f;
     private static final float PLAYER_RADIUS = 0.3f;
     private boolean isSprinting = false;
@@ -395,6 +397,18 @@ public class PlayerCharacter {
         return inventory;
     }
 
+    public float distanceWalked = 0;
+    public float STEP_THRESHOLD = 1f;
+    private static final Sound[] stepNoises = {
+            new Sound("Grass_hit1.ogg", false),
+            new Sound("Grass_hit2.ogg", false),
+            new Sound("Grass_hit3.ogg", false),
+            new Sound("Grass_hit4.ogg", false),
+            new Sound("Grass_hit5.ogg", false),
+            new Sound("Grass_hit6.ogg", false),
+    };
+
+    private static final Random rng = new Random();
     public void poll(float deltaTime) {
         RaycastResult result = getRaycastResult(worldReference, playerCamera);
         if (result != null && !guiInventoryActive) {
@@ -432,16 +446,39 @@ public class PlayerCharacter {
 
         playerCamera.cameraPos.z += playerMoveIntent.z;
 
+        if (isGrounded) {
+            float dx = playerMoveIntent.x;
+            float dz = playerMoveIntent.z;
+            distanceWalked += (float) Math.sqrt(dx * dx + dz * dz) * 0.6f;
+
+            if (distanceWalked > STEP_THRESHOLD) {
+                distanceWalked -= STEP_THRESHOLD;
+
+                Sound step = stepNoises[rng.nextInt(stepNoises.length)];
+                float pitch = 0.9f + rng.nextFloat() * 0.2f; // Subtle pitch variation
+                float volume = 0.2f;                        // Minecraft grass step volume
+                step.play(volume, pitch);
+            }
+        }
+
         // Gravity
         if (spectatorMode) return;
 
-        velocityY -= 13*deltaTime;
+        deltaTime = Math.min(0.05f, deltaTime);
+        velocityY -= 15*deltaTime;
         float deltaY = (float) (velocityY*deltaTime);
 
         if (isColliding(worldReference, playerCamera.cameraPos.x, playerCamera.cameraPos.y + deltaY, playerCamera.cameraPos.z)) {
             if (velocityY < 0) {
                 float feetY = playerCamera.cameraPos.y - PLAYER_HEIGHT + deltaY;
                 playerCamera.cameraPos.y = (float) (Math.floor(feetY) + 1.0 + PLAYER_HEIGHT);
+                if (velocityY < -15*deltaTime) {
+                    Sound step = stepNoises[rng.nextInt(stepNoises.length)];
+                    float pitch = 0.9f + rng.nextFloat() * 0.2f; // Subtle pitch variation
+                    float volume = 0.2f;                        // Minecraft grass step volume
+                    step.play(volume, pitch);
+                }
+
                 isGrounded = true;
             } else {
                 playerCamera.cameraPos.y = (float)Math.floor(playerCamera.cameraPos.y + deltaY) - 0.001f;

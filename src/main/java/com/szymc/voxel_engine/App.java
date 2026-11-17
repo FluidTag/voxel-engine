@@ -54,7 +54,6 @@ public class App {
 		World mainWorld = new World(window.getWindowId(), 0, meshArena);
 		TerrainTask.initNoise();
 
-		window.attachCamera(camera);
 		Engine engine = new Engine(mainWorld, camera, meshArena);
 
 		PlayerCharacter savedChar = DatabaseManager.getPlayer(0, mainWorld, window, engine, camera);
@@ -222,7 +221,8 @@ public class App {
 			glfwPollEvents();
 		}
 
-
 		glfwTerminate();
+		window.destroyAudioContext();
+		System.exit(0);
 	}
 }

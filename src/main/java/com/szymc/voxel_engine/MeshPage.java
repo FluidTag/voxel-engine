@@ -155,6 +155,11 @@ public class MeshPage {
         retireList.add(new RetiredMesh(vSegment, iSegment, fenceUsed));
     }
 
+    private int totalVBytes = 0;
+    private int totalIBytes = 0;
+    private int totalVCount = 0;
+    private int totalICount = 0;
+
     public SectionMeshDrawCommand updateChunk(AllocatorSegment vSegment, AllocatorSegment iSegment, PageFence lastSectionUsedFence, int[] vertices, int[] indices, int vCount, int iCount) {
         // request new range only gives a new range from strictly free memory and does not free old segment
         // resizeAllocationInPlace modifies the range of potentially being used data
@@ -206,6 +211,12 @@ public class MeshPage {
 
         mappedEBOByteBuffer.position((int) (givenISegment.valueByteOffset()) / Integer.BYTES);
         mappedEBOByteBuffer.put(indices, 0, iCount);
+
+//        totalVBytes += vCount * Integer.BYTES;
+//        totalIBytes += iCount * Integer.BYTES;
+//        totalVCount++;
+//        totalICount++;
+        //System.out.printf("Average vertex size bytes: %d, Average index size bytes: %d, counts: [%d, %d] respectively, amount of free spaces: [%d, %d] respectively%n", (totalVBytes/totalVCount), (totalIBytes/totalICount), totalVCount, totalICount, vertexSpaceAllocator.getNumberOfFreeSpaces(), indexSpaceAllocator.getNumberOfFreeSpaces());
 
         return new SectionMeshDrawCommand(givenVSegment, givenISegment, this);
     }

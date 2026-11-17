@@ -23,6 +23,7 @@ public class MeshArena {
     public MeshArena() {
         this.pages = new ArrayList<>(100);
         addPage();
+        addPage();
     }
 
     public void removeChunk(SectionMeshDrawCommand prevDat) {
