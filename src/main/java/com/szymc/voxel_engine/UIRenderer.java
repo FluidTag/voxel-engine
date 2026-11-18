@@ -1,5 +1,6 @@
 package com.szymc.voxel_engine;
 import com.szymc.localShaders.FontShader;
+import com.szymc.localShaders.UI3DShader;
 import com.szymc.localShaders.UIShader;
 import com.szymc.localShaders.WorldShader;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
@@ -170,7 +171,7 @@ public class UIRenderer {
         return new MeshContainer(vBuffer.toIntArray(), iBuffer.toIntArray(), vBuffer.size(), iBuffer.size());
     }
 
-    private static final WorldShader cubeShader = new WorldShader();
+    private static final UI3DShader cubeShader = new UI3DShader();
     private static void bakeBlockMesh(short blockType, int slotX, int slotY, int blockTextureId) {
         int x = slotX*64;
         int y = atlasSize-((slotY+1)*64);

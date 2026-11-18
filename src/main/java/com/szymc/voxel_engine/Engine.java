@@ -23,6 +23,7 @@ import static org.lwjgl.system.MemoryStack.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.*;
 
 
@@ -184,41 +185,20 @@ public class Engine {
 		glLineWidth(2);
 		//glEnable(GL11.GL_BLEND);
 
-		createCPUBuffers(1000000);
-		createDrawBuffers(1000000);
+		createDrawBuffers();
 	}
 
 	private Vector3f tempModel = new Vector3f();
 	private Matrix4f modelVec = new Matrix4f();
 
-	private record IndirectDrawCommand(
-			int count,
-			int instanceCount,
-			int firstIndex,
-			int baseVertex,
-			int baseInstance
-	) {
-		public static final int SIZE_BYTES = 5 * Integer.BYTES;
-	}
-
-	public static IndirectDrawCommand from(SectionMeshDrawCommand mesh) {
-		return new IndirectDrawCommand(
-				(int) mesh.indexRange.count(),
-				1,
-				(int) (mesh.indexRange.valueByteOffset() / Integer.BYTES),
-				(int) (mesh.vertexRange.valueByteOffset() / (2 * Integer.BYTES)),
-				0
-		);
-	}
-
 	private final class MeshPageBatch {
 		public final int pageIndex;
 
-		public final List<IndirectDrawCommand> commands =
-				new ArrayList<>();
+		public final IntArrayList commands =
+				new IntArrayList(1500);
 
 		public final IntArrayList models =
-				new IntArrayList();
+				new IntArrayList(1500);
 
 		public MeshPageBatch(int pageIndex) {
 			this.pageIndex = pageIndex;
@@ -233,94 +213,73 @@ public class Engine {
 				SectionMeshDrawCommand mesh,
 				int x, int y, int z
 		) {
-			commands.add(from(mesh));
+			commands.add((int) (mesh.indexRange.count()));
+			commands.add(1);
+			commands.add((int) (mesh.indexRange.valueByteOffset() / Integer.BYTES));
+			commands.add((int) (mesh.vertexRange.valueByteOffset() / (2 * Integer.BYTES)));
+			commands.add(models.size()/3);
 			models.add(x);
 			models.add(y);
 			models.add(z);
 		}
 	}
 
-	private ByteBuffer commandData;
-	private FloatBuffer modelData;
-	private void createCPUBuffers(int maxDraws) {
-		commandData = BufferUtils.createByteBuffer(maxDraws * IndirectDrawCommand.SIZE_BYTES);
+	private final static int MAX_COMMAND_COUNT_PER_FRAME = 5000;
+	private final long[] ringFences = new long[3];
 
-		modelData = BufferUtils.createFloatBuffer(maxDraws * 16);
+	private int indirectBuffer, ssboBuffer;
+	private IntBuffer directCommandBuffer, directModelBuffer;
+	private void createDrawBuffers() {
+		indirectBuffer = glCreateBuffers();
+		int flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+		long commandSize = (MAX_COMMAND_COUNT_PER_FRAME * (5 * Integer.BYTES) * 3);
+		long modelSize = (MAX_COMMAND_COUNT_PER_FRAME * (3 * Integer.BYTES) * 3);
+
+		glNamedBufferStorage(indirectBuffer, commandSize, flags);
+		directCommandBuffer = glMapNamedBufferRange(indirectBuffer, 0, commandSize, flags, null).asIntBuffer();
+
+		ssboBuffer = glCreateBuffers();
+		glNamedBufferStorage(ssboBuffer, modelSize, flags);
+		directModelBuffer = glMapNamedBufferRange(ssboBuffer, 0, modelSize, flags, null).asIntBuffer();
 	}
 
-	private int indirectBuffer;
-	private int modelBuffer;
+	private int cpuRingIndex = 0;
+	private void uploadBatch(MeshPageBatch batch, int commandBatchOffset, int modelBatchOffset) {
+		int baseBufferIndex = cpuRingIndex * (MAX_COMMAND_COUNT_PER_FRAME * 5) + commandBatchOffset;
 
-	private void createDrawBuffers(int maxDraws) {
-		indirectBuffer = glGenBuffers();
-		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
-		glBufferData(GL_DRAW_INDIRECT_BUFFER, (long)maxDraws * IndirectDrawCommand.SIZE_BYTES, GL_STREAM_DRAW);
-
-		modelBuffer = glGenBuffers();
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelBuffer);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, (long)maxDraws * 16 * Float.BYTES, GL_STREAM_DRAW);
-
-		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-	}
-
-	private void uploadBatch(MeshPageBatch batch) {
-		commandData.clear();
-		modelData.clear();
-
-		int mBaseIndex = 0;
+		IntArrayList cCommandValues = batch.commands;
 		IntArrayList mMatrixValues = batch.models;
-		for (int i = 0; i < batch.commands.size(); i++) {
-			IndirectDrawCommand cmd = batch.commands.get(i);
 
-			commandData.putInt(cmd.count());
-			commandData.putInt(cmd.instanceCount());
-			commandData.putInt(cmd.firstIndex());
-			commandData.putInt(cmd.baseVertex());
-			commandData.putInt(cmd.baseInstance());
+		int globalModelOffset = (modelBatchOffset/3);
+		for (int i = 0; i < cCommandValues.size(); i+=5) {
+			directCommandBuffer.put(baseBufferIndex, cCommandValues.getInt(i));
+			directCommandBuffer.put(baseBufferIndex+1, cCommandValues.getInt(i+1));
+			directCommandBuffer.put(baseBufferIndex+2, cCommandValues.getInt(i+2));
+			directCommandBuffer.put(baseBufferIndex+3, cCommandValues.getInt(i+3));
+			directCommandBuffer.put(baseBufferIndex+4, cCommandValues.getInt(i+4) + globalModelOffset);
 
-			float x = mMatrixValues.getInt(mBaseIndex);
-			float y = mMatrixValues.getInt(mBaseIndex+1);
-			float z = mMatrixValues.getInt(mBaseIndex+2);
-			int base = i*16;
-			modelData.put(base + 0, 1);
-			modelData.put(base + 5, 1);
-			modelData.put(base + 10, 1);
-			modelData.put(base + 15, 1);
-
-			modelData.put(base + 12, x);
-			modelData.put(base + 13, y);
-			modelData.put(base + 14, z);
-
-			mBaseIndex += 3;
+			baseBufferIndex += 5;
 		}
 
-		commandData.flip();
-		modelData.position(batch.models.size()/3 * 16);
-		modelData.flip();
+		baseBufferIndex = cpuRingIndex * (MAX_COMMAND_COUNT_PER_FRAME * 3) + modelBatchOffset;
+		int vectorsAdded = 0;
+		for (int i = 0; i < mMatrixValues.size(); i += 3) {
+			int x = mMatrixValues.getInt(i);
+			int y = mMatrixValues.getInt(i+1);
+			int z = mMatrixValues.getInt(i+2);
+			int base = baseBufferIndex + vectorsAdded*3;
 
-		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
-		glBufferData(
-				GL_DRAW_INDIRECT_BUFFER,
-				(long) commandData.capacity(),
-				GL_STREAM_DRAW
-		);
-		glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commandData);
+			directModelBuffer.put(base, x);
+			directModelBuffer.put(base + 1, y);
+			directModelBuffer.put(base + 2, z);
 
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelBuffer);
-		glBufferData(
-				GL_SHADER_STORAGE_BUFFER,
-				(long) modelData.capacity(),
-				GL_STREAM_DRAW
-		);
-		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, modelData);
-
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelBuffer);
+			vectorsAdded++;
+		}
 	}
 
-	private Map<Integer, MeshPageBatch> batches = new HashMap<>();
-	private Set<MeshPage> usedPages = new HashSet<>();
-	private Set<SectionMeshDrawCommand> usedDrawCommands = new HashSet<>();
+	private Map<Integer, MeshPageBatch> batches = new HashMap<>(50);
+	private Set<MeshPage> usedPages = new HashSet<>(50);
+	private Set<SectionMeshDrawCommand> usedDrawCommands = new HashSet<>(1500);
 
 	public void render() {
 		glClearColor(0.5f, 0.6f, 0.8f, 1.0f); // Sky Blue
@@ -351,7 +310,6 @@ public class Engine {
 				batch.clear();
 			}
 
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelBuffer);
 			Long2ObjectMaps.fastForEach(worldScene.getRendered(), entry -> {
 				ChunkColumn chunk = entry.getValue();
 				if (chunk == null) return;
@@ -384,27 +342,57 @@ public class Engine {
 				}
 			});
 
+			long indirectSliceByteOffset = (long) cpuRingIndex * MAX_COMMAND_COUNT_PER_FRAME * 5 * Integer.BYTES;
+			long modelSliceByteOffset = (long) cpuRingIndex * MAX_COMMAND_COUNT_PER_FRAME * 3 * Integer.BYTES;
+			long modelSliceByteSize = (long) MAX_COMMAND_COUNT_PER_FRAME * 3 * Integer.BYTES;
+
+			// in ints
+			int commandBatchOffset = 0;
+			int modelBatchOffset = 0;
+
+			if (ringFences[cpuRingIndex] != 0L) {
+				int result = glClientWaitSync(
+						ringFences[cpuRingIndex],
+						GL_SYNC_FLUSH_COMMANDS_BIT,
+						1_000_000_000L
+				);
+
+				if (result == GL_WAIT_FAILED) {
+					throw new IllegalStateException("Fence wait failed");
+				}
+
+				if (result == GL_TIMEOUT_EXPIRED) {
+					throw new IllegalStateException("Fence timeout");
+				}
+
+				glDeleteSync(ringFences[cpuRingIndex]);
+				ringFences[cpuRingIndex] = 0L;
+			}
+
 			for (MeshPageBatch batch : batches.values()) {
-				//if (batch.pageIndex == 0) continue; // d1
 				if (batch.commands.isEmpty()) continue;
 				MeshPage page = meshArena.getPage(batch.pageIndex);
-				uploadBatch(batch);
-				glBindVertexArray(page.getVao());
-				usedPages.add(page);
+				uploadBatch(batch, commandBatchOffset, modelBatchOffset);
 
+				glBindVertexArray(page.getVao());
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, ssboBuffer, modelSliceByteOffset, modelSliceByteSize);
+
+				usedPages.add(page);
 				glMultiDrawElementsIndirect(
 						GL_TRIANGLES,
 						GL_UNSIGNED_INT,
-						0L,
-						batch.commands.size(),
+						indirectSliceByteOffset + (long) commandBatchOffset * Integer.BYTES,
+						batch.commands.size()/5,
 						0
 				);
-				//glFinish();
+
+				commandBatchOffset += batch.commands.size();
+				modelBatchOffset += batch.models.size();
 
 				glBindVertexArray(0);
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-				//break; // d2
 			}
 
 			mainShader.stop();
@@ -499,23 +487,36 @@ public class Engine {
 				//if (batch.pageIndex == 0) continue; // d1
 				if (batch.commands.isEmpty()) continue;
 				MeshPage page = meshArena.getPage(batch.pageIndex);
-				uploadBatch(batch);
+				uploadBatch(batch, commandBatchOffset, modelBatchOffset);
+
 				glBindVertexArray(page.getVao());
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, ssboBuffer, modelSliceByteOffset, modelSliceByteSize);
+
 				usedPages.add(page);
 
 				glMultiDrawElementsIndirect(
 						GL_TRIANGLES,
 						GL_UNSIGNED_INT,
-						0L,
-						batch.commands.size(),
+						indirectSliceByteOffset + (long) commandBatchOffset * Integer.BYTES,
+						batch.commands.size()/5,
 						0
 				);
+
+				commandBatchOffset += batch.commands.size();
+				modelBatchOffset += batch.models.size();
 
 				glBindVertexArray(0);
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 				//break; // d2
 			}
+
+			if (ringFences[cpuRingIndex] != 0L) {
+				glDeleteSync(ringFences[cpuRingIndex]);
+			}
+			ringFences[cpuRingIndex] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+			cpuRingIndex = (cpuRingIndex + 1) % 3;
 
 			for (MeshPage p : usedPages) {
 				p.setLastFence();

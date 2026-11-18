@@ -1,8 +1,7 @@
 #version 460 core
-#extension GL_ARB_shader_draw_parameters : enable
 layout (location = 0) in ivec2 packedData;
-layout (std430, binding = 0) readonly buffer ModelMatrices {
-    mat4 models[];
+layout (std430, binding = 0) readonly buffer ModelPositions {
+    int modelData[];
 };
 
 out vec3 TexCoord;
@@ -13,7 +12,12 @@ uniform mat4 view;
 uniform mat4 projection;
 
 void main() {
-    mat4 model = models[gl_DrawID];
+    int modelIndex = gl_BaseInstance * 3;
+    ivec3 modelPos = ivec3(
+        modelData[modelIndex],
+        modelData[modelIndex + 1],
+        modelData[modelIndex + 2]
+    );
 
 	int dat1 = packedData.x;
 	int dat2 = packedData.y;
@@ -34,12 +38,10 @@ void main() {
     else if (aoLevel == 1) vAoFactor = 0.55;
     else vAoFactor = 0.4;
     lightFactor = light;
-	
-	vec3 pos = vec3(float(x), float(y), float(z));
-	
-    float multiplier = (scaleFlag == 1) ? 0.1 : 1.0;
-    pos *= multiplier;
-	
-	gl_Position = projection * view * model * vec4(pos, 1.0);
+	float multiplier = (scaleFlag == 1) ? 0.1 : 1.0;
+
+	vec3 pos = vec3(float(x), float(y), float(z)) * multiplier + vec3(modelPos);
+
+	gl_Position = projection * view * vec4(pos, 1.0);
 	TexCoord = vec3(float(u), float(v), int(TexId));
 }

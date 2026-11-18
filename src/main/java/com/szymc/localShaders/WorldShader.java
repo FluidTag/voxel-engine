@@ -35,12 +35,6 @@ public class WorldShader extends Shader {
 		tex.bind(0);
 		this.stop();
 	}
-
-	public void setModel(Matrix4f model, FloatBuffer buffer) {
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelSSBO);
-		model.get(0, buffer);
-		glNamedBufferSubData(modelSSBO, 0L, buffer);
-	}
 	
 	public Texture getTexture() {
 		return tex;
